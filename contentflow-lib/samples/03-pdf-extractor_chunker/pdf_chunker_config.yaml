@@ -1,0 +1,39 @@
+# PDF Extraction and Chunking Pipeline Configuration
+#
+# Demonstrates extracting PDF content and creating intelligent chunks for RAG
+
+pipelines:
+  - name: pdf_extraction_and_chunking_pipeline
+    description: Pipeline to extract PDF content and create structure-aware chunks optimized for RAG retrieval.
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+
+      - id: extract
+        type: pdf_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 5
+          extract_text: true
+          extract_pages: true
+          extract_images: false
+
+      - id: chunk
+        type: recursive_text_chunker # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          # Input/Output configuration
+          input_field: pdf_output.text
+          output_field: chunks
+          # Parallel processing
+          max_concurrent: 3
+          continue_on_error: true
+
+      - id: pass_through
+        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract, chunk, pass_through]

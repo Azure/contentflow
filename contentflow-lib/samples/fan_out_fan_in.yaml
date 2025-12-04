@@ -1,0 +1,158 @@
+# Fan-Out/Fan-In Multi-Path Processing
+#
+# Process document through multiple parallel paths, then combine results.
+# Pattern: Single source → Multiple parallel paths → Join → Output
+
+connectors:
+  - name: storage
+    type: blob_storage
+    settings:
+      account_name: ${STORAGE_ACCOUNT}
+  
+  - name: doc_intelligence
+    type: document_intelligence
+    settings:
+      endpoint: ${DOCUMENT_INTELLIGENCE_ENDPOINT}
+  
+  - name: ai_model
+    type: ai_inference
+    settings:
+      endpoint: ${AI_ENDPOINT}
+  
+  - name: search
+    type: ai_search
+    settings:
+      endpoint: ${SEARCH_ENDPOINT}
+      index_name: documents
+
+workflows:
+  - name: fan_out_fan_in
+    description: Process through 3 parallel paths, then combine
+    
+    executors:
+      # Single entry point
+      - id: retrieve
+        type: content_retriever
+        connectors: [storage]
+      
+      # Path 1: Structure extraction
+      - id: path_structure
+        type: document_intelligence_extractor
+        settings:
+          model_id: prebuilt-layout
+          extract_text: true
+          extract_tables: true
+          extract_key_value_pairs: true
+        connectors: [doc_intelligence]
+      
+      # Path 2: Content analysis
+      - id: path_analysis
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Analyze document content deeply:
+            - Main themes and topics
+            - Key arguments or points
+            - Document structure and organization
+            - Target audience
+          user_prompt: "Analyze: {content}"
+          max_completion_tokens: 800
+        connectors: [ai_model]
+      
+      # Path 3: Metadata extraction
+      - id: path_metadata
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Extract document metadata:
+            - Title, author, date
+            - Document type (report, invoice, contract, etc.)
+            - Language
+            - Subject matter classification
+          user_prompt: "Extract metadata from: {content}"
+          max_completion_tokens: 300
+        connectors: [ai_model]
+      
+      # Path 4: Entity recognition
+      - id: path_entities
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Extract all named entities:
+            - PERSON: People mentioned
+            - ORG: Organizations
+            - LOC: Locations
+            - DATE: Dates
+            - MONEY: Monetary amounts
+          user_prompt: "Find entities in: {content}"
+          max_completion_tokens: 500
+        connectors: [ai_model]
+      
+      # Fan-in: Combine all parallel paths
+      - id: combine
+        type: result_combiner
+        settings:
+          combine_strategy: merge_fields
+          wait_for_all: true          # Wait for all 4 paths
+          combine_fields:
+            structure: path_structure
+            analysis: path_analysis
+            metadata: path_metadata
+            entities: path_entities
+          create_summary: true
+        connectors: []
+      
+      # Enrich combined data
+      - id: enrich_combined
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Given all extracted information, create comprehensive summary:
+            - Executive summary
+            - Key insights
+            - Recommended actions
+            - Related topics
+          user_prompt: |
+            Structure: {structure}
+            Analysis: {analysis}
+            Metadata: {metadata}
+            Entities: {entities}
+          max_completion_tokens: 1000
+        connectors: [ai_model]
+      
+      # Index final result
+      - id: index
+        type: ai_search_index_writer
+        settings:
+          index_mode: document
+          metadata_fields:
+            - structure
+            - analysis
+            - metadata
+            - entities
+            - summary
+        connectors: [search]
+    
+    # Explicit edge configuration for fan-out/fan-in
+    edges:
+      # Sequential start
+      - from: retrieve
+        to: [path_structure, path_analysis, path_metadata, path_entities]
+        type: parallel  # Fan-out to 4 parallel paths
+        description: "Process document through 4 parallel analysis paths"
+      
+      # Fan-in: All paths join at combiner
+      - from: [path_structure, path_analysis, path_metadata, path_entities]
+        to: combine
+        type: join
+        wait_strategy: all  # Wait for ALL paths to complete
+        description: "Combine results from all 4 paths"
+      
+      # Sequential continuation
+      - from: combine
+        to: enrich_combined
+        type: sequential
+      
+      - from: enrich_combined
+        to: index
+        type: sequential

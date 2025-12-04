@@ -1,0 +1,35 @@
+# Excel Extraction Configuration
+#
+# Demonstrates extracting content from Excel workbooks
+
+pipelines:
+  - name: excel_extraction_pipeline
+    description: Pipeline to extract text, sheets, tables, and properties from Excel workbooks using ExcelExtractorExecutor.
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+
+      - id: extract
+        type: excel_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+          extract_text: true
+          extract_sheets: true
+          extract_tables: true
+          extract_properties: true
+          extract_formulas: false
+          extract_comments: false
+          extract_images: false
+          read_only: true
+          data_only: true
+          include_empty_cells: false
+
+      - id: pass_through
+        type: pass_through_processor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract, pass_through]

@@ -1,0 +1,120 @@
+# Document Split-Process-Merge Configuration
+#
+# Split large documents into chunks, process in parallel, then merge.
+# Pattern: Split → Fan-out to chunk subworkflows → Fan-in to merge
+
+connectors:
+  - name: storage
+    type: blob_storage
+    settings:
+      account_name: ${STORAGE_ACCOUNT}
+  
+  - name: doc_intelligence
+    type: document_intelligence
+    settings:
+      endpoint: ${DOCUMENT_INTELLIGENCE_ENDPOINT}
+  
+  - name: ai_model
+    type: ai_inference
+    settings:
+      endpoint: ${AI_ENDPOINT}
+
+# Subworkflow: Process a single chunk
+subworkflows:
+  - name: process_chunk
+    description: Extract and analyze one document chunk
+    
+    executors:
+      # Extract content from chunk
+      - id: extract
+        type: document_intelligence_extractor
+        settings:
+          model_id: prebuilt-layout
+          extract_text: true
+          extract_tables: true
+        connectors: [doc_intelligence]
+      
+      # Analyze extracted content
+      - id: analyze
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            You are a document analyzer. Extract:
+            - Named entities (people, organizations, locations)
+            - Important dates
+            - Key numbers and amounts
+            - Main topics
+            Return structured JSON.
+          user_prompt: |
+            Analyze this chunk:
+            Page(s): {page_range}
+            Content: {content}
+          max_completion_tokens: 500
+          temperature: 0.3
+        connectors: [ai_model]
+      
+      # Calculate sentiment
+      - id: sentiment
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Analyze sentiment. Return score 0.0-1.0 (negative to positive)."
+          user_prompt: "Text: {content}"
+          max_completion_tokens: 50
+          temperature: 0.1
+        connectors: [ai_model]
+    
+    # Sequential: extract → analyze → sentiment
+    execution_sequence: [extract, analyze, sentiment]
+
+# Main workflow
+workflows:
+  - name: document_split_merge
+    description: Split document, process chunks in parallel, merge results
+    
+    executors:
+      # Retrieve document
+      - id: retrieve
+        type: content_retriever
+        settings:
+          use_temp_file_for_content: true
+        connectors: [storage]
+      
+      # Split into chunks (by pages)
+      - id: split
+        type: document_splitter
+        settings:
+          split_by: pages           # Split by page count
+          chunk_size: 5             # 5 pages per chunk
+          overlap_pages: 1          # 1 page overlap between chunks
+          output_field: chunks      # Store chunks in this field
+        connectors: []
+      
+      # Fan-out: Process chunks in parallel
+      - id: process_chunks
+        type: chunk_processor
+        settings:
+          subworkflow: process_chunk  # Use chunk processing subworkflow
+          max_parallel: 5             # Process 5 chunks simultaneously
+          chunk_field: chunks         # Field containing chunks
+          chunk_id_field: chunk_id    # Identifier for each chunk
+          timeout_seconds: 300        # 5 min timeout per chunk
+        connectors: []
+      
+      # Fan-in: Merge all chunk results
+      - id: merge
+        type: result_aggregator
+        settings:
+          aggregation_strategy: merge
+          merge_fields:
+            - entities              # Combine all entities
+            - dates                 # Combine all dates
+            - amounts               # Combine all amounts
+          compute_stats:
+            - field: sentiment_score
+              operations: [avg, min, max]
+            - field: word_count
+              operations: [sum, avg]
+          include_chunk_details: true
+        connectors: []
+    
+    execution_sequence: [retrieve, split, process_chunks, merge]

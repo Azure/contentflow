@@ -1,0 +1,98 @@
+# Advanced Batch Processor Configuration
+#
+# Demonstrates comprehensive batch processing capabilities
+
+pipelines:
+  # Basic batch processing
+  - name: basic_batch
+    executors:
+      - id: load_data
+        type: content_retriever
+        
+      - id: batch_process
+        type: batch_processor
+        settings:
+          items_key: records
+          batch_size: 10
+          max_concurrent: 1
+    
+    execution_sequence: [load_data, batch_process]
+  
+  # Parallel batch processing
+  - name: parallel_batch
+    executors:
+      - id: load_data
+        type: content_retriever
+        
+      - id: filter_items
+        type: filter_processor
+        settings:
+          items_key: records
+          filter_field: status
+          filter_value: active
+          filter_operator: equals
+          remove_duplicates: true
+      
+      - id: batch_process
+        type: batch_processor
+        settings:
+          items_key: filtered_items
+          batch_size: 25
+          max_concurrent: 4
+          retry_failures: true
+          max_retries: 2
+    
+    execution_sequence: [load_data, filter_items, batch_process]
+  
+  # Parallel document processing
+  - name: parallel_documents
+    executors:
+      - id: load_documents
+        type: content_retriever
+        
+      - id: parallel_process
+        type: parallel_document_processor
+        settings:
+          documents_key: documents
+          max_concurrent: 10
+          timeout_secs: 60
+          continue_on_error: true
+    
+    execution_sequence: [load_documents, parallel_process]
+  
+  # Complete processing pipeline
+  - name: complete_pipeline
+    executors:
+      - id: load_data
+        type: content_retriever
+      
+      # Step 1: Filter
+      - id: filter_active
+        type: filter_processor
+        settings:
+          items_key: records
+          filter_field: status
+          filter_value: pending
+          filter_operator: equals
+      
+      # Step 2: Batch process
+      - id: batch_process
+        type: batch_processor
+        settings:
+          items_key: filtered_items
+          batch_size: 20
+          max_concurrent: 3
+          retry_failures: true
+          max_retries: 3
+          preserve_order: true
+      
+      # Step 3: Filter results
+      - id: filter_successful
+        type: filter_processor
+        settings:
+          items_key: processed_items
+          filter_field: success
+          filter_value: true
+          filter_operator: equals
+    
+    execution_sequence: [load_data, filter_active, batch_process, filter_successful]

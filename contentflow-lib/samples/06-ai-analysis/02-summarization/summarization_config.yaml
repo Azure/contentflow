@@ -1,0 +1,39 @@
+# Summarization Executor Configuration
+#
+# Demonstrates using SummarizationExecutor for generating text summaries
+# with different lengths and styles
+
+pipelines:
+  - name: summarization_pipeline
+    description: Pipeline to generate summaries using SummarizationExecutor with Azure OpenAI.
+    executors:
+      # Test with short paragraph style (default)
+      - id: summarizer
+        type: summarization_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          
+          # Summarization-specific settings
+          summary_length: "short"  # Options: brief, short, medium, detailed
+          summary_style: "paragraph"  # Options: bullet_points, paragraph, abstract
+          preserve_key_facts: true
+          # focus_areas: "main findings and implications"  # Optional: specific aspects to focus on
+          
+          # Field configuration
+          input_field: "text"
+          output_field: "summary"
+          include_full_response: false
+          
+          # Model parameters
+          temperature: 0.3  # Lower temperature for more focused summaries
+          max_tokens: 500
+
+      - id: pass_through
+        type: pass_through_executor
+        debug_mode: true
+    
+    execution_sequence: [summarizer, pass_through]

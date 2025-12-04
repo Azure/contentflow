@@ -1,0 +1,31 @@
+# PowerPoint Extraction Configuration
+#
+# Demonstrates extracting content from PowerPoint presentations
+
+pipelines:
+  - name: powerpoint_extraction_pipeline
+    description: Pipeline to extract text, slides, tables, and notes from PowerPoint presentations using PowerPointExtractorExecutor.
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+
+      - id: extract
+        type: powerpoint_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+          extract_text: true
+          extract_slides: true
+          extract_tables: true
+          extract_notes: true
+          extract_properties: true
+          extract_images: true
+
+      - id: pass_through
+        type: pass_through_processor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract, pass_through]

@@ -1,0 +1,53 @@
+# Content Classifier Pipeline Configuration
+# This configuration sets up a pipeline that uses the ContentClassifierExecutor
+# to classify text documents into predefined categories using Azure OpenAI.
+
+pipelines:
+  - name: content_classifier_pipeline
+    description: Pipeline demonstrating ContentClassifierExecutor for text classification
+    executors:
+      - id: classifier
+        type: content_classifier_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          # Azure OpenAI configuration
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          temperature: 0.2  # Low temperature for consistent classification
+          max_tokens: 500
+          
+          # Classification configuration
+          categories:
+            - Technology
+            - Business
+            - Science
+            - Entertainment
+            - Sports
+            - Politics
+            - Health
+            - Education
+          
+          multi_label: false  # Single category per document
+          include_confidence: true
+          include_explanation: true
+          min_confidence: 0.0
+          
+          # Category descriptions for better accuracy
+          category_descriptions:
+            Technology: "Articles about computers, software, AI, gadgets, and tech companies"
+            Business: "Business news, finance, economy, markets, and corporate affairs"
+            Science: "Scientific research, discoveries, space, nature, and academic studies"
+            Entertainment: "Movies, music, celebrities, TV shows, and pop culture"
+            Sports: "Athletics, competitions, teams, players, and sporting events"
+            Politics: "Government, elections, policies, international relations, and political news"
+            Health: "Medicine, wellness, diseases, healthcare, and medical research"
+            Education: "Schools, universities, learning, teaching, and educational policy"
+          
+          # Field configuration
+          input_field: text
+          output_field: classification
+          include_full_response: false
+
+    execution_sequence: [classifier]

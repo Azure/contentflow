@@ -1,0 +1,35 @@
+# Batch Processing Configuration
+#
+# Demonstrates processing multiple documents in batches
+
+pipelines:
+  - name: pdf_extraction_pipeline
+    description: Pipeline to extract text from PDF documents using PDFExtractorExecutor.
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+
+      - id: extract
+        type: pdf_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 5
+
+      - id: azure_openai_embeddings
+        type: azure_openai_embeddings_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          endpoint: ${AZURE_OPENAI_EMBEDDINGS_ENDPOINT}
+          deployment_name: "text-embedding-3-large"
+          credential_type: "default_azure_credential"
+          input_field: "pdf_output.text"
+          output_field: "embedding"
+
+      - id: pass_through
+        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract,  azure_openai_embeddings, pass_through]

@@ -1,0 +1,22 @@
+# Core dependencies
+pydantic>=2.12.5
+pyyaml>=6.0.3
+python-dotenv>=1.2.1
+aiohttp>=3.13.2
+
+# Microsoft Agent Framework
+agent-framework
+
+# Azure dependencies (if using Azure services)
+azure-core==1.36.0
+azure-identity==1.25.1
+azure-storage-blob==12.27.1
+azure-ai-documentintelligence==1.0.2
+azure.appconfiguration.provider==2.3.1
+
+pymupdf==1.26.6
+python-docx==1.2.0
+python-pptx==1.0.2
+openpyxl==3.1.5
+
+colorama==0.4.6

@@ -1,0 +1,40 @@
+# Content Understanding Pipeline Configuration
+#
+# Demonstrates extracting content from documents using Azure Content Understanding
+
+pipelines:
+  - name: content_understanding_pipeline
+    description: Pipeline to extract content from documents using Azure Content Understanding service with 70+ prebuilt analyzers.
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+
+      - id: extract_content
+        type: azure_content_understanding_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          temp_file_path_field: "temp_file_path"
+          output_field: "extracted_content"
+          analyzer_id: "prebuilt-documentSearch"  # RAG-optimized analyzer
+          extract_text: true
+          extract_markdown: true
+          extract_tables: true
+          extract_fields: false
+          extract_pages: true
+          max_concurrent: 3
+          content_understanding_endpoint: ${AZURE_CONTENT_UNDERSTANDING_ENDPOINT}
+          content_understanding_credential_type: "default_azure_credential"
+          # For subscription key auth, use:
+          # content_understanding_credential_type: "azure_key_credential"
+          # content_understanding_subscription_key: ${AZURE_CONTENT_UNDERSTANDING_API_KEY}
+          content_understanding_api_version: "2025-11-01"
+          content_understanding_model_mappings: "gpt-4.1:gpt-4.1,gpt-4.1-mini:gpt-4.1-mini,text-embedding-3-large:text-embedding-3-large"
+
+      - id: pass_through
+        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        debug_mode: false
+    
+    execution_sequence: [get_content, extract_content, pass_through]

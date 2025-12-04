@@ -1,0 +1,40 @@
+# Sentiment Analysis Executor Configuration
+#
+# Demonstrates using SentimentAnalysisExecutor for analyzing text sentiment
+# with confidence scores and emotion detection
+
+pipelines:
+  - name: sentiment_analysis_pipeline
+    description: Pipeline to analyze sentiment using SentimentAnalysisExecutor with Azure OpenAI.
+    executors:
+      # Analyze sentiment with emotions
+      - id: sentiment_analyzer
+        type: sentiment_analysis_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          
+          # Sentiment analysis-specific settings
+          granularity: "document"      # Options: document, sentence, aspect
+          include_confidence: true     # Include confidence scores (0-1)
+          include_emotions: true       # Detect specific emotions
+          # aspects: ["quality", "service", "value"]  # For aspect-based sentiment
+          scale: "5-point"            # Options: 3-point, 5-point
+          
+          # Field configuration
+          input_field: "text"
+          output_field: "sentiment"
+          include_full_response: false
+          
+          # Model parameters
+          temperature: 0.2  # Lower temperature for more consistent analysis
+          max_tokens: 500
+
+      - id: pass_through
+        type: pass_through_executor
+        debug_mode: true
+    
+    execution_sequence: [sentiment_analyzer, pass_through]

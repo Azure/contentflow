@@ -1,0 +1,68 @@
+# Azure Blob Input Executor Configuration
+#
+# This configuration demonstrates how to discover and list content files
+# from Azure Blob Storage containers using the AzureBlobInputExecutor.
+
+pipelines:
+  # Basic blob discovery - list all files
+  - name: blob_discovery_basic
+    executors:
+      - id: discover_blobs
+        type: azure_blob_input
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          blob_container_name: "input-docs"
+    
+    execution_sequence: [discover_blobs]
+
+  # Advanced blob discovery with filters
+  - name: blob_discovery_filtered
+    executors:
+      - id: discover_blobs
+        type: azure_blob_input
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          blob_container_name: "input-docs"
+          prefix: "documents/"
+          file_extensions: [".pdf", ".docx"]
+          max_depth: 2
+          max_results: 50
+          min_size_bytes: 1024
+          sort_by: "last_modified"
+          sort_ascending: false
+    
+    execution_sequence: [discover_blobs]
+
+  # Full pipeline: Discover → Retrieve → Extract
+  - name: blob_to_extraction
+    executors:
+      - id: discover_blobs
+        type: azure_blob_input
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          blob_container_name: "input-docs"
+          prefix: "documents/"
+          file_extensions: [".pdf"]
+          max_results: 3
+          
+      - id: retrieve_content
+        type: content_retriever
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          blob_container_name: "input-docs"
+          use_temp_file_for_content: true
+          max_concurrent: 3
+          
+      - id: extract_content
+        type: azure_document_intelligence_extractor
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+          extract_text: true
+          extract_tables: true
+          max_concurrent: 2
+    
+    execution_sequence: [discover_blobs, retrieve_content, extract_content]

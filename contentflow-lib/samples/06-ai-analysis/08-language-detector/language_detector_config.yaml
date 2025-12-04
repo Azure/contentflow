@@ -1,0 +1,41 @@
+# Language Detector Executor Configuration
+#
+# Demonstrates using LanguageDetectorExecutor for identifying languages in text
+# with confidence scores and optional script/dialect detection
+
+pipelines:
+  - name: language_detector_pipeline
+    description: Pipeline to detect languages using LanguageDetectorExecutor with Azure OpenAI.
+    executors:
+      # Language detection with multiple language support
+      - id: lang_detector
+        type: language_detector_executor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          
+          # Language detection-specific settings
+          detect_multiple: true  # Detect multiple languages if present
+          include_confidence: true  # Include confidence scores (0-1)
+          detect_script: true  # Also identify writing script (Latin, Cyrillic, etc.)
+          detect_dialect: false  # Detect language dialects/variants
+          min_confidence: 0.5  # Minimum confidence threshold
+          iso_format: "name"  # Options: "iso-639-1" (2-letter), "iso-639-3" (3-letter), "name"
+          
+          # Field configuration
+          input_field: "text"
+          output_field: "language"
+          include_full_response: false
+          
+          # Model parameters
+          temperature: 0.1  # Lower temperature for more deterministic results
+          max_tokens: 200
+
+      - id: pass_through
+        type: pass_through_executor
+        debug_mode: true
+    
+    execution_sequence: [lang_detector, pass_through]
