@@ -7,7 +7,7 @@ pipelines:
     description: Pipeline to process content using AI agent with Azure OpenAI.
     executors:
       - id: ai_agent
-        type: azure_openai_agent_executor # refers to the id in executor_catalog.yaml
+        type: azure_openai_agent # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           max_concurrent: 2
@@ -20,7 +20,7 @@ pipelines:
           include_full_response: true
 
       - id: pass_through
-        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: true
     
     execution_sequence: [ai_agent, pass_through]

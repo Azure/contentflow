@@ -59,7 +59,7 @@ async def basic_blob_discovery():
     
     # Load config and create executor
     config_path = Path(__file__).parent / "blob_input_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
@@ -135,18 +135,18 @@ async def filtered_blob_discovery():
     
     # Load config and create executor
     config_path = Path(__file__).parent / "blob_input_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="blob_discovery_filtered",
         executor_catalog_path=executor_catalog_path
-    ) as executor:
+    ) as pipeline_executor:
         
         print(f"\n✓ Pipeline loaded with filters")
         
         # Execute pipeline
-        result = await executor.execute([])
+        result = await pipeline_executor.execute([])
         
         print(f"\n✓ Discovery completed")
         print(f"  Status: {result.status}")
@@ -217,20 +217,20 @@ async def blob_discovery_with_streaming():
     
     # Load config and create executor
     config_path = Path(__file__).parent / "blob_input_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="blob_discovery_filtered",
         executor_catalog_path=executor_catalog_path
-    ) as executor:
+    ) as pipeline_executor:
         
         print(f"\n✓ Pipeline loaded")
         print(f"\n📡 Streaming events...\n")
         
         # Execute with streaming
         discovered_blobs = []
-        async for event in executor.execute_stream([]):
+        async for event in pipeline_executor.execute_stream([]):
             if event.event_type == "ExecutorInvokedEvent":
                 print(f"  ▶ Executor '{event.executor_id}' started")
             elif event.event_type == "ExecutorCompletedEvent":
@@ -278,7 +278,7 @@ async def full_pipeline_example():
     
     # Load config and create executor
     config_path = Path(__file__).parent / "blob_input_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,

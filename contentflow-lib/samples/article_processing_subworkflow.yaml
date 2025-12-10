@@ -1,0 +1,147 @@
+# Real-World Subworkflow Example: Article Processing Pipeline
+#
+# This example demonstrates a realistic use case where articles are processed
+# through multiple stages, with reusable subworkflows for common tasks.
+
+# Subworkflow 1: Content Extraction
+# Reusable component for extracting text from various document formats
+subworkflows:
+  - name: content_extractor
+    description: Extract and clean content from documents
+    
+    executors:
+      - id: detect_format
+        type: pass_through_executor
+        settings:
+          debug: false
+      
+      - id: extract_text
+        type: pass_through_executor
+        settings:
+          operation: extract
+      
+      - id: clean_content
+        type: pass_through_executor
+        settings:
+          operation: clean
+    
+    execution_sequence: [detect_format, extract_text, clean_content]
+
+# Subworkflow 2: Content Analysis
+# Reusable component for analyzing extracted content
+subworkflows:
+  - name: content_analyzer
+    description: Analyze content for entities, topics, and sentiment
+    
+    executors:
+      - id: extract_entities
+        type: pass_through_executor
+        settings:
+          operation: entity_extraction
+      
+      - id: identify_topics
+        type: pass_through_executor
+        settings:
+          operation: topic_modeling
+      
+      - id: analyze_sentiment
+        type: pass_through_executor
+        settings:
+          operation: sentiment_analysis
+    
+    execution_sequence: [extract_entities, identify_topics, analyze_sentiment]
+
+# Main Workflow: Article Processing Pipeline
+# Uses both subworkflows to process articles
+workflows:
+  - name: article_processing_pipeline
+    description: Complete pipeline for processing articles from raw documents to indexed content
+    
+    executors:
+      # Stage 1: Load articles
+      - id: load_articles
+        type: pass_through_executor
+        settings:
+          operation: load
+          source: articles
+      
+      # Stage 2: Extract content using subworkflow
+      - id: extract_content
+        type: content_extractor  # References subworkflow
+        settings:
+          allow_direct_output: false
+          max_iterations: 100
+      
+      # Stage 3: Analyze content using subworkflow
+      - id: analyze_content
+        type: content_analyzer  # References another subworkflow
+        settings:
+          allow_direct_output: false
+          max_iterations: 100
+      
+      # Stage 4: Aggregate results
+      - id: aggregate_analysis
+        type: pass_through_executor
+        settings:
+          operation: aggregate
+          aggregation_strategy: merge
+      
+      # Stage 5: Store results
+      - id: store_results
+        type: pass_through_executor
+        settings:
+          operation: store
+          destination: processed_articles
+    
+    execution_sequence: [
+      load_articles,
+      extract_content,
+      analyze_content,
+      aggregate_analysis,
+      store_results
+    ]
+
+# Alternative: Batch Processing Version
+# Process multiple articles in parallel
+workflows:
+  - name: batch_article_processing
+    description: Process multiple articles in parallel using subworkflows
+    
+    executors:
+      - id: load_batch
+        type: pass_through_executor
+        settings:
+          operation: load_batch
+          batch_size: 10
+      
+      - id: split_batch
+        type: pass_through_executor
+        settings:
+          operation: split
+          split_by: articles
+      
+      # Process each article through the full pipeline
+      # This would ideally reference article_processing_pipeline as a subworkflow
+      # but for this example we'll use the extraction subworkflow
+      - id: process_articles
+        type: content_extractor
+        settings:
+          allow_direct_output: false
+      
+      - id: aggregate_batch
+        type: pass_through_executor
+        settings:
+          operation: batch_aggregate
+      
+      - id: save_batch
+        type: pass_through_executor
+        settings:
+          operation: save_results
+    
+    execution_sequence: [
+      load_batch,
+      split_batch,
+      process_articles,
+      aggregate_batch,
+      save_batch
+    ]

@@ -1,0 +1,137 @@
+# Nested Sub-pipelines - Multi-Level Parallelism
+#
+# Process batch of documents, each split into chunks, with parallel execution at each level.
+# Pattern: Batch → Documents (parallel) → Chunks (parallel) → Aggregate
+
+# # Level 3: Process individual chunk (innermost)
+# subworkflows:
+#   - name: process_chunk
+#     description: Analyze a single document chunk
+    
+#     executors:
+#       - id: extract_chunk_content
+#         type: document_intelligence_extractor
+#         settings:
+#           model_id: prebuilt-layout
+#           extract_text: true
+#           extract_tables: true
+#         connectors: [doc_intelligence]
+      
+#       - id: analyze_chunk_content
+#         type: custom_ai_prompt
+#         settings:
+#           system_prompt: |
+#             Analyze this chunk:
+#             - Extract named entities
+#             - Identify key topics
+#             - Rate importance (1-10)
+#           user_prompt: |
+#             Chunk {chunk_id} (pages {page_range}):
+#             {content}
+#           max_completion_tokens: 400
+#         connectors: [ai_model]
+    
+#     execution_sequence: [extract_chunk_content, analyze_chunk_content]
+
+# # Level 2: Process individual document (uses chunk subworkflow)
+# subworkflows:
+#   - name: process_document
+#     description: Split document and process chunks in parallel
+    
+#     executors:
+#       # Split document into chunks
+#       - id: split_into_chunks
+#         type: document_splitter
+#         settings:
+#           split_by: pages
+#           chunk_size: 3        # 3 pages per chunk
+#           overlap_pages: 1     # 1 page overlap
+#         connectors: []
+      
+#       # Process chunks in parallel (Level 3)
+#       - id: process_chunks_parallel
+#         type: chunk_processor
+#         settings:
+#           subworkflow: process_chunk  # Nested subworkflow!
+#           max_parallel: 5             # 5 chunks at a time
+#           chunk_field: chunks
+#         connectors: []
+      
+#       # Aggregate chunk results for this document
+#       - id: aggregate_chunks
+#         type: result_aggregator
+#         settings:
+#           aggregation_strategy: merge
+#           merge_fields: [entities, topics]
+#           compute_stats:
+#             - field: importance_score
+#               operations: [avg, max]
+#         connectors: []
+      
+#       # Create document-level summary
+#       - id: summarize_document
+#         type: custom_ai_prompt
+#         settings:
+#           system_prompt: "Create executive summary from chunk analyses."
+#           user_prompt: |
+#             Document: {document_id}
+#             Chunk analyses: {chunk_results}
+#           max_completion_tokens: 500
+#         connectors: [ai_model]
+    
+#     execution_sequence: [split_into_chunks, process_chunks_parallel, aggregate_chunks, summarize_document]
+
+
+pipelines:
+  # Level 2: Process individual document (uses chunk subworkflow)
+  - name: process_document
+    description: Split document and process chunks in parallel
+    executors:
+      - id: extract
+        type: azure_document_intelligence_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+          max_concurrent: 5
+      
+      - id: chunk
+        type: recursive_text_chunker # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          # Input/Output configuration
+          input_field: doc_intell_output.text
+          output_field: chunks
+          # Parallel processing
+          max_concurrent: 3
+          continue_on_error: true
+    
+    execution_sequence: [extract, chunk]
+
+  # Level 1: Main pipeline (processes batch of documents)
+  - name: batch_nested_processing
+    description: Process batch with nested parallelism (batch → docs → chunks)
+    
+    executors:
+      # Load batch of documents
+      - id: load_batch
+        type: content_retriever
+        settings:
+          settings:
+          max_concurrent: 5
+      
+      # Process documents in parallel (Level 2)
+      - id: process_documents_parallel
+        type: sub-pipeline
+        settings:
+          pipeline: process_document  # Uses nested chunk processing!
+          
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+
+    execution_sequence: [
+      load_batch,
+      process_documents_parallel,
+      pass_through
+    ]
+

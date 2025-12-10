@@ -5,7 +5,7 @@ PDF Extraction and Chunking Example
 Demonstrates extracting text from PDF documents and creating intelligent chunks using:
 - ContentRetrieverExecutor: Retrieve PDF documents from storage
 - PDFExtractorExecutor: Extract content using PyMuPDF
-- PDFContentChunkerExecutor: Create structure-aware chunks for RAG
+- RecursiveTextChunkerExecutor: Create structure-aware chunks for RAG
 - Efficient processing of PDF document sets
 """
 
@@ -40,13 +40,13 @@ async def run_pipeline():
     
     # Load config
     config_path = Path(__file__).parent / "pdf_chunker_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="pdf_extraction_and_chunking_pipeline",
         executor_catalog_path=executor_catalog_path,
-    ) as pipeline:
+    ) as pipeline_executor:
         
         print(f"\n✓ Initialized pipeline")
         
@@ -72,7 +72,7 @@ async def run_pipeline():
         print(f"\n✓ Created {len(documents)} documents for PDF extraction and chunking")
         
         # Process all documents
-        result = await pipeline.execute(documents[0:5])  # limit to first 5 for testing
+        result = await pipeline_executor.execute(documents[0:5])  # limit to first 5 for testing
     
         # write results to output folder
         output_folder = Path(__file__).parent / "output"

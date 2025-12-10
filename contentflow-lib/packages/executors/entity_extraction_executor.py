@@ -144,7 +144,6 @@ class EntityExtractionExecutor(AzureOpenAIAgentExecutor):
                         parsed = json.loads(json_str)
                         content.data[self.output_field] = parsed
             except json.JSONDecodeError:
-                if self.debug_mode:
-                    logger.debug(f"Could not parse entities as JSON for {content.id}")
+                logger.warning(f"Could not parse entities as JSON for {content.id}")
         
         return content

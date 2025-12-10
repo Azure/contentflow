@@ -14,7 +14,7 @@ export interface ExecutorType {
   name: string;
   icon: React.ReactNode;
   color: string;
-  category: "extract" | "transform" | "analyze" | "workflow" | "media" | "enrichment" | "input" | "output";
+  category: "extract" | "transform" | "analyze" | "pipeline" | "media" | "enrichment" | "input" | "output";
   description?: string;
 }
 
@@ -622,12 +622,12 @@ export const executorTypes: ExecutorType[] = [
   
   // Workflow
   { 
-    id: "subworkflow", 
-    type: "workflow", 
-    name: "Sub-Workflow", 
+    id: "subpipeline", 
+    type: "pipeline", 
+    name: "Sub-Pipeline", 
     icon: <Workflow className="w-5 h-5" />, 
     color: "bg-gradient-primary", 
-    category: "workflow",
-    description: "Execute a nested workflow"
+    category: "pipeline",
+    description: "Execute a nested pipeline within the main pipeline"
   },
 ];

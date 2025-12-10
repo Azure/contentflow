@@ -30,7 +30,8 @@ class ContentUnderstandingConnector(ConnectorBase):
         - credential_type: 'subscription_key', 'token_provider', or 'default_azure_credential'
         - subscription_key: API subscription key (required for subscription_key)
         - api_version: API version (default: '2025-11-01')
-        - timeout: Timeout in seconds for service calls (default: 60)
+        - timeout: Timeout in seconds for service calls (default: 180)
+        - polling_interval: Seconds between polling for long-running operations (default: 2)
         - default_model_deployments: Default model deployment mappings
     
     Example:
@@ -65,10 +66,7 @@ class ContentUnderstandingConnector(ConnectorBase):
         )
         ```
     """
-    
-    POLL_TIMEOUT_SECONDS = 180
-    POLLING_INTERVAL_SECONDS = 2
-    
+   
     def __init__(self, name: str, settings: Dict[str, Any], **kwargs):
         super().__init__(
             name=name,
@@ -94,7 +92,14 @@ class ContentUnderstandingConnector(ConnectorBase):
         if self.credential_type == 'azure_key_credential':
             self.subscription_key = self._resolve_setting("subscription_key", required=True)
         
-        self.timeout = self._resolve_setting("timeout", default=60)
+        self.timeout = self._resolve_setting("timeout", default=180)
+        if isinstance(self.timeout, str):
+            self.timeout = int(self.timeout)
+            
+        self.polling_interval = self._resolve_setting("polling_interval", default=2)
+        if isinstance(self.polling_interval, str):
+            self.polling_interval = int(self.polling_interval)
+        
         self.default_model_deployments = self._resolve_setting("default_model_deployments", default=None)
         
         # Initialize headers reference
@@ -347,8 +352,8 @@ class ContentUnderstandingConnector(ConnectorBase):
         Returns:
             Final analysis result
         """
-        timeout = timeout_seconds or self.POLL_TIMEOUT_SECONDS
-        interval = polling_interval_seconds or self.POLLING_INTERVAL_SECONDS
+        timeout = timeout_seconds or self.timeout
+        interval = polling_interval_seconds or self.polling_interval
         
         operation_location = response.headers.get("operation-location", "")
         if not operation_location:

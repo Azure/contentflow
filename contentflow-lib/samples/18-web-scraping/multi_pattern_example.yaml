@@ -1,0 +1,46 @@
+executors:
+  - id: cross_domain_scraper
+    type: web_scraper
+    settings:
+      # Explicit start URLs - can be from different domains or sections
+      start_urls:
+        - "https://example.com/homepage"
+        - "https://example.com/about"
+        - "https://blog.example.com/"
+      
+      # Link patterns - followed links must match at least one pattern
+      # This allows crawling across different URL structures
+      link_patterns:
+        - "https://example.com/blog/*"
+        - "https://example.com/article/*"
+        - "https://blog.example.com/posts/*"
+        - "https://blog.example.com/category/*"
+      
+      # CSS selectors for data extraction
+      selectors:
+        title: "h1"
+        author: ".author-name"
+        date: "time@datetime"
+        content: "article"
+        category: ".category@href"
+      
+      # Enable crawling with link following
+      follow_links: true
+      max_depth: 3
+      max_pages: 50
+      
+      # JavaScript rendering
+      render_js: true
+      
+      # Screenshot settings
+      screenshot_enabled: true
+      screenshot_save_to_file: true
+      screenshot_output_dir: "./screenshots/multi_domain"
+      screenshot_filename_template: "{timestamp}_{index}.{ext}"
+      screenshot_type: "png"
+      
+      # Rate limiting - be respectful
+      rate_limit: 1.0
+      
+      # Output field name
+      output_field: "web_scraping_output"

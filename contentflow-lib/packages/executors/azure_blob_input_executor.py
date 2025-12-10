@@ -9,7 +9,7 @@ from agent_framework import WorkflowContext
 
 from .base import BaseExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
-from ..connectors import BlobConnector
+from ..connectors import AzureBlobConnector
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ class AzureBlobInputExecutor(BaseExecutor):
             self.modified_before_dt = datetime.fromisoformat(self.modified_before)
         
         # Initialize blob connector
-        self.blob_connector = BlobConnector(
+        self.blob_connector = AzureBlobConnector(
             name="blob_input_connector",
             settings={
                 "account_name": self.blob_storage_account,

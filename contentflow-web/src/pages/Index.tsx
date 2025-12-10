@@ -1,23 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Hero } from "@/components/Hero";
-import { WorkflowBuilder } from "@/components/WorkflowBuilder";
+import { PipelineBuilder } from "@/components/PipelineBuilder";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { Vaults } from "@/pages/Vaults";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderOpen } from "lucide-react";
+import { BookOpen, FolderOpen, Workflow } from "lucide-react";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const viewParam = searchParams.get("view");
-  const [activeView, setActiveView] = useState<"home" | "workflow" | "graph" | "vaults">(
-    (viewParam as "home" | "workflow" | "graph" | "vaults") || "home"
+  const [activeView, setActiveView] = useState<"home" | "pipeline" | "graph" | "vaults">(
+    (viewParam as "home" | "pipeline" | "graph" | "vaults") || "home"
   );
 
   useEffect(() => {
-    if (viewParam && ["home", "workflow", "graph", "vaults"].includes(viewParam)) {
-      setActiveView(viewParam as "home" | "workflow" | "graph" | "vaults");
+    if (viewParam && ["home", "pipeline", "graph", "vaults"].includes(viewParam)) {
+      setActiveView(viewParam as "home" | "pipeline" | "graph" | "vaults");
     }
   }, [viewParam]);
 
@@ -25,10 +25,13 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary" />
+            <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+              {/* <Workflow className="w-5 h-5 text-white" /> */}
+              <img src="/01038-icon-service-Collaborative-Service.svg" alt="ContentFlow" className="inline-block w-5 h-5" />
+            </div>
             <span className="font-display text-xl font-bold text-foreground">ContentFlow</span>
-          </div>
+            </div>
           <div className="flex items-center gap-4">
             <Button
               variant={activeView === "home" ? "default" : "ghost"}
@@ -37,10 +40,10 @@ const Index = () => {
               Home
             </Button>
             <Button
-              variant={activeView === "workflow" ? "default" : "ghost"}
-              onClick={() => setActiveView("workflow")}
+              variant={activeView === "pipeline" ? "default" : "ghost"}
+              onClick={() => setActiveView("pipeline")}
             >
-              Workflow Builder
+              Pipeline Builder
             </Button>
             <Button
               variant={activeView === "graph" ? "default" : "ghost"}
@@ -69,8 +72,8 @@ const Index = () => {
       </nav>
 
       <main className="pt-20">
-        {activeView === "home" && <Hero onGetStarted={() => setActiveView("workflow")} />}
-        {activeView === "workflow" && <WorkflowBuilder />}
+        {activeView === "home" && <Hero onGetStarted={() => setActiveView("pipeline")} />}
+        {activeView === "pipeline" && <PipelineBuilder />}
         {activeView === "graph" && <KnowledgeGraph />}
         {activeView === "vaults" && <Vaults />}
       </main>

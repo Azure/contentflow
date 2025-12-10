@@ -25,7 +25,7 @@ pipelines:
           extract_images: true
 
       - id: pass_through
-        type: pass_through_processor # refers to the id in executor_catalog.yaml
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: true
     
     execution_sequence: [get_content, extract, pass_through]

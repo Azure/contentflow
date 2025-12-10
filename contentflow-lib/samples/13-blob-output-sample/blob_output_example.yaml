@@ -1,0 +1,38 @@
+# Azure Blob Output Executor - Sample Configuration
+# This example demonstrates how to write processed content to Azure Blob Storage
+
+pipelines:
+  # Example 1: Basic blob output with default settings
+  - name: "basic_blob_output_pipeline"
+    description: "Process documents and write results to Azure Blob Storage"
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 1
+
+      - id: extract
+        type: pdf_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 5
+
+      - id: blob_output
+        type: azure_blob_output # refers to the id in executor_catalog.yaml
+        settings:
+          storage_account_name: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          credential_type: "default_azure_credential"
+          container_name: "processed-output"
+          path_template: "{executor_id}/{year}/{month}/{day}/"
+          filename_template: "{id.unique_id}_{timestamp}.json"
+          compression: "gzip"
+          overwrite_existing: false
+          pretty_print: true
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract, blob_output, pass_through]
+    

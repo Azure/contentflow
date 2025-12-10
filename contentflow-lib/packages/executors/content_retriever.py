@@ -7,11 +7,9 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 
-from agent_framework import WorkflowContext
-
 from . import ParallelExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
-from ..connectors import BlobConnector
+from ..connectors import AzureBlobConnector
     
 logger = logging.getLogger(__name__)
 
@@ -99,9 +97,9 @@ class ContentRetrieverExecutor(ParallelExecutor):
         self.blob_container_name = self.get_setting("blob_container_name", default="documents")
         
         # Setup blob connector
-        self.blob_connector: BlobConnector = None
+        self.blob_connector: AzureBlobConnector = None
         if self.blob_storage_account:
-            self.blob_connector = BlobConnector('storage', settings={
+            self.blob_connector = AzureBlobConnector('storage', settings={
                 "account_name": self.blob_storage_account,
                 "credential_type": self.blob_storage_account_credential_type,
                 "credential_key": self.blob_storage_account_key
@@ -219,7 +217,7 @@ class ContentRetrieverExecutor(ParallelExecutor):
         """Retrieve content from blob storage."""
         
         if not self.blob_connector:
-            raise ValueError("BlobConnector not configured for blob storage retrieval")
+            raise ValueError("BlobConnector not initialized. Cannot retrieve blob content.")
         
         # Ensure connector is initialized
         await self.blob_connector.initialize()

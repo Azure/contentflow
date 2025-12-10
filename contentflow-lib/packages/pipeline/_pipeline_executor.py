@@ -13,16 +13,15 @@ from typing import Any, Dict, List, Optional, AsyncIterator, Union, cast
 from pathlib import Path
 from datetime import datetime, timezone
 from enum import Enum
-
-from agent_framework import Workflow, WorkflowRunResult, WorkflowOutputEvent
 from pydantic import BaseModel, Field
 
+from agent_framework import Workflow, WorkflowRunResult, WorkflowOutputEvent
+
 from ..models import Content
-from ..factory.pipeline_factory import PipelineFactory
+from .pipeline_factory import PipelineFactory
 from ._pipeline import PipelineEvent, PipelineResult, PipelineStatus
 
-logger = logging.getLogger("doc_proc_workflow.pipeline_executor")
-
+logger = logging.getLogger("contentflow.lib.pipeline.executor")
 
 class PipelineExecutor:
     """
@@ -118,7 +117,7 @@ class PipelineExecutor:
         
         # Create factory
         factory = PipelineFactory.from_config_file(
-            config_path=config_path,
+            pipeline_config_path=config_path,
             executor_catalog_path=executor_catalog_path
         )
         
@@ -348,7 +347,6 @@ class PipelineExecutor:
             "cached_events": len(self._events),
             "factory_info": {
                 "pipelines": self.factory.get_pipeline_names(),
-                "dynamic_loading": self.factory.use_dynamic_loading
             }
         }
     

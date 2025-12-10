@@ -20,7 +20,6 @@ from samples.setup_logger import setup_logging
 from packages.pipeline import PipelineExecutor
 from packages.models import Content, ContentIdentifier
 
-
 # Get the current directory
 samples_dir = Path(__file__).parent.parent
 
@@ -52,14 +51,16 @@ async def simple_workflow_sample():
     
     # Load simple config and create executor
     config_path = Path(__file__).parent / "simple_config.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
-        pipeline_name="basic"
-    ) as executor:
+        pipeline_name="basic",
+        executor_catalog_path=executor_catalog_path
+    ) as pipeline_executor:
         
         print(f"\n✓ Loaded config and initialized executor")
-        info = executor.get_pipeline_info()
+        info = pipeline_executor.get_pipeline_info()
         print(f"  Pipelines: {', '.join(info['factory_info']['pipelines'])}")
         
         # Process a document
@@ -76,7 +77,7 @@ async def simple_workflow_sample():
         print(f"\n✓ Processing document: {document.id}")
         
         # Execute with PipelineExecutor
-        result = await executor.execute(document)
+        result = await pipeline_executor.execute(document)
         
         print(f"\n✓ Workflow completed")
         print(f"  Status: {result.status}")
@@ -120,14 +121,16 @@ async def simple_workflow_sample_with_streaming():
     
     # Load simple config and create executor
     config_path = Path(__file__).parent / "simple_config.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
-        pipeline_name="basic"
-    ) as executor:
+        pipeline_name="basic",
+        executor_catalog_path=executor_catalog_path
+    ) as pipeline_executor:
         
         print(f"\n✓ Loaded config and initialized executor")
-        info = executor.get_pipeline_info()
+        info = pipeline_executor.get_pipeline_info()
         print(f"  Pipelines: {', '.join(info['factory_info']['pipelines'])}")
         
        # Process a document
@@ -144,7 +147,7 @@ async def simple_workflow_sample_with_streaming():
         print(f"\n✓ Processing document: {document.id}")
         
         # Execute with PipelineExecutor
-        async for event in executor.execute_stream(document):
+        async for event in pipeline_executor.execute_stream(document):
             print(f"\n--- Event received ---")
             print(f"  Type: {event.event_type}")
             print(f"  Executor: {event.executor_id}")

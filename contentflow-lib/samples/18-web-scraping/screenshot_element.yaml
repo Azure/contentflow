@@ -1,0 +1,32 @@
+executors:
+  - id: screenshot_specific_element
+    type: web_scraper
+    settings:
+      # URL to scrape
+      url_pattern: "https://example.com/dashboard"
+      
+      # Basic selectors
+      selectors:
+        chart_title: ".chart-container h2"
+        data_summary: ".summary-stats"
+      
+      # JavaScript rendering - important for dynamic dashboards
+      render_js: true
+      wait_for_selector: ".chart-container"
+      
+      # Screenshot settings - capture specific element only
+      screenshot_enabled: true
+      screenshot_full_page: false  # Just viewport
+      screenshot_selector: ".chart-container"  # Screenshot only this element
+      screenshot_save_to_file: true
+      screenshot_output_dir: "./screenshots/charts"
+      screenshot_filename_template: "chart_{timestamp}.{ext}"
+      screenshot_type: "jpeg"  # JPEG for smaller file size
+      screenshot_quality: 85  # Balance quality and size
+      
+      # No crawling
+      follow_links: false
+      max_pages: 1
+      
+      # Output field name
+      output_field: "web_scraping_output"

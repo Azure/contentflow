@@ -38,20 +38,20 @@ async def run_pipeline():
     
     # Load config
     config_path = Path(__file__).parent / "pipeline_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="content_understanding_pipeline",
         executor_catalog_path=executor_catalog_path,
-    ) as pipeline:
+    ) as pipeline_executor:
         
         print(f"\n✓ Initialized pipeline")
         
         documents = []
         
         # load documents from  local path
-        local_path = Path('/Users/nadeemis/temp/test_files')
+        local_path = Path(f'{samples_dir}/99-assets/')
         for file in local_path.glob('*.pdf'):
             print(f"  Found file: {file}")
             
@@ -71,7 +71,7 @@ async def run_pipeline():
         print(f"\n✓ Created {len(documents)} documents for batch processing")
         
         # Process all documents using batch executor
-        result = await pipeline.execute(documents[0:2])  # limit to first 2 for testing
+        result = await pipeline_executor.execute(documents[0:2])  # limit to first 2 for testing
         
         # Write results to output folder
         output_folder = Path(__file__).parent / "output"

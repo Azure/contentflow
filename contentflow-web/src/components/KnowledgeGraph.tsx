@@ -23,163 +23,17 @@ import ReactFlow, {
   MiniMap,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { knowledgeGraphTemplates, getNodeColor, NodeData, EdgeData } from "@/data/knowledgeGraphData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface NodeData {
-  label: string;
-  type: "person" | "organization" | "concept" | "document" | "technology" | "event";
-  description?: string;
-  metadata?: Record<string, string>;
-}
 
-interface EdgeData {
-  label?: string;
-  description?: string;
-  type?: string;
-  strength?: number;
-}
 
-const initialNodes: FlowNode<NodeData>[] = [
-  // Core AI Concepts - Center top area
-  { id: "1", type: "default", position: { x: 700, y: 100 }, data: { label: "AI Technology", type: "concept", description: "Artificial Intelligence and machine learning technologies" } },
-  { id: "2", type: "default", position: { x: 450, y: 250 }, data: { label: "Machine Learning", type: "concept", description: "Subset of AI focused on learning from data" } },
-  { id: "3", type: "default", position: { x: 950, y: 250 }, data: { label: "Neural Networks", type: "concept", description: "Computing systems inspired by biological neural networks" } },
-  { id: "7", type: "default", position: { x: 700, y: 400 }, data: { label: "Deep Learning", type: "technology", description: "Advanced machine learning using neural networks" } },
-  { id: "8", type: "default", position: { x: 300, y: 550 }, data: { label: "Computer Vision", type: "technology", description: "AI field dealing with visual data processing" } },
-  { id: "9", type: "default", position: { x: 1100, y: 550 }, data: { label: "NLP", type: "technology", description: "Natural Language Processing technologies" } },
-  
-  // Documents - PDFs - Bottom left quadrant
-  { id: "4", type: "default", position: { x: 200, y: 850 }, data: { label: "Research Paper AI.pdf", type: "document", description: "Academic paper on AI advancements - extracted from PDF" } },
-  { id: "13", type: "default", position: { x: 450, y: 950 }, data: { label: "ML Handbook.pdf", type: "document", description: "Comprehensive ML guide - PDF document" } },
-  { id: "14", type: "default", position: { x: 950, y: 950 }, data: { label: "Neural Net Thesis.pdf", type: "document", description: "PhD thesis on neural networks - PDF" } },
-  { id: "15", type: "default", position: { x: 150, y: 1100 }, data: { label: "Vision Systems.pdf", type: "document", description: "Computer vision research - PDF document" } },
-  { id: "16", type: "default", position: { x: 1200, y: 850 }, data: { label: "NLP Survey.pdf", type: "document", description: "Survey paper on NLP techniques - PDF" } },
-  
-  // Documents - Word & PowerPoint - Bottom right quadrant
-  { id: "17", type: "default", position: { x: 500, y: 1100 }, data: { label: "Project Plan.docx", type: "document", description: "AI project planning document - Word file" } },
-  { id: "18", type: "default", position: { x: 700, y: 1200 }, data: { label: "Technical Spec.docx", type: "document", description: "Technical specifications - Word document" } },
-  { id: "19", type: "default", position: { x: 900, y: 1100 }, data: { label: "AI Overview.pptx", type: "document", description: "Executive presentation on AI - PowerPoint" } },
-  { id: "20", type: "default", position: { x: 1100, y: 1200 }, data: { label: "Training Data.pptx", type: "document", description: "Data preparation slides - PowerPoint" } },
-  { id: "21", type: "default", position: { x: 1300, y: 1050 }, data: { label: "Meeting Notes.docx", type: "document", description: "AI team meeting minutes - Word" } },
-  
-  // Organizations - Left side
-  { id: "5", type: "default", position: { x: 100, y: 400 }, data: { label: "Tech Corp", type: "organization", description: "Leading technology company" } },
-  { id: "11", type: "default", position: { x: 1300, y: 400 }, data: { label: "Data Science Team", type: "organization", description: "Internal data science department" } },
-  { id: "22", type: "default", position: { x: 250, y: 100 }, data: { label: "AI Research Lab", type: "organization", description: "University research laboratory" } },
-  { id: "23", type: "default", position: { x: 1150, y: 100 }, data: { label: "OpenAI", type: "organization", description: "AI research and deployment company" } },
-  
-  // People - Spread around top
-  { id: "6", type: "default", position: { x: 450, y: 50 }, data: { label: "Dr. Smith", type: "person", description: "AI researcher and author" } },
-  { id: "12", type: "default", position: { x: 950, y: 50 }, data: { label: "Dr. Johnson", type: "person", description: "Machine learning expert" } },
-  { id: "24", type: "default", position: { x: 100, y: 700 }, data: { label: "Prof. Chen", type: "person", description: "Computer vision specialist" } },
-  { id: "25", type: "default", position: { x: 1300, y: 700 }, data: { label: "Dr. Williams", type: "person", description: "NLP researcher" } },
-  { id: "26", type: "default", position: { x: 850, y: 1300 }, data: { label: "Sarah Mitchell", type: "person", description: "Data engineer" } },
-  { id: "27", type: "default", position: { x: 950, y: 1350 }, data: { label: "John Davis", type: "person", description: "ML engineer" } },
-  
-  // Events - Middle area
-  { id: "10", type: "default", position: { x: 500, y: 700 }, data: { label: "AI Conference 2024", type: "event", description: "Major AI research conference" } },
-  { id: "28", type: "default", position: { x: 300, y: 1250 }, data: { label: "ML Workshop", type: "event", description: "Hands-on machine learning workshop" } },
-  { id: "29", type: "default", position: { x: 1150, y: 1250 }, data: { label: "Tech Summit", type: "event", description: "Annual technology summit" } },
-  
-  // Extracted Concepts from Documents - Middle layer
-  { id: "30", type: "default", position: { x: 200, y: 550 }, data: { label: "Graph RAG", type: "concept", description: "Retrieval-Augmented Generation using knowledge graphs" } },
-  { id: "31", type: "default", position: { x: 1200, y: 550 }, data: { label: "Vector Embeddings", type: "concept", description: "Dense vector representations of text" } },
-  { id: "32", type: "default", position: { x: 550, y: 550 }, data: { label: "Transformer Architecture", type: "technology", description: "Attention-based neural network architecture" } },
-  { id: "33", type: "default", position: { x: 850, y: 550 }, data: { label: "BERT Model", type: "technology", description: "Bidirectional encoder representations" } },
-  { id: "34", type: "default", position: { x: 350, y: 700 }, data: { label: "Knowledge Extraction", type: "concept", description: "Automated extraction of structured information" } },
-  { id: "35", type: "default", position: { x: 1050, y: 700 }, data: { label: "Entity Recognition", type: "technology", description: "NER for identifying entities in text" } },
-  { id: "36", type: "default", position: { x: 550, y: 400 }, data: { label: "Semantic Search", type: "technology", description: "Meaning-based information retrieval" } },
-  { id: "37", type: "default", position: { x: 850, y: 400 }, data: { label: "Document Chunking", type: "concept", description: "Splitting documents into processable segments" } },
-];
 
-const initialEdges: FlowEdge<EdgeData>[] = [
-  // Core AI hierarchy
-  { id: "e1-2", source: "1", target: "2", label: "includes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "includes", type: "includes", strength: 8 } },
-  { id: "e1-3", source: "1", target: "3", label: "utilizes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "utilizes", type: "utilizes", strength: 7 } },
-  { id: "e2-7", source: "2", target: "7", label: "includes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "includes", type: "includes", strength: 9 } },
-  { id: "e7-8", source: "7", target: "8", label: "enables", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "enables", type: "relates-to", strength: 7 } },
-  { id: "e7-9", source: "7", target: "9", label: "enables", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "enables", type: "relates-to", strength: 7 } },
-  { id: "e3-7", source: "3", target: "7", label: "foundation of", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "foundation of", type: "relates-to", strength: 9 } },
-  
-  // Document to concept relationships (PDF extractions)
-  { id: "e4-1", source: "4", target: "1", label: "discusses", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "discusses", type: "documented-in", strength: 8 } },
-  { id: "e4-30", source: "4", target: "30", label: "mentions", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "mentions", type: "documented-in", strength: 7 } },
-  { id: "e13-2", source: "13", target: "2", label: "covers", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "covers", type: "documented-in", strength: 9 } },
-  { id: "e13-34", source: "13", target: "34", label: "explains", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "explains", type: "documented-in", strength: 6 } },
-  { id: "e14-3", source: "14", target: "3", label: "analyzes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "analyzes", type: "documented-in", strength: 9 } },
-  { id: "e14-32", source: "14", target: "32", label: "describes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "describes", type: "documented-in", strength: 8 } },
-  { id: "e15-8", source: "15", target: "8", label: "focuses on", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "focuses on", type: "documented-in", strength: 8 } },
-  { id: "e15-35", source: "15", target: "35", label: "demonstrates", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "demonstrates", type: "documented-in", strength: 7 } },
-  { id: "e16-9", source: "16", target: "9", label: "surveys", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "surveys", type: "documented-in", strength: 9 } },
-  { id: "e16-31", source: "16", target: "31", label: "discusses", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "discusses", type: "documented-in", strength: 7 } },
-  
-  // Word & PowerPoint document relationships
-  { id: "e17-1", source: "17", target: "1", label: "plans", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "plans", type: "documented-in", strength: 7 } },
-  { id: "e17-5", source: "17", target: "5", label: "authored by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "authored by", type: "developed-by", strength: 8 } },
-  { id: "e18-7", source: "18", target: "7", label: "specifies", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "specifies", type: "documented-in", strength: 8 } },
-  { id: "e18-26", source: "18", target: "26", label: "written by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "written by", type: "developed-by", strength: 9 } },
-  { id: "e19-1", source: "19", target: "1", label: "presents", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "presents", type: "documented-in", strength: 7 } },
-  { id: "e19-36", source: "19", target: "36", label: "introduces", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "introduces", type: "documented-in", strength: 6 } },
-  { id: "e20-37", source: "20", target: "37", label: "explains", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "explains", type: "documented-in", strength: 7 } },
-  { id: "e20-27", source: "20", target: "27", label: "created by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "created by", type: "developed-by", strength: 8 } },
-  { id: "e21-11", source: "21", target: "11", label: "records", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "records", type: "documented-in", strength: 7 } },
-  { id: "e21-30", source: "21", target: "30", label: "mentions", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "mentions", type: "documented-in", strength: 6 } },
-  
-  // Organization relationships
-  { id: "e5-1", source: "5", target: "1", label: "develops", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "develops", type: "developed-by", strength: 9 } },
-  { id: "e5-11", source: "5", target: "11", label: "owns", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "owns", type: "relates-to", strength: 10 } },
-  { id: "e11-2", source: "11", target: "2", label: "works on", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "works on", type: "relates-to", strength: 8 } },
-  { id: "e22-4", source: "22", target: "4", label: "publishes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "publishes", type: "developed-by", strength: 8 } },
-  { id: "e22-14", source: "22", target: "14", label: "produces", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "produces", type: "developed-by", strength: 9 } },
-  { id: "e23-33", source: "23", target: "33", label: "develops", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "develops", type: "developed-by", strength: 9 } },
-  
-  // People relationships
-  { id: "e6-1", source: "6", target: "1", label: "researches", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "researches", type: "researched-by", strength: 8 } },
-  { id: "e6-4", source: "6", target: "4", label: "authored", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "authored", type: "developed-by", strength: 9 } },
-  { id: "e6-22", source: "6", target: "22", label: "works at", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "works at", type: "relates-to", strength: 8 } },
-  { id: "e12-3", source: "12", target: "3", label: "specializes in", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "specializes in", type: "relates-to", strength: 9 } },
-  { id: "e12-13", source: "12", target: "13", label: "wrote", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "wrote", type: "developed-by", strength: 9 } },
-  { id: "e24-8", source: "24", target: "8", label: "expert in", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "expert in", type: "relates-to", strength: 9 } },
-  { id: "e24-15", source: "24", target: "15", label: "authored", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "authored", type: "developed-by", strength: 8 } },
-  { id: "e25-9", source: "25", target: "9", label: "researches", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "researches", type: "researched-by", strength: 9 } },
-  { id: "e25-16", source: "25", target: "16", label: "authored", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "authored", type: "developed-by", strength: 8 } },
-  { id: "e26-11", source: "26", target: "11", label: "member of", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "member of", type: "relates-to", strength: 8 } },
-  { id: "e27-11", source: "27", target: "11", label: "member of", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "member of", type: "relates-to", strength: 8 } },
-  
-  // Event relationships
-  { id: "e10-4", source: "10", target: "4", label: "features", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "features", type: "relates-to", strength: 7 } },
-  { id: "e10-6", source: "10", target: "6", label: "presented by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "presented by", type: "relates-to", strength: 6 } },
-  { id: "e28-2", source: "28", target: "2", label: "teaches", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "teaches", type: "relates-to", strength: 7 } },
-  { id: "e28-27", source: "28", target: "27", label: "led by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "led by", type: "relates-to", strength: 8 } },
-  { id: "e29-5", source: "29", target: "5", label: "hosted by", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "hosted by", type: "relates-to", strength: 8 } },
-  
-  // Graph RAG specific relationships
-  { id: "e30-31", source: "30", target: "31", label: "uses", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "uses", type: "utilizes", strength: 9 } },
-  { id: "e30-34", source: "30", target: "34", label: "requires", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "requires", type: "utilizes", strength: 8 } },
-  { id: "e30-36", source: "30", target: "36", label: "enables", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "enables", type: "relates-to", strength: 8 } },
-  { id: "e31-9", source: "31", target: "9", label: "derived from", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "derived from", type: "relates-to", strength: 7 } },
-  { id: "e32-33", source: "32", target: "33", label: "basis for", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "basis for", type: "relates-to", strength: 9 } },
-  { id: "e33-9", source: "33", target: "9", label: "implements", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "implements", type: "utilizes", strength: 9 } },
-  { id: "e34-35", source: "34", target: "35", label: "uses", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "uses", type: "utilizes", strength: 8 } },
-  { id: "e35-9", source: "35", target: "9", label: "component of", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "component of", type: "relates-to", strength: 8 } },
-  { id: "e36-31", source: "36", target: "31", label: "leverages", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "leverages", type: "utilizes", strength: 9 } },
-  { id: "e37-34", source: "37", target: "34", label: "precedes", type: "straight", markerEnd: { type: MarkerType.ArrowClosed }, data: { label: "precedes", type: "relates-to", strength: 7 } },
-];
-
-const getNodeColor = (type: NodeData["type"]) => {
-  switch (type) {
-    case "person": return "#8b5cf6";
-    case "organization": return "#3b82f6";
-    case "concept": return "#10b981";
-    case "document": return "#f59e0b";
-    case "technology": return "#ec4899";
-    case "event": return "#06b6d4";
-    default: return "#6b7280";
-  }
-};
 
 export const KnowledgeGraph = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [selectedTemplate, setSelectedTemplate] = useState(knowledgeGraphTemplates[0]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(selectedTemplate.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(selectedTemplate.edges);
   const [selectedNode, setSelectedNode] = useState<FlowNode<NodeData> | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<FlowEdge<EdgeData> | null>(null);
   const [editNodeDialogOpen, setEditNodeDialogOpen] = useState(false);
@@ -279,6 +133,18 @@ export const KnowledgeGraph = () => {
     toast.success("Relationship deleted");
   };
 
+  const handleTemplateChange = (templateId: string) => {
+    const template = knowledgeGraphTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      setSelectedNode(null);
+      setSelectedEdge(null);
+      toast.success(`Switched to ${template.name}`);
+    }
+  };
+
   const handleDownload = () => {
     const data = {
       nodes: nodes.map((n) => ({ id: n.id, position: n.position, data: n.data })),
@@ -288,7 +154,7 @@ export const KnowledgeGraph = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "knowledge-graph.json";
+    a.download = `knowledge-graph-${selectedTemplate.id}.json`;
     a.click();
     toast.success("Graph exported");
   };
@@ -297,8 +163,31 @@ export const KnowledgeGraph = () => {
     <>
       <div className="container mx-auto px-6 py-12">
         <div className="mb-8">
-          <h1 className="font-display text-4xl font-bold mb-2 text-foreground">Knowledge Graph</h1>
-          <p className="text-muted-foreground">Explore and edit extracted entities and relationships</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="font-display text-4xl font-bold mb-2 text-foreground">Knowledge Graph</h1>
+              <p className="text-muted-foreground">{selectedTemplate.description}</p>
+            </div>
+            <div className="min-w-[280px]">
+              <Select value={selectedTemplate.id} onValueChange={handleTemplateChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {knowledgeGraphTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="capitalize">
+                          {template.domain}
+                        </Badge>
+                        <span>{template.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">

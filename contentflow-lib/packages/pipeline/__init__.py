@@ -1,4 +1,7 @@
 """Core pipeline components for document processing."""
+from .pipeline_factory import (
+    PipelineFactory
+)
 
 from ._pipeline_executor import (
     PipelineExecutor
@@ -10,6 +13,7 @@ from ._pipeline import (
 )
 
 __all__ = [
+    "PipelineFactory",
     "PipelineExecutor",
     "PipelineResult",
     "PipelineEvent",

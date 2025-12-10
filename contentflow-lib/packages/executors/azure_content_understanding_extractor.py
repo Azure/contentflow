@@ -25,16 +25,6 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Default: "prebuilt-documentSearch"
           Options: "prebuilt-documentSearch", "prebuilt-layout", "prebuilt-read",
                    "prebuilt-invoice", "prebuilt-receipt", etc.
-        - extract_text (bool): Extract plain text
-          Default: True
-        - extract_markdown (bool): Extract markdown formatted content
-          Default: True
-        - extract_tables (bool): Extract tables
-          Default: True
-        - extract_fields (bool): Extract fields (for field extraction analyzers)
-          Default: False
-        - extract_pages (bool): Extract page-level chunks
-          Default: True
         - content_field (str): Field containing document bytes
           Default: "content"
         - temp_file_path_field (str): Field containing temp file path
@@ -58,7 +48,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Default: "2025-11-01"
         - content_understanding_timeout (int): Timeout in seconds for service calls
           Default: 60
-        - content_understanding_model_mappings (str): Default model deployment mappings
+        - content_understanding_model_mappings (str): Default model deployment mappings in Json format.
           Default: None
     
     Example:
@@ -67,10 +57,6 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             id="content_understanding_extractor",
             settings={
                 "analyzer_id": "prebuilt-documentSearch",
-                "extract_text": True,
-                "extract_markdown": True,
-                "extract_tables": True,
-                "extract_fields": True,
                 "content_understanding_endpoint": "<your_endpoint>",
             }
         )
@@ -80,15 +66,10 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         Document or List[Document] each with (ContentIdentifier) id containing:
         - data['content']: Document bytes, OR
         - data['temp_file_path']: Path to document file, OR
-        - data['url']: URL to document
-        
+    
     Output:
         Document or List[Document] with added fields:
-        - data['content_understanding_output']['text']: Extracted text
-        - data['content_understanding_output']['markdown']: Extracted markdown
-        - data['content_understanding_output']['tables']: Extracted tables
-        - data['content_understanding_output']['fields']: Extracted fields
-        - data['content_understanding_output']['pages']: Page-level chunks
+        - data['content_understanding_output']: Dict with content from Azure Content Understanding
     """
     
     def __init__(
@@ -111,18 +92,12 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         
         # Extract configuration
         self.analyzer_id = self.get_setting("analyzer_id", default="prebuilt-documentSearch")
-        self.extract_text = self.get_setting("extract_text", default=True)
-        self.extract_markdown = self.get_setting("extract_markdown", default=True)
-        self.extract_tables = self.get_setting("extract_tables", default=True)
-        self.extract_fields = self.get_setting("extract_fields", default=False)
-        self.extract_pages = self.get_setting("extract_pages", default=True)
         self.content_field = self.get_setting("content_field", default="content")
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
-        self.url_field = self.get_setting("url_field", default="url")
         self.output_field = self.get_setting("output_field", default="content_understanding_output")
         
         # Content Understanding connector config
-        self.content_understanding_endpoint = self.get_setting("content_understanding_endpoint", default=None)
+        self.content_understanding_endpoint = self.get_setting("content_understanding_endpoint", default=None, required=True)
         if not self.content_understanding_endpoint:
             raise ValueError("Content Understanding endpoint must be provided in settings")
         
@@ -140,12 +115,24 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         )
         self.content_understanding_timeout = self.get_setting(
             "content_understanding_timeout", 
-            default=60
+            default=180
+        )
+        self.content_understanding_polling_interval = self.get_setting(
+            "content_understanding_polling_interval", 
+            default=2
         )
         self.content_understanding_model_mappings = self.get_setting(
-            "content_understanding_model_mappings", 
-            default=None
+            "content_understanding_model_mappings",
+            default=None,
+            required=True
         )
+        if not isinstance(self.content_understanding_model_mappings, str):
+            raise ValueError("'content_understanding_model_mappings' must be a JSON string of model to deployment ID mappings.")
+        try:
+            import json
+            self.content_understanding_model_mappings = json.loads(self.content_understanding_model_mappings)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse 'content_understanding_model_mappings' JSON string: {e}")
         
         # Create connector
         connector_settings = {
@@ -153,6 +140,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             "credential_type": self.content_understanding_credential_type,
             "api_version": self.content_understanding_api_version,
             "timeout": self.content_understanding_timeout,
+            "polling_interval": self.content_understanding_polling_interval,
             "default_model_deployments": self.content_understanding_model_mappings
         }
         
@@ -167,11 +155,9 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         if self.debug_mode:
             logger.debug(
                 f"AzureContentUnderstandingExtractorExecutor with id {self.id} initialized: "
-                f"analyzer={self.analyzer_id}, text={self.extract_text}, "
-                f"markdown={self.extract_markdown}, tables={self.extract_tables}, "
-                f"fields={self.extract_fields}"
+                f"analyzer={self.analyzer_id}"
             )
-        
+
     async def process_content_item(
         self,
         content: Content
@@ -190,21 +176,8 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             # Determine input type and analyze accordingly
             analysis_result = None
             
-            # Priority: URL > temp_file > content bytes
-            if self.url_field in content.data:
-                url = content.data[self.url_field]
-                
-                if self.debug_mode:
-                    logger.debug(
-                        f"Analyzing document {content.id} from URL with analyzer '{self.analyzer_id}'"
-                    )
-                
-                analysis_result = await self.content_understanding_connector.analyze_document_url(
-                    url=url,
-                    analyzer_id=self.analyzer_id
-                )
-            
-            elif self.temp_file_field in content.data:
+            # Priority: temp_file > content bytes
+            if self.temp_file_field in content.data:
                 temp_file_path = content.data[self.temp_file_field]
                 
                 if self.debug_mode:
@@ -254,45 +227,13 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
                     f"Needs one of: '{self.url_field}', '{self.temp_file_field}', or '{self.content_field}'"
                 )
             
-            # Extract content using connector's method
-            extracted_data = self.content_understanding_connector.extract_content(analysis_result)
-            
-            # Filter based on configuration
-            output_data = {}
-            
-            if self.extract_text and extracted_data.get("text"):
-                output_data["text"] = extracted_data["text"]
-                if self.debug_mode:
-                    logger.debug(f"Extracted {len(extracted_data['text'])} characters of text")
-            
-            if self.extract_markdown and extracted_data.get("markdown"):
-                output_data["markdown"] = extracted_data["markdown"]
-                if self.debug_mode:
-                    logger.debug(f"Extracted {len(extracted_data['markdown'])} characters of markdown")
-            
-            if self.extract_tables and extracted_data.get("tables"):
-                output_data["tables"] = extracted_data["tables"]
-                if self.debug_mode:
-                    logger.debug(f"Extracted {len(extracted_data['tables'])} tables")
-            
-            if self.extract_fields and extracted_data.get("fields"):
-                output_data["fields"] = extracted_data["fields"]
-                if self.debug_mode:
-                    logger.debug(f"Extracted {len(extracted_data['fields'])} fields")
-            
-            if self.extract_pages and extracted_data.get("pages"):
-                output_data["pages"] = extracted_data["pages"]
-                if self.debug_mode:
-                    logger.debug(f"Extracted {len(extracted_data['pages'])} pages")
-            
-            # Store in content
-            content.data[self.output_field] = output_data
+            # Store response as output
+            content.data[f"{self.output_field}"] = analysis_result
             
             # Update summary
-            content.summary_data['pages_analyzed'] = len(extracted_data.get("pages", []))
             content.summary_data['extraction_status'] = "success"
             content.summary_data['analyzer_id'] = self.analyzer_id
-                            
+
         except Exception as e:
             logger.error(
                 f"AzureContentUnderstandingExtractorExecutor {self.id} failed processing document {content.id}",

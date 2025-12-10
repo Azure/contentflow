@@ -37,13 +37,13 @@ async def run_pipeline():
     
     # Load config
     config_path = Path(__file__).parent / "pipeline_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="excel_extraction_pipeline",
         executor_catalog_path=executor_catalog_path,
-    ) as pipeline:
+    ) as pipeline_executor:
         
         print(f"\n✓ Initialized pipeline")
         
@@ -90,7 +90,7 @@ async def run_pipeline():
             return
         
         # Process all documents
-        result = await pipeline.execute(documents[0:2])  # limit to first 2 for testing
+        result = await pipeline_executor.execute(documents[0:2])  # limit to first 2 for testing
         
         # write results to output folder
         output_folder = Path(__file__).parent / "output"

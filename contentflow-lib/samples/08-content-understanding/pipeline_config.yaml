@@ -17,7 +17,8 @@ pipelines:
         debug_mode: true
         settings:
           temp_file_path_field: "temp_file_path"
-          output_field: "extracted_content"
+          output_field: "content_understanding_result"
+          include_full_response: true
           analyzer_id: "prebuilt-documentSearch"  # RAG-optimized analyzer
           extract_text: true
           extract_markdown: true
@@ -31,10 +32,53 @@ pipelines:
           # content_understanding_credential_type: "azure_key_credential"
           # content_understanding_subscription_key: ${AZURE_CONTENT_UNDERSTANDING_API_KEY}
           content_understanding_api_version: "2025-11-01"
-          content_understanding_model_mappings: "gpt-4.1:gpt-4.1,gpt-4.1-mini:gpt-4.1-mini,text-embedding-3-large:text-embedding-3-large"
+          content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
+
+      - id: map_page_content
+        type: field_mapper # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          # Multi-source object mapping: combine page numbers with their content
+          object_mappings: |
+            {
+              "pages": {
+                "page_number": "content_understanding_result.result.contents.pages.pageNumber",
+                "content": "content_understanding_result.result.contents.pages.lines.content"
+              }
+            }
+          # Simple field mappings
+          mappings: |
+            {
+              "content_understanding_result.result.contents.mimeType": "mime_type"
+            }
+          copy_mode: copy
+          list_handling: concatenate
+          merge_filter_empty: true
+          merge_deduplicate: true
+
+      - id: map_figures_and_links
+        type: field_mapper # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          # Multi-source object mapping: combine page numbers with their content
+          object_mappings: |
+            {
+              "figures": {
+                "description": "content_understanding_result.result.contents.figures.description",
+                "id": "content_understanding_result.result.contents.figures.id"
+              },
+              "links": {
+                "url": "content_understanding_result.result.contents.hyperlinks.url",
+                "source": "content_understanding_result.result.contents.hyperlinks.source"
+              }
+            }
+          copy_mode: copy
+          list_handling: merge
+          merge_filter_empty: true
+          merge_deduplicate: true
 
       - id: pass_through
-        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: false
     
-    execution_sequence: [get_content, extract_content, pass_through]
+    execution_sequence: [get_content, extract_content, map_page_content, map_figures_and_links, pass_through]

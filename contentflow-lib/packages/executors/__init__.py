@@ -32,9 +32,10 @@ from .parallel_executor import ParallelExecutor
 
 # Specialized executors
 from .azure_blob_input_executor import AzureBlobInputExecutor
+from .azure_blob_output_executor import AzureBlobOutputExecutor
 from .content_retriever import ContentRetrieverExecutor
 # from .custom_ai_prompt import CustomAIPromptExecutor
-# from .ai_search_index_writer import AISearchIndexWriterExecutor
+from .ai_search_index_output import AISearchIndexOutputExecutor
 from .azure_document_intelligence_extractor import AzureDocumentIntelligenceExtractorExecutor
 from .azure_content_understanding_extractor import AzureContentUnderstandingExtractorExecutor
 from .pdf_extractor import PDFExtractorExecutor
@@ -53,7 +54,16 @@ from .pii_detector_executor import PIIDetectorExecutor
 from .keyword_extractor_executor import KeywordExtractorExecutor
 from .language_detector_executor import LanguageDetectorExecutor
 from .translation_executor import TranslationExecutor
+from .field_mapper_executor import FieldMapperExecutor
+from .field_selector_executor import FieldSelectorExecutor
+from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
+
+# # Knowledge Graph executors
+# from .knowledge_graph_entity_extractor import KnowledgeGraphEntityExtractorExecutor
+# from .knowledge_graph_writer import KnowledgeGraphWriterExecutor
+# from .knowledge_graph_query import KnowledgeGraphQueryExecutor
+# from .knowledge_graph_enrichment import KnowledgeGraphEnrichmentExecutor
 
 from .executor_registry import ExecutorRegistry
 from .executor_config import ExecutorInstanceConfig
@@ -82,12 +92,13 @@ __all__ = [
     # "BatchSubWorkflowExecutor",
     # Specialized executors
     "AzureBlobInputExecutor",
+    "AzureBlobOutputExecutor",
     "ContentRetrieverExecutor",
-    # "CustomAIPromptExecutor",
-    # "AISearchIndexWriterExecutor"
+    "AISearchIndexOutputExecutor",
     "AzureDocumentIntelligenceExtractorExecutor",
     "AzureContentUnderstandingExtractorExecutor",
     "PDFExtractorExecutor",
+    "WebScrapingExecutor",
     "RecursiveTextChunkerExecutor",
     "WordExtractorExecutor",
     "PowerPointExtractorExecutor",
@@ -103,7 +114,14 @@ __all__ = [
     "KeywordExtractorExecutor",
     "LanguageDetectorExecutor",
     "TranslationExecutor",
+    "FieldMapperExecutor",
+    "FieldSelectorExecutor",
     "PassThroughExecutor",
+    # # Knowledge Graph
+    # "KnowledgeGraphEntityExtractorExecutor",
+    # "KnowledgeGraphWriterExecutor",
+    # "KnowledgeGraphQueryExecutor",
+    # "KnowledgeGraphEnrichmentExecutor",
     # Registry and config
     "ExecutorRegistry",
     "ExecutorInstanceConfig",

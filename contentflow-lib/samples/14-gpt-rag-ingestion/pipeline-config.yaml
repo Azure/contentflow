@@ -1,0 +1,124 @@
+# GPT-RAG Document Ingestion Pipeline Configuration
+#
+# Enterprise-grade RAG ingestion pipeline for processing diverse documents with intelligent
+# chunking, embedding generation, and Azure AI Search indexing.
+#
+# Pipeline Flow:
+# 1. Azure Blob Input - Discover documents from Azure Blob Storage
+# 2. Content Retriever - Download document content
+# 3. Document Intelligence - Extract structured content with Azure Document Intelligence
+# 4. Recursive Text Chunker - Create intelligent chunks optimized for RAG retrieval
+# 5. Embeddings Generation - Generate vector embeddings for semantic search
+# 6. AI Search Index Writer - Index chunks to Azure AI Search
+
+pipelines:
+  - name: gpt_rag_ingestion_pipeline
+    description: Enterprise-grade RAG document ingestion pipeline with multi-format support, intelligent chunking, and Azure AI Search indexing
+    executors:
+      # Step 1: Discover documents in Azure Blob Storage
+      - id: blob_scanner
+        type: azure_blob_input
+        debug_mode: true
+        settings:
+          blob_storage_account: ${AZURE_STORAGE_ACCOUNT}
+          blob_storage_credential_type: default_azure_credential
+          blob_container_name: ${AZURE_BLOB_CONTAINER_NAME}
+          prefix: "documents/"  # Scan documents folder
+          file_extensions: [".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md"]
+          max_results: 100
+          include_metadata: true
+          sort_by: "last_modified"
+          sort_ascending: false
+
+      # Step 2: Retrieve document content
+      - id: content_retriever
+        type: content_retriever
+        debug_mode: true
+        settings:
+          include_content_bytes_as_field: false
+          use_temp_file_for_content: true
+          temp_folder: "./tmp/rag-ingestion"
+          max_concurrent: 3
+          continue_on_error: true
+          blob_storage_account: ${AZURE_STORAGE_ACCOUNT}
+          blob_storage_credential_type: default_azure_credential
+
+      # Step 3: Extract content with Azure Document Intelligence
+      - id: doc_intelligence_extractor
+        type: azure_document_intelligence_extractor
+        debug_mode: true
+        settings:
+          temp_file_path_field: temp_file_path
+          output_field: doc_intell_output
+          max_concurrent: 5
+          continue_on_error: true
+          model_id: prebuilt-layout
+          extract_text: true
+          extract_tables: true
+          extract_key_value_pairs: false
+          extract_figures: true
+          output_format: markdown
+          include_full_result: false
+          doc_intelligence_endpoint: ${AZURE_DOC_INTELLIGENCE_ENDPOINT}
+          doc_intelligence_credential_type: default_azure_credential
+
+      # Step 4: Create intelligent chunks for RAG
+      - id: chunker
+        type: recursive_text_chunker
+        debug_mode: true
+        settings:
+          input_field: doc_intell_output.text
+          output_field: chunks
+          chunk_size: 1000
+          chunk_overlap: 200
+          separators: ["\n\n", "\n", ". ", " ", ""]
+          length_function: characters
+          keep_separator: true
+          strip_whitespace: true
+          min_chunk_size: 100
+          add_metadata: true
+          include_page_numbers: true
+          max_concurrent: 3
+          continue_on_error: true
+
+      # Step 5: Generate embeddings for semantic search
+      - id: embeddings_generator
+        type: azure_openai_embeddings_executor
+        debug_mode: true
+        settings:
+          endpoint: ${AZURE_OPENAI_ENDPOINT}
+          deployment_name: ${AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT}
+          api_version: "2024-02-01"
+          credential_type: default_azure_credential
+          input_field: text
+          output_field: embedding
+          dimensions: null  # Use model default
+          max_concurrent: 5
+          continue_on_error: true
+
+      # Step 6: Index to Azure AI Search
+      - id: search_indexer
+        type: ai_search_index_writer
+        debug_mode: true
+        settings:
+          ai_search_account: ${AZURE_AI_SEARCH_ACCOUNT}
+          ai_search_credential_type: default_azure_credential
+          ai_search_api_version: "2025-11-01-preview"
+          ai_search_index: ${AZURE_AI_SEARCH_INDEX}
+          index_mode: chunks
+          index_action_type: mergeOrUpload
+          batch_size: 100
+          add_timestamp: true
+          max_retries: 3
+          retry_delay: 1.0
+          max_concurrent: 3
+          timeout_secs: 30.0
+          continue_on_error: true
+    
+    execution_sequence: 
+      - blob_scanner
+      - content_retriever
+      - doc_intelligence_extractor
+      - chunker
+      - embeddings_generator
+      - search_indexer

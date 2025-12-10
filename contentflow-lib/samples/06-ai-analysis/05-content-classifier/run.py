@@ -39,13 +39,13 @@ async def run_pipeline():
     
     # Load config
     config_path = Path(__file__).parent / "content_classifier_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="content_classifier_pipeline",
         executor_catalog_path=executor_catalog_path,
-    ) as pipeline:
+    ) as pipeline_executor:
         
         print(f"\n✓ Initialized content classifier pipeline")
         
@@ -205,7 +205,7 @@ async def run_pipeline():
         print(f"\n✓ Created {len(documents)} documents for classification")
         
         # Process all documents
-        result = await pipeline.execute(documents)
+        result = await pipeline_executor.execute(documents)
         
         # Write results to output folder
         output_folder = Path(__file__).parent / "output"

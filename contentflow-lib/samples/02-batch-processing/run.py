@@ -50,13 +50,13 @@ async def batch_processing_example():
     
     # Load config
     config_path = Path(__file__).parent / "batch_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,
         pipeline_name="batch_processing",
         executor_catalog_path=executor_catalog_path,
-    ) as pipeline:
+    ) as pipeline_executor:
         
         print(f"\n✓ Initialized batch processing pipeline")
         
@@ -77,7 +77,7 @@ async def batch_processing_example():
         print(f"\n✓ Created {len(documents)} documents for batch processing")
         
         # Process all documents using batch executor
-        result = await pipeline.execute(documents)
+        result = await pipeline_executor.execute(documents)
         
         # write results to output folder
         output_folder = Path(__file__).parent / "output"

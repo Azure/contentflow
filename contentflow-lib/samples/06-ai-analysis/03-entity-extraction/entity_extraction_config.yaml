@@ -9,7 +9,7 @@ pipelines:
     executors:
       # Extract entities with context
       - id: entity_extractor
-        type: entity_extraction_executor # refers to the id in executor_catalog.yaml
+        type: entity_extractor # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           max_concurrent: 2
@@ -41,7 +41,7 @@ pipelines:
           max_tokens: 1000
 
       - id: pass_through
-        type: pass_through_executor
+        type: pass_through
         debug_mode: true
     
     execution_sequence: [entity_extractor, pass_through]

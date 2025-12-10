@@ -16,19 +16,19 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
         <div className="max-w-4xl mx-auto text-center mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 border border-secondary/30 mb-6 animate-slide-in">
             <Sparkles className="w-4 h-4 text-secondary" />
-            <span className="text-sm font-medium text-secondary">AI-Powered Content Intelligence</span>
+            <span className="text-sm font-medium text-secondary">Agentic AI-Powered Content Intelligence</span>
           </div>
           
           <h1 className="font-display text-6xl md:text-7xl font-bold mb-6 text-foreground leading-tight">
             Transform Content Into
             <span className="block bg-gradient-secondary bg-clip-text text-transparent">
-              Connected Knowledge
+              <img src="/01038-icon-service-Collaborative-Service.svg" alt="Connected Knowledge" className="inline-block w-16 h-16 ml-1" /> Connected Knowledge
             </span>
           </h1>
           
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Build intelligent workflows that crack, extract, and transform unstructured content 
-            into living knowledge graphs powered by AI
+            Build intelligent pipelines that crack, extract, and transform unstructured content 
+            into living knowledge powered by <img src="/MicrosoftFoundry-e59cae5b.svg" alt="Azure AI Agents" className="inline-block w-6 h-6 ml-1" /> Microsoft Foundry.
           </p>
           
           <div className="flex items-center justify-center gap-4">
@@ -50,7 +50,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           <FeatureCard
             icon={<Zap className="w-6 h-6" />}
-            title="Workflow Builder"
+            title="Pipeline Builder"
             description="Design custom processing pipelines with drag-and-drop executors for any content type"
             color="primary"
           />
@@ -62,7 +62,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
           />
           <FeatureCard
             icon={<Network className="w-6 h-6" />}
-            title="Knowledge Graphs"
+            title="Connected Knowledge"
             description="Visualize and explore interconnected entities with interactive graph views"
             color="accent"
           />
@@ -75,8 +75,8 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
             <div className="relative p-12">
               <div className="grid grid-cols-3 gap-8 items-center">
                 <ProcessNode label="Upload" active />
-                <ProcessNode label="Process" />
-                <ProcessNode label="Visualize" />
+                <ProcessNode label="Process" active />
+                <ProcessNode label="Visualize" active />
               </div>
             </div>
           </div>

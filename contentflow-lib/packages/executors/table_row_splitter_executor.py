@@ -436,6 +436,7 @@ class TableRowSplitterExecutor(BaseExecutor):
         # Create new content identifier
         row_content_id = ContentIdentifier(
             canonical_id=row_id,
+            unique_id=self.generate_sha1_hash(f'{parent_content.id.canonical_id}-{row_id}'),
             source_name=parent_content.id.source_name,
             source_type=parent_content.id.source_type,
             container=parent_content.id.container,

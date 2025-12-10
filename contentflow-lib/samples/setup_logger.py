@@ -35,3 +35,6 @@ def setup_logging():
     logging.getLogger('azure.identity').setLevel(logging.INFO)
     logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
     logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+    logging.getLogger('httpcore').setLevel(logging.WARNING)
+    logging.getLogger('openai').setLevel(logging.WARNING)
+    logging.getLogger('httpx').setLevel(logging.WARNING)

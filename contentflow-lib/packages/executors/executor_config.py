@@ -5,7 +5,7 @@ Provides Pydantic models for executor catalog configuration.
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 import yaml
 import logging
 
@@ -48,7 +48,6 @@ class ExecutorConfig(BaseModel):
     tags: List[str] = Field(default_factory=list)
     category: str
     version: str
-    required_connectors: List[str] = Field(default_factory=list)
     settings_schema: Dict[str, SettingSchema] = Field(default_factory=dict)
     ui_metadata: Optional[UIMetadata] = None
     
@@ -89,9 +88,16 @@ class ExecutorConfig(BaseModel):
             
             logger.info(f"Loaded {len(executor_configs)} executor configurations from {file_path}")
             return executor_configs
-            
+        
+        except ValidationError as ve:
+            logger.error(f"Validation error loading executor configurations from {file_path}: {ve}")
+            logger.error(ve.json())
+            logger.exception(ve)
+            raise
+        
         except Exception as e:
             logger.error(f"Failed to load executor configurations from {file_path}: {e}")
+            logger.exception(e)
             raise
     
     def validate_settings(self, settings: Dict[str, Any]) -> Dict[str, Any]:

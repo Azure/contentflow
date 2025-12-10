@@ -7,7 +7,7 @@ pipelines:
     description: Pipeline to extract keywords and key phrases using Azure OpenAI.
     executors:
       - id: keyword_extractor
-        type: keyword_extractor_executor # refers to the id in executor_catalog.yaml
+        type: keyword_extractor # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           max_concurrent: 2
@@ -26,7 +26,7 @@ pipelines:
           include_full_response: false
 
       - id: pass_through
-        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: true
     
     execution_sequence: [keyword_extractor, pass_through]

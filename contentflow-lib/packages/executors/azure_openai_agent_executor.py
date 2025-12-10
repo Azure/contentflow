@@ -157,8 +157,11 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             query = None
             
             # Otherwise use simple text input
-            if self.input_field in content.data:
-                query = content.data[self.input_field]
+            query = self.try_extract_nested_field_from_content(
+                content=content, 
+                field_path=self.input_field
+            )
+            if query is not None:
                 if not isinstance(query, str):
                     query = str(query)
             else:
@@ -178,7 +181,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             content.data[self.output_field] = response_text
             
             if self.include_full_response:
-                content.data[f"{self.output_field}_agent_full_response"] = full_response.to_json()
+                content.data[f"{self.output_field}_agent_full_response"] = full_response.to_dict()
             
             # Update summary
             content.summary_data['agent_execution_status'] = "success"

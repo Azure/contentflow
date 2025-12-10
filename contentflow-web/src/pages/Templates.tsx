@@ -16,14 +16,14 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { TemplatePreviewDialog } from "@/components/templates/TemplatePreviewDialog";
-import { WorkflowTemplate } from "@/types/workflow";
-import { workflowTemplates } from "@/data/workflowTemplates";
+import { PipelineTemplate } from "@/types/pipeline";
+import { pipelineTemplates } from "@/data/pipelineTemplates";
 
 export default function Templates() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [previewTemplate, setPreviewTemplate] = useState<WorkflowTemplate | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<PipelineTemplate | null>(null);
 
   const categories = [
     { id: "all", label: "All Templates", icon: <Sparkles className="w-4 h-4" /> },
@@ -32,17 +32,17 @@ export default function Templates() {
     { id: "knowledge", label: "Knowledge", icon: <Network className="w-4 h-4" /> },
   ];
 
-  const filteredTemplates = workflowTemplates.filter(template => {
+  const filteredTemplates = pipelineTemplates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const handleUseTemplate = (template: WorkflowTemplate) => {
-    // Store template in localStorage to load in workflow builder
+  const handleUseTemplate = (template: PipelineTemplate) => {
+    // Store template in localStorage to load in pipeline builder
     localStorage.setItem("selectedTemplate", JSON.stringify(template));
-    navigate("/?view=workflow");
+    navigate("/?view=pipeline");
   };
 
   return (
@@ -53,13 +53,13 @@ export default function Templates() {
           <div className="flex items-start justify-between mb-6">
             <div>
               <h1 className="font-display text-4xl font-bold mb-2 text-foreground">
-                Workflow Templates
+                Pipeline Templates
               </h1>
               <p className="text-muted-foreground text-lg">
                 Pre-built pipelines ready to use in your projects
               </p>
             </div>
-            <Button onClick={() => navigate("/?view=workflow")}>
+            <Button onClick={() => navigate("/?view=pipeline")}>
               Create from Scratch
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
@@ -132,7 +132,7 @@ export default function Templates() {
 }
 
 interface TemplateCardProps {
-  template: WorkflowTemplate;
+  template: PipelineTemplate;
   onPreview: () => void;
   onUse: () => void;
 }

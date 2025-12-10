@@ -9,15 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { WorkflowTemplate } from "@/types/workflow";
+import { PipelineTemplate } from "@/types/pipeline";
 import { CheckCircle2, Clock, Layers, ArrowRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TemplatePreviewDialogProps {
-  template: WorkflowTemplate | null;
+  template: PipelineTemplate | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUse: (template: WorkflowTemplate) => void;
+  onUse: (template: PipelineTemplate) => void;
 }
 
 export const TemplatePreviewDialog = ({

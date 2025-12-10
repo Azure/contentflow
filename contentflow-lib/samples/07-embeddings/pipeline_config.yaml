@@ -19,7 +19,7 @@ pipelines:
           max_concurrent: 5
 
       - id: azure_openai_embeddings
-        type: azure_openai_embeddings_executor # refers to the id in executor_catalog.yaml
+        type: azure_openai_embeddings # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           endpoint: ${AZURE_OPENAI_EMBEDDINGS_ENDPOINT}
@@ -29,7 +29,7 @@ pipelines:
           output_field: "embedding"
 
       - id: pass_through
-        type: pass_through_executor # refers to the id in executor_catalog.yaml
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: true
     
     execution_sequence: [get_content, extract,  azure_openai_embeddings, pass_through]

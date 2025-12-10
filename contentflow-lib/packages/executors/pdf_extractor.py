@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 try:
-    import fitz  # PyMuPDF
+    import pymupdf  # PyMuPDF
 except ImportError:
     raise ImportError(
         "PyMuPDF is required for PDF extraction. "
@@ -105,7 +105,7 @@ class PDFExtractorExecutor(ParallelExecutor):
         self.extract_text = self.get_setting("extract_text", default=True)
         self.extract_pages = self.get_setting("extract_pages", default=True)
         self.extract_images = self.get_setting("extract_images", default=False)
-        self.content_field = self.get_setting("content_field", default="content")
+        self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="pdf_output")
         self.image_format = self.get_setting("image_format", default="png")
@@ -164,9 +164,9 @@ class PDFExtractorExecutor(ParallelExecutor):
             
             # Open PDF document
             if pdf_bytes:
-                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
             else:
-                doc = fitz.open(pdf_path)
+                doc = pymupdf.open(filename=pdf_path)
             
             try:
                 extracted_data = {}
@@ -234,7 +234,7 @@ class PDFExtractorExecutor(ParallelExecutor):
         
         return content
     
-    def _extract_images_from_pdf(self, doc: fitz.Document) -> List[Dict[str, Any]]:
+    def _extract_images_from_pdf(self, doc: pymupdf.Document) -> List[Dict[str, Any]]:
         """Extract images from PDF document.
         
         Args:
@@ -259,7 +259,7 @@ class PDFExtractorExecutor(ParallelExecutor):
                     image_ext = base_image["ext"]
                     
                     # Get image dimensions
-                    pix = fitz.Pixmap(doc, xref)
+                    pix = pymupdf.Pixmap(doc, xref)
                     width = pix.width
                     height = pix.height
                     
@@ -278,7 +278,7 @@ class PDFExtractorExecutor(ParallelExecutor):
                         
                         if image_ext != target_format:
                             # Convert image format
-                            pix = fitz.Pixmap(fitz.Pixmap(doc, xref), 0)  # Remove alpha if present
+                            pix = pymupdf.Pixmap(pymupdf.Pixmap(doc, xref), 0)  # Remove alpha if present
                             if target_format == "png":
                                 image_bytes = pix.tobytes("png")
                             else:

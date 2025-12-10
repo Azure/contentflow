@@ -47,7 +47,7 @@ async def run_pipeline():
     
     # Load config
     config_path = Path(__file__).parent / "pipeline_config.yaml"
-    executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
+    executor_catalog_path = samples_dir.parent / "executor_catalog.yaml"
     
     async with PipelineExecutor.from_config_file(
         config_path=config_path,

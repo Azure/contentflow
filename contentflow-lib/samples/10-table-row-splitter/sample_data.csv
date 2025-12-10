@@ -1,0 +1,11 @@
+EmployeeID,Name,Department,Salary,HireDate
+E001,Alice Johnson,Engineering,95000,2020-03-15
+E002,Bob Williams,Marketing,75000,2019-07-22
+E003,Charlie Brown,Sales,82000,2021-01-10
+E004,Diana Prince,HR,68000,2018-11-05
+E005,Eve Davis,Engineering,98000,2020-09-18
+E006,Frank Miller,Finance,85000,2019-04-30
+E007,Grace Lee,Marketing,72000,2021-06-12
+E008,Henry Wilson,Engineering,102000,2017-12-01
+E009,Iris Martinez,Sales,78000,2020-02-28
+E010,Jack Thompson,IT,91000,2019-08-14

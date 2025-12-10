@@ -442,84 +442,15 @@ executor_catalog:
         required: false
         default: "content_understanding_output"
         ui_component: "input"
-
-      max_concurrent:
-        type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
-        required: false
-        default: 3
-        ui_component: "input"
-
-      continue_on_error:
-        type: boolean
-        title: "Continue On Error"
-        description: "Continue processing other content items if extraction fails for one"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
+        
       analyzer_id:
         type: string
         title: "Analyzer ID"
-        description: "Content Understanding analyzer to use"
+        description: "Content Understanding analyzer to use. Any of the pre-built analyzers or custom analyzers. See https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference for more details."
         required: false
         default: "prebuilt-documentSearch"
-        options: 
-          - "prebuilt-documentSearch"
-          - "prebuilt-layout"
-          - "prebuilt-read"
-          - "prebuilt-invoice"
-          - "prebuilt-receipt"
-          - "prebuilt-idDocument"
-          - "prebuilt-bankStatement.us"
-          - "prebuilt-creditCard"
-          - "prebuilt-tax.us.1040"
-          - "prebuilt-tax.us.w2"
-          - "prebuilt-businessCard"
-          - "prebuilt-contract"
-        ui_component: "select"
+        ui_component: "input"
       
-      extract_text:
-        type: boolean
-        title: "Extract Text"
-        description: "Extract plain text content from document"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      extract_markdown:
-        type: boolean
-        title: "Extract Markdown"
-        description: "Extract markdown-formatted content from document"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      extract_tables:
-        type: boolean
-        title: "Extract Tables"
-        description: "Extract tables from document"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      extract_fields:
-        type: boolean
-        title: "Extract Fields"
-        description: "Extract structured fields from document (for field extraction analyzers)"
-        required: false
-        default: false
-        ui_component: "checkbox"
-      
-      extract_pages:
-        type: boolean
-        title: "Extract Pages"
-        description: "Extract page-level content chunks"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
       content_understanding_endpoint:
         type: string
         title: "Azure Content Understanding Endpoint"
@@ -531,10 +462,10 @@ executor_catalog:
       content_understanding_credential_type:
         type: string
         title: "Azure Content Understanding Credential Type"
-        description: "Credential type. Valid values: 'default_azure_credential', 'subscription_key', 'token_provider'"
+        description: "Credential type. Valid values: 'default_azure_credential', 'subscription_key'"
         required: false
         default: "default_azure_credential"
-        options: ["default_azure_credential", "subscription_key", "token_provider"]
+        options: ["default_azure_credential", "subscription_key"]
         ui_component: "select"
 
       content_understanding_subscription_key:
@@ -561,13 +492,37 @@ executor_catalog:
         default: 60
         ui_component: "number"
 
+      content_understanding_polling_interval:
+        type: integer
+        title: "Polling Interval (seconds)"
+        description: "Seconds between polling for result for long-running operations"
+        required: false
+        default: 2
+        ui_component: "number"
+
       content_understanding_model_mappings:
         type: string
         title: "Default Model Deployments"
-        description: "Mapping of model names to deployment IDs, in the format 'gpt-4.1:gpt_4.1_deployment_name,gpt-4.1-mini:gpt_4.1_mini_deployment_name,text-embedding-3-large:text_embedding_3_large_deployment_name'"
-        required: false
+        description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-4.1-mini\":\"gpt_4.1_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
+        required: true
         default: null
         ui_component: "input"
+      
+      max_concurrent:
+        type: integer
+        title: "Max parallel runs"
+        description: "Maximum number of parallel processing runs"
+        required: false
+        default: 3
+        ui_component: "input"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
 
     # UI metadata
     ui_metadata:
@@ -591,15 +546,15 @@ executor_catalog:
       content_field: 
         type: string
         title: "Content field"
-        description: "Field containing PDF bytes"
+        description: "Field containing PDF bytes. Either this or 'temp_file_path_field' must be provided."
         required: false
-        default: "content"
+        default: null
         ui_component: "input"
 
       temp_file_path_field:
         type: string
         title: "Temp file path field"
-        description: "Field containing temp file path"
+        description: "Field containing temp file path. Either this or 'content_field' must be provided."
         required: false
         default: "temp_file_path"
         ui_component: "input"
@@ -1416,9 +1371,9 @@ executor_catalog:
       description_long: "Splits tabular data (from Word, Excel, CSV, or other sources) into individual content items for parallel processing. Supports multiple table formats and preserves row metadata."
 
   ########################################################
-  # AI Agent Executor
-  - id: azure_openai_agent_executor
-    name: "Azure OpenAI Analysis Agent Executor"
+  # AI Agent Executor using Azure OpenAI
+  - id: azure_openai_agent
+    name: "Azure OpenAI Analysis Agent"
     description: "Execute AI agent instructions using Azure OpenAI Responses Client from agent-framework"
     module_path: packages.executors.azure_openai_agent_executor
     class_name: AzureOpenAIAgentExecutor
@@ -1537,9 +1492,9 @@ executor_catalog:
       description_long: "Execute AI agent instructions using Azure OpenAI with the agent-framework."
 
   ########################################################
-  # Azure OpenAI Embeddings Executor
-  - id: azure_openai_embeddings_executor
-    name: "Azure OpenAI Embeddings Executor"
+  # Azure OpenAI Embeddings
+  - id: azure_openai_embeddings
+    name: "Azure OpenAI Embeddings"
     description: "Generate vector embeddings using Azure OpenAI embeddings models"
     module_path: packages.executors.azure_openai_embeddings_executor
     class_name: AzureOpenAIEmbeddingsExecutor
@@ -1640,9 +1595,9 @@ executor_catalog:
       description_long: "Generate vector embeddings from text using Azure OpenAI embeddings models for semantic search and similarity matching."
 
   ########################################################
-  # Summarization Executor
-  - id: summarization_executor
-    name: "Text Summarization Executor"
+  # Summarization
+  - id: text_summarizer
+    name: "Text Summarizer"
     description: "Specialized AI executor for generating text summaries with configurable length and style"
     module_path: packages.executors.summarization_executor
     class_name: SummarizationExecutor
@@ -1785,9 +1740,9 @@ executor_catalog:
       description_long: "Generate concise summaries of text with configurable length and style using Azure OpenAI."
 
   ########################################################
-  # Entity Extraction Executor
-  - id: entity_extraction_executor
-    name: "Entity Extraction Executor"
+  # Entity Extraction
+  - id: entity_extractor
+    name: "Entity Extraction"
     description: "Extract named entities (people, organizations, locations, etc.) from text using AI"
     module_path: packages.executors.entity_extraction_executor
     class_name: EntityExtractionExecutor
@@ -1929,9 +1884,9 @@ executor_catalog:
       description_long: "Extract and identify named entities from text using Azure OpenAI."
 
   ########################################################
-  # Sentiment Analysis Executor
-  - id: sentiment_analysis_executor
-    name: "Sentiment Analysis Executor"
+  # Sentiment Analysis
+  - id: sentiment_analyser
+    name: "Sentiment Analyser"
     description: "Analyze text sentiment (positive, negative, neutral) with confidence scores and emotion detection"
     module_path: packages.executors.sentiment_analysis_executor
     class_name: SentimentAnalysisExecutor
@@ -2082,9 +2037,9 @@ executor_catalog:
       description_long: "Analyze text sentiment and emotions using Azure OpenAI."
 
   ########################################################
-  # Content Classifier Executor
-  - id: content_classifier_executor
-    name: "Content Classification Executor"
+  # Content Classifier
+  - id: content_classifier
+    name: "Content Classifier"
     description: "Classify text into predefined categories with confidence scores"
     module_path: packages.executors.content_classifier_executor
     class_name: ContentClassifierExecutor
@@ -2243,9 +2198,9 @@ executor_catalog:
       description_long: "Classify text into predefined categories using Azure OpenAI."
 
   ########################################################
-  # PII Detector Executor
-  - id: pii_detector_executor
-    name: "PII Detection Executor"
+  # PII Detector
+  - id: pii_detector
+    name: "PII Detector"
     description: "Detect and optionally redact Personally Identifiable Information (PII) from text"
     module_path: packages.executors.pii_detector_executor
     class_name: PIIDetectorExecutor
@@ -2406,8 +2361,8 @@ executor_catalog:
 
   ########################################################
   # Keyword Extractor Executor
-  - id: keyword_extractor_executor
-    name: "Keyword Extraction Executor"
+  - id: keyword_extractor
+    name: "Keyword Extractor"
     description: "Extract important keywords and key phrases from text with relevance scoring"
     module_path: packages.executors.keyword_extractor_executor
     class_name: KeywordExtractorExecutor
@@ -2571,8 +2526,8 @@ executor_catalog:
 
   ########################################################
   # Language Detector Executor
-  - id: language_detector_executor
-    name: "Language Detection Executor"
+  - id: language_detector
+    name: "Language Detector"
     description: "Detect the language(s) of text with confidence scores and script detection"
     module_path: packages.executors.language_detector_executor
     class_name: LanguageDetectorExecutor
@@ -2733,8 +2688,8 @@ executor_catalog:
 
   ########################################################
   # Translation Executor
-  - id: translation_executor
-    name: "Translation Executor"
+  - id: content_translator
+    name: "Content Translator"
     description: "Translate text between languages with configurable style and terminology preservation"
     module_path: packages.executors.translation_executor
     class_name: TranslationExecutor
@@ -2901,8 +2856,8 @@ executor_catalog:
 
   ########################################################
   # Pass Through Executor
-  - id: pass_through_executor
-    name: "Pass Through Executor"
+  - id: pass_through
+    name: "Pass Through"
     description: "Passes content through without modification"
     module_path: packages.executors.pass_through
     class_name: PassThroughExecutor
@@ -2911,18 +2866,15 @@ executor_catalog:
     version: "1.0"
 
   ##########################################################
-  # AI Search Index Writer
-  - id: ai_search_index_writer
-    name: "AI Search Index Writer"
+  # AI Search Index Output
+  - id: ai_search_index_output
+    name: "AI Search Index Output"
     description: "Indexes documents or chunks to Azure AI Search"
-    module_path: packages.executors.ai_search_index_writer
-    class_name: AISearchIndexWriterExecutor
+    module_path: packages.executors.ai_search_index_output
+    class_name: AISearchIndexOutputExecutor
     tags: [indexing, search, azure, ai-search, output, rag]
     category: "Output"
-    version: "2.0"
-    
-    # Required connectors
-    required_connectors: [ai_search]
+    version: "1.0"
     
     # Settings schema
     settings_schema:
@@ -2976,60 +2928,21 @@ executor_catalog:
         options: ["document", "chunks"]
         ui_component: "select"
       
-      field_to_index_mappings:
+      chunk_iterator_field:
+        type: string
+        title: "Chunk Iterator Field"
+        description: "Field containing list of chunks when indexing in 'chunks' mode"
+        required: false
+        default: "chunks"
+        ui_component: "input"
+      
+      content_to_index_mappings:
         type: object
         title: "Field to Index Mappings"
         description: "JSON configuration for field mappings between source data and search index"
         required: false
-        default:
-          id_field: "id"
-          key_field: "id"
-          content_field: "content"
-          chunk_field: "chunks"
-          chunk_text_field: "text"
-          metadata_fields: []
-          chunk_metadata_fields: ["page_numbers", "chunk_index"]
-        properties:
-          id_field:
-            type: string
-            title: "ID Field"
-            description: "Field name for document ID in search index"
-            default: "id"
-          key_field:
-            type: string
-            title: "Key Field"
-            description: "Field name for document key in source data"
-            default: "id"
-          content_field:
-            type: string
-            title: "Content Field"
-            description: "Field name for searchable content in search index"
-            default: "content"
-          chunk_field:
-            type: string
-            title: "Chunk Field"
-            description: "Field containing chunks (for chunks mode)"
-            default: "chunks"
-          chunk_text_field:
-            type: string
-            title: "Chunk Text Field"
-            description: "Field within chunk containing text"
-            default: "text"
-          metadata_fields:
-            type: array
-            title: "Metadata Fields"
-            description: "Document fields to include as metadata"
-            default: []
-            items:
-              type: string
-          chunk_metadata_fields:
-            type: array
-            title: "Chunk Metadata Fields"
-            description: "Chunk fields to include as metadata"
-            default: ["page_numbers", "chunk_index"]
-            items:
-              type: string
-        ui_component: "json"
+        default: None
+        ui_component: "textarea"
       
       index_action_type:
         type: string
@@ -3057,42 +2970,6 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
-      
-      generate_id:
-        type: boolean
-        title: "Auto-Generate IDs"
-        description: "Auto-generate IDs if missing using SHA1 hash"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      vector_fields:
-        type: array
-        title: "Vector Fields"
-        description: "Vector field configurations for semantic search"
-        required: false
-        default: []
-        items:
-          type: object
-          properties:
-            field:
-              type: string
-              title: "Vector Field Name"
-            source_field:
-              type: string
-              title: "Source Field"
-            model:
-              type: string
-              title: "Embedding Model"
-        ui_component: "json"
-      
-      semantic_config_name:
-        type: string
-        title: "Semantic Configuration"
-        description: "Name of semantic configuration to use"
-        required: false
-        default: null
-        ui_component: "input"
       
       max_retries:
         type: integer
@@ -3147,3 +3024,884 @@ executor_catalog:
       icon: "database"
       description_short: "Index to AI Search"
       description_long: "Indexes documents or chunks to Azure AI Search with support for semantic search, vector fields, batch processing, and retry logic for production RAG applications."
+
+  ########################################################
+  # Azure Blob Output Executor
+  - id: azure_blob_output
+    name: "Azure Blob Output"
+    description: "Write content entries as JSON files to Azure Blob Storage"
+    module_path: packages.executors.azure_blob_output_executor
+    class_name: AzureBlobOutputExecutor
+    tags: [output, storage, azure, blob, archive, backup]
+    category: "Output"
+    version: "1.0"
+
+    # Settings schema
+    settings_schema:
+      storage_account_name:
+        type: string
+        title: "Storage Account Name"
+        description: "Azure Storage account name"
+        required: true
+        default: null
+        ui_component: "input"
+      
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+      
+      credential_key:
+        type: string
+        title: "Credential Key"
+        description: "Storage account key (required for azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      container_name:
+        type: string
+        title: "Container Name"
+        description: "Target blob container name"
+        required: true
+        default: null
+        ui_component: "input"
+      
+      path_template:
+        type: string
+        title: "Path Template"
+        description: "Path pattern for organizing blobs (supports content {field}, date variables: {year}, {month}, {day} and special variables {executor_id}, {timestamp})"
+        required: false
+        default: "{executor_id}/{year}/{month}/{day}/"
+        ui_component: "input"
+      
+      filename_template:
+        type: string
+        title: "Filename Template"
+        description: "Filename pattern (supports content {field} placeholders, date variables: {year}, {month}, {day} and special variables {timestamp})"
+        required: false
+        default: "{id.unique_id}_{timestamp}.json"
+        ui_component: "input"
+      
+      content_field:
+        type: string
+        title: "Content Field"
+        description: "Field containing content data to write (null = write entire Content item). Must be a field in the 'content.data' dictionary."
+        required: false
+        default: null
+        ui_component: "input"
+      
+      metadata_fields:
+        type: string
+        title: "Metadata Fields"
+        description: "Content fields to store as blob metadata, comma separated (null = no metadata)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      compression:
+        type: string
+        title: "Compression"
+        description: "Compression type for blob content"
+        required: false
+        default: "none"
+        options: ["none", "gzip", "zip"]
+        ui_component: "select"
+      
+      overwrite_existing:
+        type: boolean
+        title: "Overwrite Existing"
+        description: "Whether to overwrite existing blobs"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      add_timestamp:
+        type: boolean
+        title: "Add Timestamp"
+        description: "Add written_at timestamp to blob metadata"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      pretty_print:
+        type: boolean
+        title: "Pretty Print JSON"
+        description: "Pretty print JSON output with indentation"
+        required: false
+        default: true
+        ui_component: "checkbox"
+            
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent"
+        description: "Maximum concurrent blob uploads"
+        required: false
+        default: 3
+        min: 1
+        max: 20
+        ui_component: "number"
+      
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout per blob write in seconds"
+        required: false
+        default: 60
+        min: 1
+        max: 300
+        ui_component: "number"
+      
+      continue_on_error:
+        type: boolean
+        title: "Continue on Error"
+        description: "Continue processing if a blob write fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "cloud-upload"
+      description_short: "Write to Blob Storage"
+      description_long: "Writes content entries as JSON files to Azure Blob Storage with support for path templating, metadata preservation, compression, and batch processing for enterprise data archival and backup scenarios."
+
+  ########################################################
+  # Field Mapper Executor
+  - id: field_mapper
+    name: "Field Mapper"
+    description: "Rename, move, and remap fields within Content items for standardization and compatibility"
+    module_path: packages.executors.field_mapper_executor
+    class_name: FieldMapperExecutor
+    tags: [transform, mapping, restructure, fields, normalization]
+    category: "Transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      mappings:
+        type: string
+        title: "Field Mappings"
+        description: "Dictionary of source → target field mappings in JSON format (use dot notation for nested fields), either this or 'object_mappings' is required."
+        required: false
+        default: null
+        ui_component: "textarea"
+      
+      object_mappings:
+        type: string
+        title: "Object Field Mappings"
+        description: "Dictionary of source → target object field mappings in JSON format for nested structures (use dot notation), either this or 'mappings' is required."
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      copy_mode:
+        type: string
+        title: "Copy Mode"
+        description: "How to handle source fields after mapping, move: Delete source field | copy: Keep source field."
+        required: false
+        default: "move"
+        options: ["move", "copy"]
+        ui_component: "select"
+      
+      create_nested:
+        type: boolean
+        title: "Create Nested Structures"
+        description: "Automatically create nested dictionary structures when target path includes dots"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      overwrite_existing:
+        type: boolean
+        title: "Overwrite Existing Fields"
+        description: "Overwrite target field if it already exists"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      template_fields:
+        type: boolean
+        title: "Enable Template Fields"
+        description: "Allow using {field_name} placeholders in target paths for dynamic naming. Example: content → {source_type}_content"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      nested_delimiter:
+        type: string
+        title: "Nested Field Delimiter"
+        description: "Delimiter for nested field paths"
+        required: false
+        default: "."
+        ui_component: "input"
+      
+      list_handling: 
+        type: string
+        title: "List Handling Mode"
+        description: "How to handle lists when mapping fields, first: Use first element from source list | merge: Merge source and target lists | concatenate: Concatenate source and target lists | all: Keep all values as nested lists"
+        required: false
+        default: "merge"
+        options: ["first", "merge", "concatenate", "all"]
+        ui_component: "select"
+
+      join_separator: 
+        type: string
+        title: "Join Separator"
+        description: "Separator used when joining list elements into a string"
+        required: false
+        default: "\n"
+        ui_component: "input"
+
+      merge_filter_empty:
+        type: boolean
+        title: "Merge Filter Empty"
+        description: "Exclude empty/null values from source lists during mapping"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      merge_deduplicate:
+        type: boolean
+        title: "Merge Deduplicate"
+        description: "Remove duplicate values from source lists during mapping"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      case_transform:
+        type: string
+        title: "Case Transformation"
+        description: "Transform field name case during mapping, lower: lowercase | upper: UPPERCASE | title: Title Case | camel: camelCase | snake: snake_case"
+        required: false
+        default: null
+        options: ["lower", "upper", "title", "camel", "snake"]
+        ui_component: "select"
+      
+      fail_on_missing_source:
+        type: boolean
+        title: "Fail on Missing Source"
+        description: "Raise error if source field doesn't exist"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      remove_empty_objects:
+        type: boolean
+        title: "Remove Empty Objects"
+        description: "Remove empty nested objects after moving fields"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "map"
+      description_short: "Map and rename fields"
+      description_long: "Transform Content item structure by renaming, moving, and remapping fields. Supports nested field paths, template-based naming, field copying/moving, and automatic structure creation for data standardization and API normalization."
+
+  ########################################################
+  # Field Selector Executor
+  - id: field_selector_executor
+    name: "Field Selector"
+    description: "Select, keep, or remove specific fields from Content items for data privacy, size optimization, or pipeline simplification"
+    module_path: packages.executors.field_selector_executor
+    class_name: FieldSelectorExecutor
+    tags: [transform, filter, privacy, fields, selection, optimization]
+    category: "Transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      mode:
+        type: string
+        title: "Selection Mode"
+        description: "Select mode: include - Keep only specified fields | exclude - Remove specified fields"
+        required: false
+        default: "include"
+        options: ["include", "exclude"]
+        ui_component: "select"
+      
+      fields:
+        type: string
+        title: "Field Patterns"
+        description: "List of field names or patterns to select/exclude. Supports wildcards (temp_*, internal_*) and nested paths (metadata.author.name)"
+        required: true
+        default: '["field1", "field2", "metadata.*"]'
+        ui_component: "textarea"
+      
+      nested_delimiter:
+        type: string
+        title: "Nested Field Delimiter"
+        description: "Delimiter for nested field paths"
+        required: false
+        default: "."
+        ui_component: "input"
+      
+      preserve_structure:
+        type: boolean
+        title: "Preserve Structure"
+        description: "Preserve nested dictionary structures (true) or flatten to top level (false)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      conditional_selection:
+        type: boolean
+        title: "Enable Conditional Selection"
+        description: "Enable conditional field selection based on field values"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      condition_field:
+        type: string
+        title: "Condition Field"
+        description: "Field to evaluate for conditional selection (required when conditional_selection is true)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      condition_operator:
+        type: string
+        title: "Condition Operator"
+        description: "Comparison operator for conditional selection"
+        required: false
+        default: "equals"
+        options: ["equals", "not_equals", "contains", "not_contains", "exists", "not_exists"]
+        ui_component: "select"
+      
+      condition_value:
+        type: string
+        title: "Condition Value"
+        description: "Value to compare against for conditional selection"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      keep_id_fields:
+        type: boolean
+        title: "Keep ID Fields"
+        description: "Always preserve Content ID and core fields regardless of selection"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      bulk_operations:
+        type: boolean
+        title: "Bulk Operations"
+        description: "Enable bulk field operations for optimized processing of large field sets"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      fail_on_missing_field:
+        type: boolean
+        title: "Fail on Missing Field"
+        description: "Raise error if specified field doesn't exist in content"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      add_selection_metadata:
+        type: boolean
+        title: "Add Selection Metadata"
+        description: "Add metadata about field selection to content.summary_data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "filter"
+      description_short: "Select or exclude fields"
+      description_long: "Filter Content item fields by selecting only specific fields or excluding unwanted fields. Supports wildcard patterns, nested field selection, conditional filtering, and privacy-focused data masking for GDPR compliance and payload optimization."
+
+  ########################################################
+  # Knowledge Graph Entity Extractor Executor
+  - id: knowledge_graph_entity_extractor
+    name: "Knowledge Graph Entity Extractor"
+    description: "Extract entities and relationships from content for knowledge graph construction using AI"
+    module_path: packages.executors.knowledge_graph_entity_extractor
+    class_name: KnowledgeGraphEntityExtractorExecutor
+    tags: [ai, knowledge-graph, entity-extraction, relationships]
+    category: "AI Analysis"
+    version: "1.0"
+    
+    settings_schema:
+      ai_endpoint:
+        type: string
+        title: "AI Endpoint"
+        description: "Azure AI endpoint URL"
+        required: true
+        ui_component: "input"
+      
+      ai_credential_type:
+        type: string
+        title: "AI Credential Type"
+        description: "Credential type for AI service"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+      
+      ai_api_key:
+        type: string
+        title: "AI API Key"
+        description: "API key for AI service (if using azure_key_credential)"
+        required: false
+        ui_component: "input"
+      
+      model_name:
+        type: string
+        title: "Model Name"
+        description: "AI model deployment name"
+        required: true
+        ui_component: "input"
+      
+      entity_types:
+        type: array
+        title: "Entity Types"
+        description: "List of entity types to extract"
+        required: false
+        default: ["Organization", "Person", "Product", "Service", "Technology", "Location", "Event", "Concept"]
+        ui_component: "multi-select"
+      
+      confidence_threshold:
+        type: number
+        title: "Confidence Threshold"
+        description: "Minimum confidence score for extracted entities (0.0-1.0)"
+        required: false
+        default: 0.6
+        min: 0.0
+        max: 1.0
+        ui_component: "slider"
+      
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field to store extracted entities"
+        required: false
+        default: "knowledge_graph_entities"
+        ui_component: "input"
+    
+    ui_metadata:
+      icon: "share-2"
+      description_short: "Extract entities for knowledge graph"
+      description_long: "Use AI to extract business entities and relationships from content to build comprehensive knowledge graphs. Identifies organizations, people, products, concepts, and their connections."
+
+  ########################################################
+  # Knowledge Graph Writer Executor
+  - id: knowledge_graph_writer
+    name: "Knowledge Graph Writer"
+    description: "Write entities and relationships to Azure Cosmos DB Graph API (Gremlin)"
+    module_path: packages.executors.knowledge_graph_writer
+    class_name: KnowledgeGraphWriterExecutor
+    tags: [knowledge-graph, cosmos-db, gremlin, graph-database]
+    category: "Output"
+    version: "1.0"
+    
+    settings_schema:
+      gremlin_endpoint:
+        type: string
+        title: "Gremlin Endpoint"
+        description: "Cosmos DB Gremlin endpoint (e.g., wss://account.gremlin.cosmos.azure.com:443/)"
+        required: true
+        ui_component: "input"
+      
+      gremlin_database:
+        type: string
+        title: "Database Name"
+        description: "Cosmos DB database name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_collection:
+        type: string
+        title: "Collection Name"
+        description: "Graph collection/container name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_password:
+        type: string
+        title: "Primary Key"
+        description: "Cosmos DB primary or secondary key"
+        required: true
+        ui_component: "input"
+      
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing extracted entities"
+        required: false
+        default: "knowledge_graph_entities"
+        ui_component: "input"
+      
+      merge_strategy:
+        type: string
+        title: "Merge Strategy"
+        description: "How to handle existing entities"
+        required: false
+        default: "merge"
+        options: ["merge", "overwrite", "skip"]
+        ui_component: "select"
+      
+      enable_deduplication:
+        type: boolean
+        title: "Enable Deduplication"
+        description: "Merge duplicate entities"
+        required: false
+        default: true
+        ui_component: "checkbox"
+    
+    ui_metadata:
+      icon: "database"
+      description_short: "Write to knowledge graph"
+      description_long: "Persist extracted entities and relationships to Azure Cosmos DB Graph API, building an evolving knowledge graph with deduplication and merge capabilities."
+
+  ########################################################
+  # Knowledge Graph Query Executor
+  - id: knowledge_graph_query
+    name: "Knowledge Graph Query"
+    description: "Query knowledge graph for entity retrieval and relationship traversal"
+    module_path: packages.executors.knowledge_graph_query
+    class_name: KnowledgeGraphQueryExecutor
+    tags: [knowledge-graph, query, gremlin, graph-traversal]
+    category: "Input"
+    version: "1.0"
+    
+    settings_schema:
+      gremlin_endpoint:
+        type: string
+        title: "Gremlin Endpoint"
+        description: "Cosmos DB Gremlin endpoint"
+        required: true
+        ui_component: "input"
+      
+      gremlin_database:
+        type: string
+        title: "Database Name"
+        description: "Cosmos DB database name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_collection:
+        type: string
+        title: "Collection Name"
+        description: "Graph collection/container name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_password:
+        type: string
+        title: "Primary Key"
+        description: "Cosmos DB primary or secondary key"
+        required: true
+        ui_component: "input"
+      
+      query_type:
+        type: string
+        title: "Query Type"
+        description: "Type of graph query to execute"
+        required: false
+        default: "find_entity"
+        options: ["find_entity", "traverse", "pattern_match", "aggregate", "custom"]
+        ui_component: "select"
+      
+      query_parameters:
+        type: object
+        title: "Query Parameters"
+        description: "Parameters for the query (JSON object)"
+        required: false
+        default: {}
+        ui_component: "json-editor"
+      
+      max_results:
+        type: integer
+        title: "Max Results"
+        description: "Maximum number of results to return"
+        required: false
+        default: 100
+        min: 1
+        max: 1000
+        ui_component: "number"
+    
+    ui_metadata:
+      icon: "search"
+      description_short: "Query knowledge graph"
+      description_long: "Retrieve entities, traverse relationships, and perform pattern matching on the knowledge graph using Gremlin queries."
+
+  ########################################################
+  # Knowledge Graph Enrichment Executor
+  - id: knowledge_graph_enrichment
+    name: "Knowledge Graph Enrichment"
+    description: "Enrich knowledge graph entities with AI-generated properties and inferred relationships"
+    module_path: packages.executors.knowledge_graph_enrichment
+    class_name: KnowledgeGraphEnrichmentExecutor
+    tags: [knowledge-graph, enrichment, ai, graph-analytics]
+    category: "AI Analysis"
+    version: "1.0"
+    
+    settings_schema:
+      gremlin_endpoint:
+        type: string
+        title: "Gremlin Endpoint"
+        description: "Cosmos DB Gremlin endpoint"
+        required: true
+        ui_component: "input"
+      
+      gremlin_database:
+        type: string
+        title: "Database Name"
+        description: "Cosmos DB database name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_collection:
+        type: string
+        title: "Collection Name"
+        description: "Graph collection/container name"
+        required: true
+        ui_component: "input"
+      
+      gremlin_password:
+        type: string
+        title: "Primary Key"
+        description: "Cosmos DB primary or secondary key"
+        required: true
+        ui_component: "input"
+      
+      enrichment_type:
+        type: string
+        title: "Enrichment Type"
+        description: "Type of enrichment to perform"
+        required: true
+        options: ["ai_properties", "infer_relationships", "compute_metrics", "entity_classification"]
+        ui_component: "select"
+      
+      ai_endpoint:
+        type: string
+        title: "AI Endpoint"
+        description: "Azure AI endpoint (for AI-based enrichment)"
+        required: false
+        ui_component: "input"
+      
+      ai_api_key:
+        type: string
+        title: "AI API Key"
+        description: "API key for AI service"
+        required: false
+        ui_component: "input"
+      
+      model_name:
+        type: string
+        title: "Model Name"
+        description: "AI model deployment name (for AI-based enrichment)"
+        required: false
+        ui_component: "input"
+      
+      entity_selector:
+        type: string
+        title: "Entity Selector"
+        description: "How to select entities to enrich"
+        required: false
+        default: "all"
+        options: ["all", "by_label", "by_property"]
+        ui_component: "select"
+    
+    ui_metadata:
+      icon: "zap"
+      description_short: "Enrich knowledge graph"
+      description_long: "Enhance the knowledge graph by adding AI-generated properties, inferring implicit relationships, and computing graph metrics for entities."
+
+
+  ########################################################
+  # Web Scraping Executor
+  - id: web_scraper
+    name: "Web Scraper"
+    description: "Scrape and extract content from web pages using Playwright"
+    module_path: packages.executors.web_scraping_executor
+    class_name: WebScrapingExecutor
+    tags: [input, scraping, web, playwright]
+    category: "Input"
+    version: "1.0"
+    
+    settings_schema:
+      start_urls:
+        type: string
+        title: "Start URLs"
+        description: "Comma separated list of explicit URLs to start scraping from"
+        required: true
+        default: "https://example.com, https://example.org"
+        ui_component: input
+      
+      link_patterns:
+        type: string
+        title: "Link Patterns"
+        description: "Comma separated list of URL patterns that followed links must match (supports wildcards)"
+        required: false
+        default: null
+        ui_component: input
+      
+      selectors:
+        type: string
+        title: "Selectors"
+        description: "Dictionary of field names to CSS/XPath selectors"
+        required: false
+        default: "{\"title\": \"title\", \"body\": \"body\"}"
+        ui_component: textarea
+      
+      render_js:
+        type: boolean
+        title: "Render JavaScript"
+        description: "Whether to wait for JavaScript rendering (network idle)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      follow_links:
+        type: boolean
+        title: "Follow Links"
+        description: "Whether to follow links matching the pattern"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      max_depth:
+        type: integer
+        title: "Max Depth"
+        description: "Maximum crawl depth"
+        required: false
+        default: 1
+        min: 0
+        max: 10
+        ui_component: "number"
+      
+      rate_limit:
+        type: number
+        title: "Rate Limit"
+        description: "Requests per second (approximate)"
+        required: false
+        default: 1.0
+        min: 0.1
+        max: 10.0
+        ui_component: "number"
+      
+      max_pages:
+        type: integer
+        title: "Max Pages"
+        description: "Maximum number of pages to scrape"
+        required: false
+        default: 100
+        min: 1
+        max: 1000
+        ui_component: "number"
+      
+      wait_for_selector:
+        type: string
+        title: "Wait For Selector"
+        description: "Specific selector to wait for before extracting"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      include_html:
+        type: boolean
+        title: "Include HTML"
+        description: "Include full HTML in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      user_agent:
+        type: string
+        title: "User Agent"
+        description: "Custom User-Agent string"
+        required: false
+        default: null
+        ui_component: "input"
+
+      screenshot_enabled:
+        type: boolean
+        title: "Enable Screenshots"
+        description: "Capture a screenshot for each scraped page"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      screenshot_full_page:
+        type: boolean
+        title: "Full Page Screenshot"
+        description: "Capture the full page instead of just the viewport"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      screenshot_selector:
+        type: string
+        title: "Screenshot Selector"
+        description: "Optional selector to capture a specific element instead of the full page"
+        required: false
+        default: null
+        ui_component: "input"
+
+      screenshot_type:
+        type: string
+        title: "Screenshot Type"
+        description: "Image format for screenshots"
+        required: false
+        default: "png"
+        options: ["png", "jpeg"]
+        ui_component: "select"
+
+      screenshot_quality:
+        type: integer
+        title: "Screenshot Quality"
+        description: "Quality (1-100) for JPEG screenshots"
+        required: false
+        default: null
+        min: 1
+        max: 100
+        ui_component: "number"
+
+      screenshot_save_to_file:
+        type: boolean
+        title: "Save Screenshots to File"
+        description: "Save screenshots to local files instead of embedding as base64"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      screenshot_output_dir:
+        type: string
+        title: "Screenshot Output Directory"
+        description: "Directory to save screenshot files"
+        required: false
+        default: "./screenshots"
+        ui_component: "input"
+
+      screenshot_filename_template:
+        type: string
+        title: "Screenshot Filename Template"
+        description: "Template for screenshot filenames (supports {timestamp}, {index}, {ext}, {url})"
+        required: false
+        default: "{timestamp}_{index}.{ext}"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for extracted data in the output"
+        required: false
+        default: "web_scraping_output"
+        ui_component: "input"
+
+    ui_metadata:
+      icon: "globe"
+      description_short: "Scrape web pages"
+      description_long: "Scrape and extract content from web pages using Playwright with support for JavaScript rendering, crawling, and screenshot capture."

@@ -9,7 +9,7 @@ pipelines:
     executors:
       # Translation with natural style (default)
       - id: translator
-        type: translation_executor # refers to the id in executor_catalog.yaml
+        type: content_translator # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           max_concurrent: 2
@@ -38,7 +38,7 @@ pipelines:
           max_tokens: 1000
 
       - id: pass_through
-        type: pass_through_executor
+        type: pass_through # refers to the id in executor_catalog.yaml
         debug_mode: true
     
     execution_sequence: [translator, pass_through]

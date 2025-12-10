@@ -179,10 +179,14 @@ class PIIDetectorExecutor(AzureOpenAIAgentExecutor):
         """Process content and parse JSON PII output."""
         content = await super().process_content_item(content)
         
+        logger.debug(f"Processing PII detection results for content id={content.id}")
+        
         # Try to parse JSON response
         if self.output_field in content.data:
             try:
                 response_text = content.data[self.output_field]
+                logger.debug(f"Raw PII detection response: {response_text}")
+                
                 if isinstance(response_text, str):
                     # Look for JSON block in the response
                     start = response_text.find('{')
@@ -191,6 +195,8 @@ class PIIDetectorExecutor(AzureOpenAIAgentExecutor):
                         json_str = response_text[start:end+1]
                         parsed = json.loads(json_str)
                         content.data[self.output_field] = parsed
+                        
+                        logger.debug(f"Parsed PII detection JSON: {parsed}")
                         
                         # Extract redacted text if action is not just detect
                         if self.pii_action != "detect" and f"{self.pii_action}ed_text" in parsed:
@@ -203,7 +209,6 @@ class PIIDetectorExecutor(AzureOpenAIAgentExecutor):
                             content.summary_data['pii_count'] = len(parsed["pii_found"])
                             
             except json.JSONDecodeError:
-                if self.debug_mode:
-                    logger.debug(f"Could not parse PII detection as JSON for {content.id}")
+                logger.warning(f"Could not parse PII detection as JSON for {content.id}")
         
         return content

@@ -7,7 +7,7 @@ pipelines:
     description: Pipeline demonstrating ContentClassifierExecutor for text classification
     executors:
       - id: classifier
-        type: content_classifier_executor # refers to the id in executor_catalog.yaml
+        type: content_classifier # refers to the id in executor_catalog.yaml
         debug_mode: true
         settings:
           # Azure OpenAI configuration
