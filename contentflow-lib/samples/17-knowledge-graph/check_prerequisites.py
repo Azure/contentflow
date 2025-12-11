@@ -108,7 +108,7 @@ def main():
     print("-" * 70)
     
     try:
-        from packages.executors import (
+        from contentflow.executors import (
             KnowledgeGraphEntityExtractorExecutor,
             KnowledgeGraphWriterExecutor,
             KnowledgeGraphQueryExecutor,
@@ -126,7 +126,7 @@ def main():
     print("-" * 70)
     
     try:
-        from packages.connectors import CosmosGremlinConnector
+        from contentflow.connectors import CosmosGremlinConnector
         print("✓ CosmosGremlinConnector available")
     except ImportError as e:
         print(f"✗ CosmosGremlinConnector: {e}")

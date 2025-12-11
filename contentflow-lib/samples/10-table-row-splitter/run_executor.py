@@ -12,8 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from packages.executors import TableRowSplitterExecutor
-from packages.models import Content, ContentIdentifier
+from contentflow.executors import TableRowSplitterExecutor
+from contentflow.models import Content, ContentIdentifier
 from samples.setup_logger import setup_logging
 
 # Get the current directory

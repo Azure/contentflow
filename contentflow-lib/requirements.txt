@@ -19,4 +19,5 @@ python-docx==1.2.0
 python-pptx==1.0.2
 openpyxl==3.1.5
 
-colorama==0.4.6playwright>=1.40.0
+colorama==0.4.6
+playwright>=1.40.0

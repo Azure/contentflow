@@ -18,9 +18,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from samples.setup_logger import setup_logging
-from packages.pipeline import PipelineExecutor, PipelineResult
-from packages.executors import FieldMapperExecutor
-from packages.models import Content, ContentIdentifier
+from contentflow.pipeline import PipelineExecutor, PipelineResult
+from contentflow.executors import FieldMapperExecutor
+from contentflow.models import Content, ContentIdentifier
 
 # Get the current directory
 samples_dir = Path(__file__).parent.parent

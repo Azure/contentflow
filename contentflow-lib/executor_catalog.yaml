@@ -7,7 +7,7 @@ executor_catalog:
   - id: content_retriever
     name: "Content Retriever"
     description: "Retrieves document content from various sources (Azure Blob, local files)"
-    module_path: packages.executors.content_retriever
+    module_path: contentflow.executors.content_retriever
     class_name: ContentRetrieverExecutor
     tags: [input, retrieval, azure, blob, storage]
     category: "Input"
@@ -101,7 +101,7 @@ executor_catalog:
   - id: azure_blob_input
     name: "Azure Blob Input"
     description: "Discovers and lists content files from Azure Blob Storage containers"
-    module_path: packages.executors.azure_blob_input_executor
+    module_path: contentflow.executors.azure_blob_input_executor
     class_name: AzureBlobInputExecutor
     tags: [input, discovery, azure, blob, storage, source]
     category: "Input"
@@ -246,7 +246,7 @@ executor_catalog:
   - id: azure_document_intelligence_extractor
     name: "Azure Document Intelligence Extractor"
     description: "Extracts content from documents using Azure Document Intelligence"
-    module_path: packages.executors.azure_document_intelligence_extractor
+    module_path: contentflow.executors.azure_document_intelligence_extractor
     class_name: AzureDocumentIntelligenceExtractorExecutor
     tags: [extraction, ocr, azure, document-intelligence, analysis]
     category: "extract"
@@ -411,7 +411,7 @@ executor_catalog:
   - id: azure_content_understanding_extractor
     name: "Azure Content Understanding Extractor"
     description: "Extracts content from documents using Azure AI Content Understanding with 70+ prebuilt analyzers"
-    module_path: packages.executors.azure_content_understanding_extractor
+    module_path: contentflow.executors.azure_content_understanding_extractor
     class_name: AzureContentUnderstandingExtractorExecutor
     tags: [extraction, ai, azure, content-understanding, rag, analysis, fields]
     category: "extract"
@@ -535,7 +535,7 @@ executor_catalog:
   - id: pdf_extractor
     name: "PDF Extractor"
     description: "Extracts text, pages, and images from PDF documents using PyMuPDF"
-    module_path: packages.executors.pdf_extractor
+    module_path: contentflow.executors.pdf_extractor
     class_name: PDFExtractorExecutor
     tags: [extraction, pdf, pymupdf, text, images]
     category: "extract"
@@ -655,7 +655,7 @@ executor_catalog:
   - id: word_extractor
     name: "Word Extractor"
     description: "Extracts text, paragraphs, tables, and properties from Word documents using python-docx"
-    module_path: packages.executors.word_extractor
+    module_path: contentflow.executors.word_extractor
     class_name: WordExtractorExecutor
     tags: [extraction, word, docx, text, tables]
     category: "extract"
@@ -781,7 +781,7 @@ executor_catalog:
   - id: powerpoint_extractor
     name: "PowerPoint Extractor"
     description: "Extracts text, slides, tables, notes, and images from PowerPoint presentations using python-pptx"
-    module_path: packages.executors.powerpoint_extractor
+    module_path: contentflow.executors.powerpoint_extractor
     class_name: PowerPointExtractorExecutor
     tags: [extraction, powerpoint, pptx, slides, presentations]
     category: "extract"
@@ -915,7 +915,7 @@ executor_catalog:
   - id: recursive_text_chunker
     name: "Recursive Text Chunker"
     description: "Creates chunks using recursive text splitting with configurable separator hierarchy for optimal RAG retrieval"
-    module_path: packages.executors.recursive_text_chunker_executor
+    module_path: contentflow.executors.recursive_text_chunker_executor
     class_name: RecursiveTextChunkerExecutor
     tags: [chunking, rag, recursive, semantic-search, nlp, universal]
     category: "transform"
@@ -1047,7 +1047,7 @@ executor_catalog:
   - id: excel_extractor
     name: "Excel Extractor"
     description: "Extracts text, sheets, tables, properties, and images from Excel workbooks using openpyxl"
-    module_path: packages.executors.excel_extractor
+    module_path: contentflow.executors.excel_extractor
     class_name: ExcelExtractorExecutor
     tags: [extraction, excel, xlsx, xlsm, spreadsheet, tables]
     category: "extract"
@@ -1223,7 +1223,7 @@ executor_catalog:
   - id: table_row_splitter
     name: "Table Row Splitter"
     description: "Splits tabular data into individual content items, one per row, for parallel processing"
-    module_path: packages.executors.table_row_splitter_executor
+    module_path: contentflow.executors.table_row_splitter_executor
     class_name: TableRowSplitterExecutor
     tags: [splitting, table, rows, batch, parallel]
     category: "transform"
@@ -1375,7 +1375,7 @@ executor_catalog:
   - id: azure_openai_agent
     name: "Azure OpenAI Analysis Agent"
     description: "Execute AI agent instructions using Azure OpenAI Responses Client from agent-framework"
-    module_path: packages.executors.azure_openai_agent_executor
+    module_path: contentflow.executors.azure_openai_agent_executor
     class_name: AzureOpenAIAgentExecutor
     tags: [ai, agent, llm, azure-openai, agent-framework]
     category: "analyze"
@@ -1496,7 +1496,7 @@ executor_catalog:
   - id: azure_openai_embeddings
     name: "Azure OpenAI Embeddings"
     description: "Generate vector embeddings using Azure OpenAI embeddings models"
-    module_path: packages.executors.azure_openai_embeddings_executor
+    module_path: contentflow.executors.azure_openai_embeddings_executor
     class_name: AzureOpenAIEmbeddingsExecutor
     tags: [ai, embeddings, vector, azure-openai, semantic-search]
     category: "analyze"
@@ -1599,7 +1599,7 @@ executor_catalog:
   - id: text_summarizer
     name: "Text Summarizer"
     description: "Specialized AI executor for generating text summaries with configurable length and style"
-    module_path: packages.executors.summarization_executor
+    module_path: contentflow.executors.summarization_executor
     class_name: SummarizationExecutor
     tags: [ai, summarization, nlp, azure-openai, agent-framework]
     category: "analyze"
@@ -1744,7 +1744,7 @@ executor_catalog:
   - id: entity_extractor
     name: "Entity Extraction"
     description: "Extract named entities (people, organizations, locations, etc.) from text using AI"
-    module_path: packages.executors.entity_extraction_executor
+    module_path: contentflow.executors.entity_extraction_executor
     class_name: EntityExtractionExecutor
     tags: [ai, ner, entity-extraction, nlp, azure-openai]
     category: "analyze"
@@ -1888,7 +1888,7 @@ executor_catalog:
   - id: sentiment_analyser
     name: "Sentiment Analyser"
     description: "Analyze text sentiment (positive, negative, neutral) with confidence scores and emotion detection"
-    module_path: packages.executors.sentiment_analysis_executor
+    module_path: contentflow.executors.sentiment_analysis_executor
     class_name: SentimentAnalysisExecutor
     tags: [ai, sentiment, nlp, azure-openai, emotion-detection]
     category: "analyze"
@@ -2041,7 +2041,7 @@ executor_catalog:
   - id: content_classifier
     name: "Content Classifier"
     description: "Classify text into predefined categories with confidence scores"
-    module_path: packages.executors.content_classifier_executor
+    module_path: contentflow.executors.content_classifier_executor
     class_name: ContentClassifierExecutor
     tags: [ai, classification, categorization, nlp, azure-openai]
     category: "analyze"
@@ -2202,7 +2202,7 @@ executor_catalog:
   - id: pii_detector
     name: "PII Detector"
     description: "Detect and optionally redact Personally Identifiable Information (PII) from text"
-    module_path: packages.executors.pii_detector_executor
+    module_path: contentflow.executors.pii_detector_executor
     class_name: PIIDetectorExecutor
     tags: [ai, pii, privacy, security, nlp, azure-openai]
     category: "analyze"
@@ -2364,7 +2364,7 @@ executor_catalog:
   - id: keyword_extractor
     name: "Keyword Extractor"
     description: "Extract important keywords and key phrases from text with relevance scoring"
-    module_path: packages.executors.keyword_extractor_executor
+    module_path: contentflow.executors.keyword_extractor_executor
     class_name: KeywordExtractorExecutor
     tags: [ai, keywords, nlp, information-extraction, azure-openai]
     category: "analyze"
@@ -2529,7 +2529,7 @@ executor_catalog:
   - id: language_detector
     name: "Language Detector"
     description: "Detect the language(s) of text with confidence scores and script detection"
-    module_path: packages.executors.language_detector_executor
+    module_path: contentflow.executors.language_detector_executor
     class_name: LanguageDetectorExecutor
     tags: [ai, language-detection, nlp, i18n, azure-openai]
     category: "analyze"
@@ -2691,7 +2691,7 @@ executor_catalog:
   - id: content_translator
     name: "Content Translator"
     description: "Translate text between languages with configurable style and terminology preservation"
-    module_path: packages.executors.translation_executor
+    module_path: contentflow.executors.translation_executor
     class_name: TranslationExecutor
     tags: [ai, translation, i18n, localization, azure-openai]
     category: "analyze"
@@ -2859,7 +2859,7 @@ executor_catalog:
   - id: pass_through
     name: "Pass Through"
     description: "Passes content through without modification"
-    module_path: packages.executors.pass_through
+    module_path: contentflow.executors.pass_through
     class_name: PassThroughExecutor
     tags: [utility, passthrough, no-op]
     category: "Utility"
@@ -2870,7 +2870,7 @@ executor_catalog:
   - id: ai_search_index_output
     name: "AI Search Index Output"
     description: "Indexes documents or chunks to Azure AI Search"
-    module_path: packages.executors.ai_search_index_output
+    module_path: contentflow.executors.ai_search_index_output
     class_name: AISearchIndexOutputExecutor
     tags: [indexing, search, azure, ai-search, output, rag]
     category: "Output"
@@ -3030,7 +3030,7 @@ executor_catalog:
   - id: azure_blob_output
     name: "Azure Blob Output"
     description: "Write content entries as JSON files to Azure Blob Storage"
-    module_path: packages.executors.azure_blob_output_executor
+    module_path: contentflow.executors.azure_blob_output_executor
     class_name: AzureBlobOutputExecutor
     tags: [output, storage, azure, blob, archive, backup]
     category: "Output"
@@ -3175,7 +3175,7 @@ executor_catalog:
   - id: field_mapper
     name: "Field Mapper"
     description: "Rename, move, and remap fields within Content items for standardization and compatibility"
-    module_path: packages.executors.field_mapper_executor
+    module_path: contentflow.executors.field_mapper_executor
     class_name: FieldMapperExecutor
     tags: [transform, mapping, restructure, fields, normalization]
     category: "Transform"
@@ -3309,7 +3309,7 @@ executor_catalog:
   - id: field_selector_executor
     name: "Field Selector"
     description: "Select, keep, or remove specific fields from Content items for data privacy, size optimization, or pipeline simplification"
-    module_path: packages.executors.field_selector_executor
+    module_path: contentflow.executors.field_selector_executor
     class_name: FieldSelectorExecutor
     tags: [transform, filter, privacy, fields, selection, optimization]
     category: "Transform"
@@ -3426,7 +3426,7 @@ executor_catalog:
   - id: knowledge_graph_entity_extractor
     name: "Knowledge Graph Entity Extractor"
     description: "Extract entities and relationships from content for knowledge graph construction using AI"
-    module_path: packages.executors.knowledge_graph_entity_extractor
+    module_path: contentflow.executors.knowledge_graph_entity_extractor
     class_name: KnowledgeGraphEntityExtractorExecutor
     tags: [ai, knowledge-graph, entity-extraction, relationships]
     category: "AI Analysis"
@@ -3499,7 +3499,7 @@ executor_catalog:
   - id: knowledge_graph_writer
     name: "Knowledge Graph Writer"
     description: "Write entities and relationships to Azure Cosmos DB Graph API (Gremlin)"
-    module_path: packages.executors.knowledge_graph_writer
+    module_path: contentflow.executors.knowledge_graph_writer
     class_name: KnowledgeGraphWriterExecutor
     tags: [knowledge-graph, cosmos-db, gremlin, graph-database]
     category: "Output"
@@ -3569,7 +3569,7 @@ executor_catalog:
   - id: knowledge_graph_query
     name: "Knowledge Graph Query"
     description: "Query knowledge graph for entity retrieval and relationship traversal"
-    module_path: packages.executors.knowledge_graph_query
+    module_path: contentflow.executors.knowledge_graph_query
     class_name: KnowledgeGraphQueryExecutor
     tags: [knowledge-graph, query, gremlin, graph-traversal]
     category: "Input"
@@ -3641,7 +3641,7 @@ executor_catalog:
   - id: knowledge_graph_enrichment
     name: "Knowledge Graph Enrichment"
     description: "Enrich knowledge graph entities with AI-generated properties and inferred relationships"
-    module_path: packages.executors.knowledge_graph_enrichment
+    module_path: contentflow.executors.knowledge_graph_enrichment
     class_name: KnowledgeGraphEnrichmentExecutor
     tags: [knowledge-graph, enrichment, ai, graph-analytics]
     category: "AI Analysis"
@@ -3725,7 +3725,7 @@ executor_catalog:
   - id: web_scraper
     name: "Web Scraper"
     description: "Scrape and extract content from web pages using Playwright"
-    module_path: packages.executors.web_scraping_executor
+    module_path: contentflow.executors.web_scraping_executor
     class_name: WebScrapingExecutor
     tags: [input, scraping, web, playwright]
     category: "Input"

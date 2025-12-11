@@ -1,3 +1,7 @@
+"""
+Azure credential provider utility functions.
+"""
+
 import os
 from azure.identity import ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential, AzureCliCredential
 from azure.identity.aio import (ChainedTokenCredential as ChainedTokenCredentialAsync, 

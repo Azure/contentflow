@@ -15,8 +15,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from agent_framework import WorkflowContext
-from packages.models import Content
-from packages.executors import (
+from contentflow.models import Content
+from contentflow.executors import (
     KnowledgeGraphEntityExtractorExecutor,
     KnowledgeGraphWriterExecutor
 )
