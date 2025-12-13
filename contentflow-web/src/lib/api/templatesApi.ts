@@ -16,19 +16,19 @@ import {
  * Get all pipeline templates with optional filters and pagination
  */
 export const getTemplates = async (query?: TemplateListQuery): Promise<PaginatedResponse<PipelineTemplate>> => {
-  const response = await apiClient.get<ApiResponse<PaginatedResponse<PipelineTemplate>>>(
+  const response = await apiClient.get<PaginatedResponse<PipelineTemplate>>(
     `/templates`,
     { params: query }
   );
-  return response.data as PaginatedResponse<PipelineTemplate>;
+  return response as PaginatedResponse<PipelineTemplate>;
 };
 
 /**
  * Get a specific template by ID
  */
 export const getTemplateById = async (templateId: string): Promise<PipelineTemplate> => {
-  const response = await apiClient.get<ApiResponse<PipelineTemplate>>(`/templates/${templateId}`);
-  return response.data as PipelineTemplate;
+  const response = await apiClient.get<PipelineTemplate>(`/templates/${templateId}`);
+  return response as PipelineTemplate;
 };
 
 /**
@@ -39,19 +39,19 @@ export const getTemplatesByCategory = async (
   page?: number,
   pageSize?: number
 ): Promise<PaginatedResponse<PipelineTemplate>> => {
-  const response = await apiClient.get<ApiResponse<PaginatedResponse<PipelineTemplate>>>(
+  const response = await apiClient.get<PaginatedResponse<PipelineTemplate>>(
     `/templates/category/${category}`,
     { params: { page, pageSize } }
   );
-  return response.data as PaginatedResponse<PipelineTemplate>;
+  return response as PaginatedResponse<PipelineTemplate>;
 };
 
 /**
  * Get all template categories
  */
 export const getTemplateCategories = async (): Promise<TemplateCategory[]> => {
-  const response = await apiClient.get<ApiResponse<TemplateCategory[]>>('/templates/categories');
-  return response.data as TemplateCategory[];
+  const response = await apiClient.get<TemplateCategory[]>('/templates/categories');
+  return response as TemplateCategory[];
 };
 
 /**
@@ -62,33 +62,33 @@ export const searchTemplates = async (
   page?: number,
   pageSize?: number
 ): Promise<PaginatedResponse<PipelineTemplate>> => {
-  const response = await apiClient.get<ApiResponse<PaginatedResponse<PipelineTemplate>>>(
+  const response = await apiClient.get<PaginatedResponse<PipelineTemplate>>(
     `/templates/search`,
     { params: { q: query, page, pageSize } }
   );
-  return response.data as PaginatedResponse<PipelineTemplate>;
+  return response as PaginatedResponse<PipelineTemplate>;
 };
 
 /**
  * Get popular/featured templates
  */
 export const getFeaturedTemplates = async (limit?: number): Promise<PipelineTemplate[]> => {
-  const response = await apiClient.get<ApiResponse<PipelineTemplate[]>>(
+  const response = await apiClient.get<PipelineTemplate[]>(
     `/templates/featured`,
     { params: { limit } }
   );
-  return response.data as PipelineTemplate[];
+  return response as PipelineTemplate[];
 };
 
 /**
  * Get recent templates
  */
 export const getRecentTemplates = async (limit?: number): Promise<PipelineTemplate[]> => {
-  const response = await apiClient.get<ApiResponse<PipelineTemplate[]>>(
+  const response = await apiClient.get<PipelineTemplate[]>(
     `/templates/recent`,
     { params: { limit } }
   );
-  return response.data as PipelineTemplate[];
+  return response as PipelineTemplate[];
 };
 
 /**
@@ -99,11 +99,11 @@ export const createPipelineFromTemplate = async (
   name?: string,
   description?: string
 ): Promise<{ pipelineId: string; pipeline: any }> => {
-  const response = await apiClient.post<ApiResponse<{ pipelineId: string; pipeline: any }>>(
+  const response = await apiClient.post<{ pipelineId: string; pipeline: any }>(
     `/templates/${templateId}/create-pipeline`,
     { name, description }
   );
-  return response.data as { pipelineId: string; pipeline: any };
+  return response as { pipelineId: string; pipeline: any };
 };
 
 /**
@@ -117,8 +117,8 @@ export const incrementTemplateUsage = async (templateId: string): Promise<void> 
  * Get template YAML
  */
 export const getTemplateYaml = async (templateId: string): Promise<string> => {
-  const response = await apiClient.get<ApiResponse<{ yaml: string }>>(`/templates/${templateId}/yaml`);
-  return (response.data as { yaml: string }).yaml;
+  const response = await apiClient.get<{ yaml: string }>(`/templates/${templateId}/yaml`);
+  return (response as { yaml: string }).yaml;
 };
 
 /**
@@ -133,8 +133,8 @@ export const createTemplate = async (template: {
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   thumbnail?: string;
 }): Promise<PipelineTemplate> => {
-  const response = await apiClient.post<ApiResponse<PipelineTemplate>>('/templates', template);
-  return response.data as PipelineTemplate;
+  const response = await apiClient.post<PipelineTemplate>('/templates', template);
+  return response as PipelineTemplate;
 };
 
 /**
@@ -152,11 +152,11 @@ export const updateTemplate = async (
     thumbnail?: string;
   }
 ): Promise<PipelineTemplate> => {
-  const response = await apiClient.put<ApiResponse<PipelineTemplate>>(
+  const response = await apiClient.put<PipelineTemplate>(
     `/templates/${templateId}`,
     updates
   );
-  return response.data as PipelineTemplate;
+  return response as PipelineTemplate;
 };
 
 /**
@@ -170,8 +170,8 @@ export const deleteTemplate = async (templateId: string): Promise<void> => {
  * Get template tags
  */
 export const getTemplateTags = async (): Promise<string[]> => {
-  const response = await apiClient.get<ApiResponse<string[]>>('/templates/tags');
-  return response.data as string[];
+  const response = await apiClient.get<string[]>('/templates/tags');
+  return response as string[];
 };
 
 /**

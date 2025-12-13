@@ -21,32 +21,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Trash2, FolderOpen, Calendar } from "lucide-react";
+import type { Pipeline } from "@/types/components";
 
-export interface SavedPipeline {
-  id: string;
-  name: string;
-  description: string;
-  nodes: any[];
-  edges: any[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface SavedPipelinesDialogProps {
+interface LoadPipelinesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  pipelines: SavedPipeline[];
-  onLoad: (pipeline: SavedPipeline) => void;
+  pipelines: Pipeline[];
+  onLoad: (pipeline: Pipeline) => void;
   onDelete: (pipelineId: string) => void;
 }
 
-export const SavedPipelinesDialog = ({
+export const LoadPipelinesDialog = ({
   open,
   onOpenChange,
   pipelines,
   onLoad,
   onDelete,
-}: SavedPipelinesDialogProps) => {
+}: LoadPipelinesDialogProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -56,7 +47,7 @@ export const SavedPipelinesDialog = ({
       pipeline.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleLoad = (pipeline: SavedPipeline) => {
+  const handleLoad = (pipeline: Pipeline) => {
     onLoad(pipeline);
     onOpenChange(false);
   };
@@ -144,16 +135,22 @@ export const SavedPipelinesDialog = ({
                             </p>
                           )}
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(pipeline.updatedAt)}
-                            </span>
-                            <span>
-                              {pipeline.nodes.length} node{pipeline.nodes.length !== 1 ? "s" : ""}
-                            </span>
-                            <span>
-                              {pipeline.edges.length} connection{pipeline.edges.length !== 1 ? "s" : ""}
-                            </span>
+                            {pipeline.updated_at && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate(pipeline.updated_at)}
+                              </span>
+                            )}
+                            {pipeline.nodes && (
+                              <span>
+                                {pipeline.nodes.length} node{pipeline.nodes.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            {pipeline.edges && (
+                              <span>
+                                {pipeline.edges.length} connection{pipeline.edges.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
                           </div>
                         </div>
 

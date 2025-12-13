@@ -42,7 +42,7 @@ class PowerPointExtractorExecutor(ParallelExecutor):
         - extract_images (bool): Extract embedded images from slides
           Default: False
         - content_field (str): Field containing PowerPoint bytes
-          Default: "content"
+          Default: None
         - temp_file_path_field (str): Field containing temp file path
           Default: "temp_file_path"
         - output_field (str): Field name for extracted data
@@ -114,7 +114,7 @@ class PowerPointExtractorExecutor(ParallelExecutor):
         self.extract_notes = self.get_setting("extract_notes", default=False)
         self.extract_properties = self.get_setting("extract_properties", default=False)
         self.extract_images = self.get_setting("extract_images", default=False)
-        self.content_field = self.get_setting("content_field", default="content")
+        self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="pptx_output")
         self.image_output_mode = self.get_setting("image_output_mode", default="base64")
@@ -149,7 +149,7 @@ class PowerPointExtractorExecutor(ParallelExecutor):
             pptx_path = None
             
             # Try to get from content field
-            if self.content_field in content.data:
+            if self.content_field and self.content_field in content.data:
                 pptx_bytes = content.data[self.content_field]
             
             # Try to get from temp file

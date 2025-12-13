@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import uuid
+import logging
 
 from .base_service import BaseService
 from app.models import Pipeline
 from app.database.cosmos import CosmosDBClient
+
+logger = logging.getLogger("contentflow-api.services.pipeline_service")
 
 class PipelineService(BaseService):
     """Service for managing pipeline operations"""
@@ -29,7 +32,7 @@ class PipelineService(BaseService):
     async def get_pipeline_by_name(self, pipeline_name: str) -> Optional[Pipeline]:
         """Get pipeline definition from config by name"""
         
-        query = "SELECT * FROM c WHERE c.name=@name"
+        query = "SELECT TOP 1 * FROM c WHERE c.name=@name"
         params = [{"name": "@name", "value": pipeline_name}]
         pipelines = await self.query(query, params)
         if pipelines:
@@ -37,7 +40,6 @@ class PipelineService(BaseService):
             return Pipeline(**result)
         
         return None
-    
     
     async def create_pipeline(self, pipeline_data: Dict[str, Any]) -> Pipeline:
         """Create a pipeline instance based on configuration"""
@@ -56,6 +58,8 @@ class PipelineService(BaseService):
             name=pipeline_data.get("name"),
             description=pipeline_data.get("description", ""),
             yaml=pipeline_data.get("yaml"),
+            nodes=pipeline_data.get("nodes", []),
+            edges=pipeline_data.get("edges", []),
             created_by=pipeline_data.get("created_by", ""),
             tags=pipeline_data.get("tags", []),
             enabled=pipeline_data.get("enabled", True),
@@ -71,18 +75,27 @@ class PipelineService(BaseService):
     async def create_or_save_pipeline(self, pipeline_data: Dict[str, Any]) -> Pipeline:
         """Create a pipeline instance based on configuration"""
         
-        # check is a pipeline with the same name already exists
-        pipeline_id = pipeline_data.get("id")
-        if pipeline_id:
-            # update existing
-            await self.update_by_id(pipeline_id=pipeline_id, 
-                                    update_data=pipeline_data)
-            existing = await self.get_by_id(pipeline_id)
-            return Pipeline(**existing)
-        else:
+        logger.debug(f"Creating or saving pipeline with data: {pipeline_data}")
         
-            return await self.create_pipeline(pipeline_data)
-        
+        try:
+            # check is a pipeline with the same name already exists
+            pipeline_id = pipeline_data.get("id")
+            if pipeline_id:
+                
+                logger.debug(f"Updating existing pipeline with ID: {pipeline_id}")
+                
+                # update existing
+                await self.update_by_id(pipeline_id=pipeline_id, 
+                                        update_data=pipeline_data)
+                existing = await self.get_by_id(pipeline_id)
+                return Pipeline(**existing)
+            else:
+                logger.debug("Creating new pipeline")
+                return await self.create_pipeline(pipeline_data)
+        except Exception as e:
+            logger.error(f"Error in create_or_save_pipeline: {str(e)}")
+            logger.exception(e)
+            raise e
     
     async def update_by_id(self, pipeline_id: str, update_data: Dict[str, Any]) -> Pipeline:
         """Update a pipeline instance by ID"""
@@ -91,7 +104,8 @@ class PipelineService(BaseService):
             raise ValueError("Pipeline not found")
         
         # Update allowed fields
-        allowed_updates = ["name", "description", "yaml", "created_by", "tags", "version", 
+        allowed_updates = ["name", "description", "yaml", "nodes", "edges", 
+                           "created_by", "tags", "version", 
                            "enabled", "retry_delay", "timeout", "retries"]
     
         for key, value in update_data.items():

@@ -89,22 +89,35 @@ class CosmosDBClient:
     
     async def get_by_id(self, container_name: str, item_id: str) -> Optional[Dict[str, Any]]:
         """Get item by ID"""
-        _container = self.get_container(container_name)
-        return await _container.read_item(item=item_id, partition_key=item_id)
+        try:
+            _container = self.get_container(container_name)
+            return await _container.read_item(item=item_id, partition_key=item_id)
+        except exceptions.CosmosResourceNotFoundError:
+            return None
     
     async def list_all(self, container_name: str, query: Optional[str] = None, parameters: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         """List all items"""
         _container = self.get_container(container_name)
         
+        result  = []
         if query:
-            return list(await _container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
-
-        return list(await _container.read_all_items())
+            async for item in _container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True):
+                result.append(item)
+        else:
+            async for item in _container.read_all_items():
+                result.append(item)
+        
+        return result
     
     async def query(self, container_name: str, query: str, parameters: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         """Execute a query"""
         _container = self.get_container(container_name)
-        return await _container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+        result = []
+        
+        async for item in _container.query_items(query=query, parameters=parameters):
+            result.append(item)
+        
+        return result
     
     async def update(self, container_name: str, item: Dict[str, Any]) -> Dict[str, Any]:
         """Update an existing item"""
@@ -123,6 +136,6 @@ class CosmosDBClient:
     async def batch_upsert(self, container_name: str, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Batch upsert items"""
         
-        results = [ result for item in items for result in self.update(container_name, item) ]
+        results = [ result for item in items for result in await self.update(container_name, item) ]
         
         return results

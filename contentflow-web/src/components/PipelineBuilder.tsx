@@ -19,19 +19,22 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { 
   Plus, Play, ChevronDown, ChevronRight,
   Film, Wand2, Network, FolderInput, Save, Brain, GitBranch, FileText, Search,
-  FileUp, FilePlus, Code, Layout
+  FileUp, FilePlus, Code, Layout, Loader2,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExecutorNode } from "@/components/pipeline/ExecutorNode";
 import { SubPipelineNode } from "@/components/pipeline/SubPipelineNode";
 import { ExecutorConfigDialog } from "@/components/pipeline/ExecutorConfigDialog";
-import { PipelineSaveDialog } from "@/components/pipeline/PipelineSaveDialog";
-import { SavedPipelinesDialog, SavedPipeline } from "@/components/pipeline/SavedPipelinesDialog";
-import { PipelineTemplate } from "@/types/pipeline";
-import { executorTypes, ExecutorType } from "@/data/executorTypes";
-import { nodesToYaml, yamlToNodes } from "@/lib/pipelineYamlConverter";
+import { PipelineSaveDialog, PipelineSaveDialogDataProps } from "@/components/pipeline/PipelineSaveDialog";
+import { LoadPipelinesDialog } from "@/components/pipeline/LoadPipelinesDialog";
 import { PipelineYamlEditor } from "@/components/pipeline/PipelineYamlEditor";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { PipelineTemplate, ExecutorCatalogDefinition, Pipeline, SavePipelineRequest } from "@/types/components";
+import { nodesToYaml, yamlToNodes } from "@/lib/pipelineYamlConverter";
+import { getPipelines, savePipeline as savePipelineApi, deletePipeline as deletePipelineApi } from "@/lib/api/pipelinesApi";
+import { getExecutors } from "@/lib/api/executorsApi";
+import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
 
 const nodeTypes = {
   executor: ExecutorNode,
@@ -41,26 +44,47 @@ const nodeTypes = {
 export const PipelineBuilder = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedExecutor, setSelectedExecutor] = useState<ExecutorType | null>(null);
+  const [selectedExecutor, setSelectedExecutor] = useState<ExecutorWithUI | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [showAllInCategory, setShowAllInCategory] = useState<Record<string, boolean>>({});
+  const [executorTypes, setExecutorTypes] = useState<ExecutorWithUI[]>([]);
+  const [isLoadingExecutors, setIsLoadingExecutors] = useState(true);
   
   // Pipeline management state
-  const [currentPipelineId, setCurrentPipelineId] = useState<string | null>(null);
-  const [currentPipelineName, setCurrentPipelineName] = useState<string>("");
-  const [currentPipelineDescription, setCurrentPipelineDescription] = useState<string>("");
-  const [savedPipelines, setSavedPipelines] = useState<SavedPipeline[]>([]);
+  const [currentPipeline, setCurrentPipeline] = useState<Pipeline | null>(null);
+  const [loadedPipelines, setLoadedPipelines] = useState<Pipeline[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // YAML view state
   const [viewMode, setViewMode] = useState<"canvas" | "yaml">("canvas");
   const [yamlContent, setYamlContent] = useState<string>("");
   const [yamlHasChanges, setYamlHasChanges] = useState(false);
+
+  // Load executors from API
+  useEffect(() => {
+    const loadExecutors = async () => {
+      try {
+        setIsLoadingExecutors(true);
+        const executors = await getExecutors();
+        const enrichedExecutors = enrichExecutorsWithUI(executors);
+        setExecutorTypes(enrichedExecutors);
+      } catch (error) {
+        console.error("Failed to load executors:", error);
+        toast.error("Failed to load executors");
+      } finally {
+        setIsLoadingExecutors(false);
+      }
+    };
+
+    loadExecutors();
+  }, []);
 
   // Load template from localStorage if available
   useEffect(() => {
@@ -76,48 +100,47 @@ export const PipelineBuilder = () => {
       }
     }
     
-    // Load saved pipelines from localStorage
+    // Load saved pipelines
     loadSavedPipelines();
   }, []);
 
-  // Load saved pipelines from localStorage
-  const loadSavedPipelines = () => {
+  // Load saved pipelines from API
+  const loadSavedPipelines = async () => {
     try {
-      const saved = localStorage.getItem("savedPipelines");
-      if (saved) {
-        setSavedPipelines(JSON.parse(saved));
-      }
+      const pipelines = await getPipelines();
+      setLoadedPipelines(pipelines);
     } catch (error) {
       console.error("Failed to load saved pipelines:", error);
+      toast.error("Failed to load pipelines");
     }
   };
 
-  // Track changes to mark as unsaved
-  useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      setHasUnsavedChanges(true);
-    }
-  }, [nodes, edges]);
+  // // Track changes to mark as unsaved
+  // useEffect(() => {
+  //   if (nodes.length > 0 || edges.length > 0) {
+  //     setHasUnsavedChanges(true);
+  //   }
+  // }, [nodes, edges]);
 
   // Update sub-pipeline nodes when saved pipelines change
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) =>
         node.type === "subpipeline"
-          ? { ...node, data: { ...node.data, savedPipelines: savedPipelines } }
+          ? { ...node, data: { ...node.data, availablePipelines: loadedPipelines } }
           : node
       )
     );
-  }, [savedPipelines, setNodes]);
+  }, [loadedPipelines, setNodes]);
 
   // Sync canvas to YAML when switching to YAML view
   useEffect(() => {
     if (viewMode === "yaml") {
-      const yaml = nodesToYaml(nodes, edges, currentPipelineName, currentPipelineDescription);
+      const yaml = nodesToYaml(nodes, edges, currentPipeline?.name || "", currentPipeline?.description || "");
       setYamlContent(yaml);
       setYamlHasChanges(false);
     }
-  }, [viewMode, nodes, edges, currentPipelineName, currentPipelineDescription]);
+  }, [viewMode, nodes, edges, currentPipeline]);
 
   const loadTemplate = (template: PipelineTemplate) => {
     setNodes(template.nodes.map(node => ({
@@ -125,9 +148,10 @@ export const PipelineBuilder = () => {
       data: {
         ...node.data,
         executor: node.data.executor,
+        onDelete: () => handleDeleteNode(node.id),
         ...(node.type === "subpipeline" && {
           selectedPipelineId: node.data.selectedPipelineId || "",
-          savedPipelines: savedPipelines,
+          availablePipelines: loadedPipelines,
         }),
       },
     })));
@@ -139,6 +163,7 @@ export const PipelineBuilder = () => {
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "hsl(var(--secondary))", strokeWidth: 2 },
     })));
+    setSelectedEdges([]);
   };
 
   const onConnect = useCallback(
@@ -147,7 +172,7 @@ export const PipelineBuilder = () => {
         addEdge(
           {
             ...params,
-            type: "smoothstep",
+            type: "bezier",
             animated: true,
             markerEnd: { type: MarkerType.ArrowClosed },
             style: { stroke: "hsl(var(--secondary))", strokeWidth: 2 },
@@ -155,13 +180,17 @@ export const PipelineBuilder = () => {
           eds
         )
       );
+      
+      setSelectedEdges([]);
+      setHasUnsavedChanges(true);
     },
     [setEdges]
   );
 
-  const addExecutorNode = (executor: ExecutorType, config?: any) => {
+  const addExecutorNode = (executor: ExecutorWithUI, config?: any) => {
+    const nodeId = `${executor.id}-${Date.now()}`;
     const newNode: Node = {
-      id: `${executor.id}-${Date.now()}`,
+      id: nodeId,
       type: executor.category === "pipeline" ? "subpipeline" : "executor",
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: {
@@ -171,9 +200,10 @@ export const PipelineBuilder = () => {
           description: config?.description || executor.description,
         },
         config: config || {},
+        onDelete: () => handleDeleteNode(nodeId),
         ...(executor.category === "pipeline" && {
           selectedPipelineId: config?.selectedPipelineId || "",
-          savedPipelines: savedPipelines,
+          availablePipelines: loadedPipelines,
         }),
       },
     };
@@ -181,35 +211,32 @@ export const PipelineBuilder = () => {
     toast.success(`Added ${executor.name}`);
   };
 
-  const handleExecutorClick = (executor: ExecutorType) => {
+  const handleExecutorClick = (executor: ExecutorWithUI) => {
     setSelectedExecutor(executor);
+    setSelectedNode(null); // Clear any previously selected node when adding new executor
     setConfigDialogOpen(true);
   };
 
   // Handle drag start for executors - only serialize essential data
-  const handleExecutorDragStart = (e: React.DragEvent, executor: ExecutorType) => {
+  const handleExecutorDragStart = (e: React.DragEvent, executor: ExecutorWithUI) => {
     const executorData = {
       id: executor.id,
       name: executor.name,
       category: executor.category,
-      color: executor.color,
       description: executor.description,
     };
     e.dataTransfer.setData("application/reactflow", JSON.stringify(executorData));
     e.dataTransfer.effectAllowed = "move";
   };
 
-  // Handle child nodes change in sub-pipeline - no longer needed but keeping for compatibility
-  const handleChildNodesChange = useCallback((subPipelineId: string, childNodes: Node[]) => {
-    // This function is deprecated as sub-pipelines now reference saved pipelines
-    console.log('handleChildNodesChange deprecated', subPipelineId, childNodes);
-  }, []);
-
-  // Handle child edges change in sub-pipeline - no longer needed but keeping for compatibility
-  const handleChildEdgesChange = useCallback((subPipelineId: string, childEdges: Edge[]) => {
-    // This function is deprecated as sub-pipelines now reference saved pipelines
-    console.log('handleChildEdgesChange deprecated', subPipelineId, childEdges);
-  }, []);
+  const handleConfigDialogOpenChange = (open: boolean) => {
+    setConfigDialogOpen(open);
+    if (!open) {
+      // Clear selection when dialog is closed
+      setSelectedNode(null);
+      setSelectedExecutor(null);
+    }
+  };
 
   const handleConfigSave = (config: any) => {
     if (selectedExecutor) {
@@ -228,9 +255,10 @@ export const PipelineBuilder = () => {
                       description: config.description || node.data.executor.description,
                     },
                     config,
+                    onDelete: node.data.onDelete,
                     ...(selectedExecutor.category === "pipeline" && {
                       selectedPipelineId: config.selectedPipelineId || "",
-                      savedPipelines: savedPipelines,
+                      availablePipelines: loadedPipelines,
                     }),
                   } 
                 }
@@ -246,6 +274,7 @@ export const PipelineBuilder = () => {
     setConfigDialogOpen(false);
     setSelectedNode(null);
     setSelectedExecutor(null);
+    setHasUnsavedChanges(true);
   };
 
   const handleNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -253,6 +282,45 @@ export const PipelineBuilder = () => {
     setSelectedExecutor(node.data.executor);
     setConfigDialogOpen(true);
   }, []);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setHasUnsavedChanges(true);
+    toast.success("Executor removed");
+  }, [setNodes, setEdges]);
+
+  const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setSelectedEdges([edge.id]);
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedEdges([]);
+  }, []);
+
+  const handleDeleteSelectedEdges = useCallback(() => {
+    if (selectedEdges.length > 0) {
+      setEdges((eds) => eds.filter((edge) => !selectedEdges.includes(edge.id)));
+      setSelectedEdges([]);
+      setHasUnsavedChanges(true);
+      toast.success("Connection removed");
+    }
+  }, [selectedEdges, setEdges]);
+
+  // Handle keyboard deletion
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (selectedEdges.length > 0 && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+          event.preventDefault();
+          handleDeleteSelectedEdges();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedEdges, handleDeleteSelectedEdges]);
 
   const runPipeline = () => {
     if (nodes.length === 0) {
@@ -264,12 +332,13 @@ export const PipelineBuilder = () => {
 
   // Group executors by category
   const groupedExecutors = executorTypes.reduce((acc, executor) => {
-    if (!acc[executor.category]) {
-      acc[executor.category] = [];
+    const category = executor.category.toLocaleLowerCase();
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[executor.category].push(executor);
+    acc[category].push(executor);
     return acc;
-  }, {} as Record<string, ExecutorType[]>);
+  }, {} as Record<string, ExecutorWithUI[]>);
 
   // Filter executors based on search
   const filteredGroupedExecutors = Object.entries(groupedExecutors).reduce((acc, [category, executors]) => {
@@ -281,7 +350,7 @@ export const PipelineBuilder = () => {
       acc[category] = filtered;
     }
     return acc;
-  }, {} as Record<string, ExecutorType[]>);
+  }, {} as Record<string, ExecutorWithUI[]>);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
@@ -292,31 +361,34 @@ export const PipelineBuilder = () => {
   };
 
   const getCategoryIcon = (category: string) => {
+    
     const icons: Record<string, React.ReactNode> = {
       input: <FolderInput className="w-4 h-4" />,
       extract: <FileText className="w-4 h-4" />,
       media: <Film className="w-4 h-4" />,
       transform: <GitBranch className="w-4 h-4" />,
-      analyze: <Brain className="w-4 h-4" />,
+      analyse: <Brain className="w-4 h-4" />,
       enrichment: <Wand2 className="w-4 h-4" />,
       output: <Save className="w-4 h-4" />,
-      pipeline: <Network className="w-4 h-4" />
+      pipeline: <Network className="w-4 h-4" />,
+      utility: <Settings className="w-4 h-4" />,
     };
-    return icons[category] || null;
+    return icons[category.toLocaleLowerCase()] || null;
   };
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       input: "Input Sources",
-      extract: "Document Extraction",
+      extract: "Content Extraction",
       media: "Media Processing",
-      transform: "Content Transformation",
-      analyze: "AI Analysis",
-      enrichment: "Content Enrichment",
+      transform: "Transformation",
+      analyse: "AI Analysis",
+      enrichment: "Enrichment",
       output: "Output Destinations",
-      pipeline: "Pipeline Control"
+      pipeline: "Pipeline Control",
+      utility: "Utility",
     };
-    return labels[category] || category;
+    return labels[category.toLocaleLowerCase()] || category;
   };
 
   // Pipeline management functions
@@ -328,40 +400,66 @@ export const PipelineBuilder = () => {
     }
     setNodes([]);
     setEdges([]);
-    setCurrentPipelineId(null);
-    setCurrentPipelineName("");
-    setCurrentPipelineDescription("");
+    setCurrentPipeline(null);
     setHasUnsavedChanges(false);
     toast.success("New pipeline created");
   };
 
-  const savePipeline = (name: string, description: string) => {
-    const now = new Date().toISOString();
-    const pipeline: SavedPipeline = {
-      id: currentPipelineId || `pipeline-${Date.now()}`,
-      name,
-      description,
-      nodes,
-      edges,
-      createdAt: currentPipelineId
-        ? savedPipelines.find((p) => p.id === currentPipelineId)?.createdAt || now
-        : now,
-      updatedAt: now,
-    };
+  const savePipeline = async (data: PipelineSaveDialogDataProps) => {
+    setIsSaving(true);
+    try {
+      const yaml = nodesToYaml(nodes, edges, data.name, data.description);
+      
+      // Serialize nodes and edges for storage (remove non-serializable data like React components)
+      const serializableNodes = nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          executor: node.data.executor ? {
+            id: node.data.executor.id,
+            type: node.data.executor.type,
+            name: node.data.executor.name,
+            color: node.data.executor.color,
+            category: node.data.executor.category,
+            description: node.data.executor.description,
+          } : undefined,
+          // Explicitly preserve config
+          config: node.data.config,
+          // Explicitly preserve selectedPipelineId for sub-pipelines
+          selectedPipelineId: node.data.selectedPipelineId,
+        },
+      }));
 
-    const updatedPipelines = currentPipelineId
-      ? savedPipelines.map((p) => (p.id === currentPipelineId ? pipeline : p))
-      : [...savedPipelines, pipeline];
+      const pipelineData: SavePipelineRequest = {
+        id: currentPipeline?.id || undefined,
+        name: data.name,
+        description: data.description,
+        yaml,
+        nodes: serializableNodes,
+        edges: edges,
+        tags: data.tags,
+        version: data.version,
+        enabled: data.enabled,
+        retry_delay: data.retry_delay,
+        timeout: data.timeout,
+        retries: data.retries,
+      };
 
-    setSavedPipelines(updatedPipelines);
-    localStorage.setItem("savedPipelines", JSON.stringify(updatedPipelines));
-    
-    setCurrentPipelineId(pipeline.id);
-    setCurrentPipelineName(name);
-    setCurrentPipelineDescription(description);
-    setHasUnsavedChanges(false);
-    
-    toast.success(currentPipelineId ? "Pipeline updated" : "Pipeline saved");
+      const savedPipeline = await savePipelineApi(pipelineData);
+      
+      // Reload all pipelines to get updated list
+      await loadSavedPipelines();
+      
+      setCurrentPipeline(savedPipeline);
+      setHasUnsavedChanges(false);
+      
+      toast.success(currentPipeline?.id ? "Pipeline updated" : "Pipeline saved");
+    } catch (error) {
+      console.error("Failed to save pipeline:", error);
+      toast.error("Failed to save pipeline");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSavePipeline = () => {
@@ -372,43 +470,54 @@ export const PipelineBuilder = () => {
     setSaveDialogOpen(true);
   };
 
-  const loadPipeline = (pipeline: SavedPipeline) => {
-    setNodes(pipeline.nodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
-        ...(node.type === "subpipeline" && {
-          selectedPipelineId: node.data.selectedPipelineId || "",
-          savedPipelines: savedPipelines,
-        }),
-      },
-    })));
+  const loadPipeline = (pipeline: Pipeline) => {
+    setNodes(pipeline.nodes.map(node => {
+      // Re-hydrate executor with full details from catalog
+      const fullExecutor = executorTypes.find(et => et.id === node.data.executor?.id);
+      
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          executor: fullExecutor || node.data.executor,
+          onDelete: () => handleDeleteNode(node.id),
+          ...(node.type === "subpipeline" && {
+            selectedPipelineId: node.data.selectedPipelineId || "",
+            availablePipelines: loadedPipelines,
+          }),
+        },
+      };
+    }));
     setEdges(pipeline.edges);
-    setCurrentPipelineId(pipeline.id);
-    setCurrentPipelineName(pipeline.name);
-    setCurrentPipelineDescription(pipeline.description);
+    setSelectedEdges([]);
+    setCurrentPipeline(pipeline);
     setHasUnsavedChanges(false);
     toast.success(`Loaded: ${pipeline.name}`);
   };
 
-  const deletePipeline = (pipelineId: string) => {
-    const updatedPipelines = savedPipelines.filter((p) => p.id !== pipelineId);
-    setSavedPipelines(updatedPipelines);
-    localStorage.setItem("savedPipelines", JSON.stringify(updatedPipelines));
-    
-    if (currentPipelineId === pipelineId) {
-      setCurrentPipelineId(null);
-      setCurrentPipelineName("");
-      setCurrentPipelineDescription("");
+  const deletePipeline = async (pipelineId: string) => {
+    try {
+      await deletePipelineApi(pipelineId);
+      
+      // Reload pipelines after deletion
+      await loadSavedPipelines();
+      
+      if (currentPipeline?.id === pipelineId) {
+        setCurrentPipeline(null);
+      }
+      
+      toast.success("Pipeline deleted");
+    } catch (error) {
+      console.error("Failed to delete pipeline:", error);
+      toast.error("Failed to delete pipeline");
     }
-    
-    toast.success("Pipeline deleted");
   };
 
   // Handle YAML content changes
   const handleYamlChange = (newYaml: string) => {
     setYamlContent(newYaml);
     setYamlHasChanges(true);
+    setHasUnsavedChanges(true);
   };
 
   // Apply YAML changes to canvas
@@ -419,8 +528,18 @@ export const PipelineBuilder = () => {
       
       setNodes(newNodes);
       setEdges(newEdges);
-      setCurrentPipelineName(pipelineName);
-      setCurrentPipelineDescription(pipelineDescription);
+      setCurrentPipeline(prev => ({
+        ...(prev || { id: '', 
+                      yaml: '', 
+                      updated_at: '', 
+                      created_at: '', 
+                      nodes: [], 
+                      edges: [], 
+                      name: '', 
+                      description: '' }),
+        name: pipelineName,
+        description: pipelineDescription,
+      }));
       setYamlHasChanges(false);
       setHasUnsavedChanges(true);
       
@@ -437,10 +556,10 @@ export const PipelineBuilder = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-display text-4xl font-bold mb-2 text-foreground">
-                {currentPipelineName || "Pipeline Builder"}
+                {currentPipeline?.name || "Pipeline Builder"}
               </h1>
               <p className="text-muted-foreground">
-                {currentPipelineDescription || "Design complex processing pipelines with sub-pipelines."}
+                {currentPipeline?.description || "Design complex processing pipelines with sub-pipelines."}
               </p>
             </div>
             
@@ -465,10 +584,15 @@ export const PipelineBuilder = () => {
               <Button
                 variant="outline"
                 onClick={handleSavePipeline}
+                disabled={isSaving}
                 className="gap-2"
               >
-                <Save className="w-4 h-4" />
-                {currentPipelineId ? "Update" : "Save"} Pipeline
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {hasUnsavedChanges ? "*" : ""} Save Pipeline
               </Button>
             </div>
           </div>
@@ -492,7 +616,11 @@ export const PipelineBuilder = () => {
 
             {/* Scrollable Executor List */}
             <div className="space-y-2 overflow-y-auto flex-1 pr-2">
-              {Object.entries(filteredGroupedExecutors).map(([category, executors]) => {
+              {isLoadingExecutors ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : Object.entries(filteredGroupedExecutors).map(([category, executors]) => {
                 const isExpanded = expandedCategories[category];
                 const showAll = showAllInCategory[category];
                 const displayExecutors = showAll ? executors : executors.slice(0, 2);
@@ -505,12 +633,15 @@ export const PipelineBuilder = () => {
                     onOpenChange={() => toggleCategory(category)}
                   >
                     <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between w-full px-2 py-1.5 hover:bg-accent rounded-lg transition-colors">
+                      <div className="flex items-center justify-between w-full px-1.5 py-1.5 hover:bg-accent rounded-lg transition-colors">
                         <div className="flex items-center gap-2">
                           <div className="text-muted-foreground">
                             {getCategoryIcon(category)}
                           </div>
-                          <span className="text-xs font-semibold text-foreground">
+                          <span 
+                            className="text-xs font-semibold text-foreground text-left truncate flex-1"
+                            title={getCategoryLabel(category)}
+                          >
                             {getCategoryLabel(category)}
                           </span>
                         </div>
@@ -579,7 +710,7 @@ export const PipelineBuilder = () => {
                 );
               })}
 
-              {Object.keys(filteredGroupedExecutors).length === 0 && (
+              {!isLoadingExecutors && Object.keys(filteredGroupedExecutors).length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground">No executors found</p>
                 </div>
@@ -623,14 +754,26 @@ export const PipelineBuilder = () => {
                 <div className="absolute inset-0">
                   <ReactFlow
                     nodes={nodes}
-                    edges={edges}
+                    edges={edges.map(edge => ({
+                      ...edge,
+                      selected: selectedEdges.includes(edge.id),
+                      style: {
+                        ...edge.style,
+                        stroke: selectedEdges.includes(edge.id) ? "hsl(var(--destructive))" : edge.style?.stroke,
+                        strokeWidth: selectedEdges.includes(edge.id) ? 3 : edge.style?.strokeWidth || 2,
+                      },
+                    }))}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeDoubleClick={handleNodeDoubleClick}
+                    onEdgeClick={handleEdgeClick}
+                    onPaneClick={handlePaneClick}
                     nodeTypes={nodeTypes}
                     defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                     attributionPosition="bottom-left"
+                    deleteKeyCode="Delete"
+                    edgesFocusable={true}
                   >
                     <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(var(--border))" />
                     <Controls className="bg-card border border-border rounded-lg shadow-lg" />
@@ -663,25 +806,24 @@ export const PipelineBuilder = () => {
 
       <ExecutorConfigDialog
         open={configDialogOpen}
-        onOpenChange={setConfigDialogOpen}
+        onOpenChange={handleConfigDialogOpenChange}
         executor={selectedExecutor}
         initialConfig={selectedNode?.data.config}
         onSave={handleConfigSave}
-        savedPipelines={savedPipelines}
+        availablePipelines={loadedPipelines}
       />
 
       <PipelineSaveDialog
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
         onSave={savePipeline}
-        initialName={currentPipelineName}
-        initialDescription={currentPipelineDescription}
+        pipeline={currentPipeline || undefined}
       />
 
-      <SavedPipelinesDialog
+      <LoadPipelinesDialog
         open={loadDialogOpen}
         onOpenChange={setLoadDialogOpen}
-        pipelines={savedPipelines}
+        pipelines={loadedPipelines}
         onLoad={loadPipeline}
         onDelete={deletePipeline}
       />

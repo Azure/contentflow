@@ -15,32 +15,32 @@ import {
  * Get all connectors
  */
 export const getConnectors = async (): Promise<Connector[]> => {
-  const response = await apiClient.get<ApiResponse<Connector[]>>('/connectors');
-  return response.data;
+  const response = await apiClient.get<Connector[]>('/connectors');
+  return response;
 };
 
 /**
  * Get a specific connector by ID
  */
 export const getConnectorById = async (connectorId: string): Promise<Connector> => {
-  const response = await apiClient.get<ApiResponse<Connector>>(`/connectors/${connectorId}`);
-  return response.data;
+  const response = await apiClient.get<Connector>(`/connectors/${connectorId}`);
+  return response;
 };
 
 /**
  * Get connectors by type
  */
 export const getConnectorsByType = async (type: string): Promise<Connector[]> => {
-  const response = await apiClient.get<ApiResponse<Connector[]>>(`/connectors/type/${type}`);
-  return response.data;
+  const response = await apiClient.get<Connector[]>(`/connectors/type/${type}`);
+  return response;
 };
 
 /**
  * Create a new connector
  */
 export const createConnector = async (connector: CreateConnectorRequest): Promise<Connector> => {
-  const response = await apiClient.post<ApiResponse<Connector>>('/connectors', connector);
-  return response.data;
+  const response = await apiClient.post<Connector>('/connectors', connector);
+  return response;
 };
 
 /**
@@ -50,8 +50,8 @@ export const updateConnector = async (
   connectorId: string,
   updates: UpdateConnectorRequest
 ): Promise<Connector> => {
-  const response = await apiClient.put<ApiResponse<Connector>>(`/connectors/${connectorId}`, updates);
-  return response.data;
+  const response = await apiClient.put<Connector>(`/connectors/${connectorId}`, updates);
+  return response;
 };
 
 /**
@@ -69,34 +69,32 @@ export const testConnectorConnection = async (connectorId: string): Promise<{
   message?: string;
   latency?: number;
 }> => {
-  const response = await apiClient.post<
-    ApiResponse<{ success: boolean; message?: string; latency?: number }>
-  >(`/connectors/${connectorId}/test`);
-  return response.data;
+  const response = await apiClient.post<{ success: boolean; message?: string; latency?: number }>(`/connectors/${connectorId}/test`);
+  return response;
 };
 
 /**
  * Activate a connector
  */
 export const activateConnector = async (connectorId: string): Promise<Connector> => {
-  const response = await apiClient.post<ApiResponse<Connector>>(`/connectors/${connectorId}/activate`);
-  return response.data;
+  const response = await apiClient.post<Connector>(`/connectors/${connectorId}/activate`);
+  return response;
 };
 
 /**
  * Deactivate a connector
  */
 export const deactivateConnector = async (connectorId: string): Promise<Connector> => {
-  const response = await apiClient.post<ApiResponse<Connector>>(`/connectors/${connectorId}/deactivate`);
-  return response.data;
+  const response = await apiClient.post<Connector>(`/connectors/${connectorId}/deactivate`);
+  return response;
 };
 
 /**
  * Get available connector types
  */
 export const getConnectorTypes = async (): Promise<string[]> => {
-  const response = await apiClient.get<ApiResponse<string[]>>('/connectors/types');
-  return response.data;
+  const response = await apiClient.get<string[]>('/connectors/types');
+  return response;
 };
 
 /**

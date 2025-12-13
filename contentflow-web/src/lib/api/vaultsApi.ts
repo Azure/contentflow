@@ -18,32 +18,32 @@ import {
  * Get all vaults
  */
 export const getVaults = async (): Promise<Vault[]> => {
-  const response = await apiClient.get<ApiResponse<Vault[]>>('/vaults');
-  return response.data;
+  const response = await apiClient.get<Vault[]>('/vaults');
+  return response;
 };
 
 /**
  * Get a specific vault by ID
  */
 export const getVaultById = async (vaultId: string): Promise<Vault> => {
-  const response = await apiClient.get<ApiResponse<Vault>>(`/vaults/${vaultId}`);
-  return response.data;
+  const response = await apiClient.get<Vault>(`/vaults/${vaultId}`);
+  return response;
 };
 
 /**
  * Create a new vault
  */
 export const createVault = async (vault: CreateVaultRequest): Promise<Vault> => {
-  const response = await apiClient.post<ApiResponse<Vault>>('/vaults', vault);
-  return response.data;
+  const response = await apiClient.post<Vault>('/vaults', vault);
+  return response;
 };
 
 /**
  * Update an existing vault
  */
 export const updateVault = async (vaultId: string, updates: UpdateVaultRequest): Promise<Vault> => {
-  const response = await apiClient.put<ApiResponse<Vault>>(`/vaults/${vaultId}`, updates);
-  return response.data;
+  const response = await apiClient.put<Vault>(`/vaults/${vaultId}`, updates);
+  return response;
 };
 
 /**
@@ -57,16 +57,16 @@ export const deleteVault = async (vaultId: string): Promise<void> => {
  * Get the default vault
  */
 export const getDefaultVault = async (): Promise<Vault> => {
-  const response = await apiClient.get<ApiResponse<Vault>>('/vaults/default');
-  return response.data;
+  const response = await apiClient.get<Vault>('/vaults/default');
+  return response;
 };
 
 /**
  * Set a vault as default
  */
 export const setDefaultVault = async (vaultId: string): Promise<Vault> => {
-  const response = await apiClient.post<ApiResponse<Vault>>(`/vaults/${vaultId}/set-default`);
-  return response.data;
+  const response = await apiClient.post<Vault>(`/vaults/${vaultId}/set-default`);
+  return response;
 };
 
 /**
@@ -77,10 +77,8 @@ export const testVaultConnection = async (vaultId: string): Promise<{
   message?: string;
   latency?: number;
 }> => {
-  const response = await apiClient.post<
-    ApiResponse<{ success: boolean; message?: string; latency?: number }>
-  >(`/vaults/${vaultId}/test`);
-  return response.data;
+  const response = await apiClient.post<{ success: boolean; message?: string; latency?: number }>(`/vaults/${vaultId}/test`);
+  return response;
 };
 
 // ============================================================================
@@ -91,18 +89,18 @@ export const testVaultConnection = async (vaultId: string): Promise<{
  * Get all secrets from a vault (returns secret names only, not values)
  */
 export const getVaultSecrets = async (vaultId: string): Promise<VaultSecret[]> => {
-  const response = await apiClient.get<ApiResponse<VaultSecret[]>>(`/vaults/${vaultId}/secrets`);
-  return response.data;
+  const response = await apiClient.get<VaultSecret[]>(`/vaults/${vaultId}/secrets`);
+  return response;
 };
 
 /**
  * Get a specific secret from a vault
  */
 export const getVaultSecret = async (vaultId: string, secretName: string): Promise<VaultSecret> => {
-  const response = await apiClient.get<ApiResponse<VaultSecret>>(
+  const response = await apiClient.get<VaultSecret>(
     `/vaults/${vaultId}/secrets/${secretName}`
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -112,11 +110,11 @@ export const createVaultSecret = async (
   vaultId: string,
   secret: CreateSecretRequest
 ): Promise<VaultSecret> => {
-  const response = await apiClient.post<ApiResponse<VaultSecret>>(
+  const response = await apiClient.post<VaultSecret>(
     `/vaults/${vaultId}/secrets`,
     secret
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -127,11 +125,11 @@ export const updateVaultSecret = async (
   secretName: string,
   updates: UpdateSecretRequest
 ): Promise<VaultSecret> => {
-  const response = await apiClient.put<ApiResponse<VaultSecret>>(
+  const response = await apiClient.put<VaultSecret>(
     `/vaults/${vaultId}/secrets/${secretName}`,
     updates
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -148,20 +146,20 @@ export const checkSecretExists = async (
   vaultId: string,
   secretName: string
 ): Promise<{ exists: boolean }> => {
-  const response = await apiClient.get<ApiResponse<{ exists: boolean }>>(
+  const response = await apiClient.get<{ exists: boolean }>(
     `/vaults/${vaultId}/secrets/${secretName}/exists`
   );
-  return response.data;
+  return response;
 };
 
 /**
  * Rotate/regenerate a secret value
  */
 export const rotateVaultSecret = async (vaultId: string, secretName: string): Promise<VaultSecret> => {
-  const response = await apiClient.post<ApiResponse<VaultSecret>>(
+  const response = await apiClient.post<VaultSecret>(
     `/vaults/${vaultId}/secrets/${secretName}/rotate`
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -171,11 +169,11 @@ export const bulkCreateSecrets = async (
   vaultId: string,
   secrets: CreateSecretRequest[]
 ): Promise<VaultSecret[]> => {
-  const response = await apiClient.post<ApiResponse<VaultSecret[]>>(
+  const response = await apiClient.post<VaultSecret[]>(
     `/vaults/${vaultId}/secrets/bulk`,
     { secrets }
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -194,6 +192,6 @@ export const importVaultConfig = async (file: File): Promise<Vault> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await apiClient.post<ApiResponse<Vault>>('/vaults/import', formData);
-  return response.data as Vault;
+  const response = await apiClient.post<Vault>('/vaults/import', formData);
+  return response as Vault;
 };

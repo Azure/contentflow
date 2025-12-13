@@ -1,5 +1,6 @@
 import { Node, Edge } from "reactflow";
 import yaml from "js-yaml";
+import type { ExecutorWithUI } from "./executorUiMapper";
 
 export interface PipelineYamlFormat {
   pipeline: {
@@ -108,27 +109,30 @@ export function nodesToYaml(
       name: pipelineName || "Untitled Pipeline",
       description: pipelineDescription || "",
       executors: nodes.map((node) => {
+        // Extract the actual settings from node.data.config
+        const actualSettings = node.data.config?.settings || {};
+        
         const executor: any = {
           id: node.id,
-          name: node.data.label || node.data.executor?.name || "Unnamed",
+          name: node.data.config?.name || node.data.label || node.data.executor?.name || "Unnamed",
           type: node.data.executor?.id || "unknown",
           position: {
             x: Math.round(node.position.x),
             y: Math.round(node.position.y),
           },
-          ...(node.data.executor?.description
-            ? { description: node.data.executor.description }
+          ...(node.data.config?.description || node.data.executor?.description
+            ? { description: node.data.config?.description || node.data.executor.description }
             : {}),
-          ...(node.data.config && Object.keys(node.data.config).length > 0
-            ? { settings: node.data.config }
+          ...(Object.keys(actualSettings).length > 0
+            ? { settings: actualSettings }
             : {}),
         };
 
         // Handle sub-pipeline with pipeline reference
-        if (node.type === "subpipeline" && node.data.selectedPipelineId) {
+        if (node.type === "subpipeline" && (node.data.selectedPipelineId || node.data.config?.selectedPipelineId)) {
           executor.settings = {
             ...(executor.settings || {}),
-            pipeline_id: node.data.selectedPipelineId,
+            pipeline_id: node.data.selectedPipelineId || node.data.config?.selectedPipelineId,
           };
         }
 
@@ -151,7 +155,7 @@ export function nodesToYaml(
  */
 export function yamlToNodes(
   yamlString: string,
-  executorTypes: any[]
+  executorTypes: ExecutorWithUI[]
 ): {
   nodes: Node[];
   edges: Edge[];
@@ -172,6 +176,9 @@ export function yamlToNodes(
       // Find the executor type from the catalog
       const executorType = executorTypes.find((et) => et.id === executor.type);
 
+      // Separate pipeline_id from regular settings for sub-pipelines
+      const { pipeline_id, ...regularSettings } = executor.settings || {};
+      
       const nodeData: any = {
         label: executor.name,
         executor: executorType || {
@@ -182,12 +189,17 @@ export function yamlToNodes(
           icon: null,
           description: executor.description || "",
         },
-        config: executor.settings || {},
+        config: {
+          name: executor.name,
+          description: executor.description || "",
+          settings: regularSettings,
+        },
       };
 
       // Handle sub-pipeline with pipeline reference
-      if (executorType?.category === "pipeline" && executor.settings?.pipeline_id) {
-        nodeData.selectedPipelineId = executor.settings.pipeline_id;
+      if (executorType?.category === "pipeline" && pipeline_id) {
+        nodeData.selectedPipelineId = pipeline_id;
+        nodeData.config.selectedPipelineId = pipeline_id;
       }
 
       return {

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +7,7 @@ from app.models import Pipeline
 from app.services.pipeline_service import PipelineService
 from app.dependencies import get_pipeline_service
 
-router = APIRouter(prefix="/api/pipelines", tags=["pipelines"])
+router = APIRouter(prefix="/pipelines", tags=["pipelines"])
 
 # region API models
 
@@ -17,6 +17,8 @@ class SavePipelineRequest(BaseModel):
     name: str
     description: Optional[str] = None
     yaml: str
+    nodes: Optional[List[Any]] = None
+    edges: Optional[List[Any]] = None
     tags: Optional[List[str]] = []
     # settings
     enabled: Optional[bool] = True

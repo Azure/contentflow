@@ -7,16 +7,9 @@ import {
   CloudUpload, Server, Container, Eye, MessageSquare, FileSearch, Mic, 
   ScanText, BookText, Sparkle, Layers, Box, Workflow
 } from "lucide-react";
+import type { ExecutorType } from "@/types/components";
 
-export interface ExecutorType {
-  id: string;
-  type: string;
-  name: string;
-  icon: React.ReactNode;
-  color: string;
-  category: "extract" | "transform" | "analyze" | "pipeline" | "media" | "enrichment" | "input" | "output";
-  description?: string;
-}
+export type { ExecutorType } from "@/types/components";
 
 export const executorTypes: ExecutorType[] = [
   // Input Sources

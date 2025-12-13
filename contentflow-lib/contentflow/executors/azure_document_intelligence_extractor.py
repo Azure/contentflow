@@ -42,7 +42,7 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         - locale (str): Document locale (e.g., "en-US")
           Default: None (auto-detect)
         - content_field (str): Field containing document bytes
-          Default: "content"
+          Default: None
         - temp_file_path_field (str): Field containing temp file path
           Default: "temp_file_path"
         - output_field (str): Field name for extracted data
@@ -116,7 +116,7 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         self.extract_figures = self.get_setting("extract_figures", default=True)
         self.pages = self.get_setting("pages", default=None)
         self.locale = self.get_setting("locale", default=None)
-        self.content_field = self.get_setting("content_field", default="content")
+        self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="doc_intell_output")
         self.include_full_result = self.get_setting("include_full_result", default=False)
@@ -164,7 +164,7 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
             content_bytes = None
             
             # Try to get from content field
-            if self.content_field in content.data:
+            if self.content_field and self.content_field in content.data:
                 content_bytes = content.data[self.content_field]
             
             # Try to get from temp file

@@ -10,40 +10,40 @@ import { HealthCheck, SystemInfo, ApiResponse } from './apiTypes';
  * Get system health status
  */
 export const getHealthCheck = async (): Promise<HealthCheck> => {
-  const response = await apiClient.get<ApiResponse<HealthCheck>>('/health');
-  return response.data;
+  const response = await apiClient.get<HealthCheck>('/health');
+  return response;
 };
 
 /**
  * Get detailed system health with all services
  */
 export const getDetailedHealth = async (): Promise<HealthCheck> => {
-  const response = await apiClient.get<ApiResponse<HealthCheck>>('/health/detailed');
-  return response.data;
+  const response = await apiClient.get<HealthCheck>('/health/detailed');
+  return response;
 };
 
 /**
  * Get system information
  */
 export const getSystemInfo = async (): Promise<SystemInfo> => {
-  const response = await apiClient.get<ApiResponse<SystemInfo>>('/system/info');
-  return response.data;
+  const response = await apiClient.get<SystemInfo>('/system/info');
+  return response;
 };
 
 /**
  * Get API version
  */
 export const getApiVersion = async (): Promise<string> => {
-  const response = await apiClient.get<ApiResponse<{ version: string }>>('/system/version');
-  return response.data.version;
+  const response = await apiClient.get<{ version: string }>('/system/version');
+  return response.version;
 };
 
 /**
  * Ping the API (simple connectivity test)
  */
 export const ping = async (): Promise<{ message: string; timestamp: string }> => {
-  const response = await apiClient.get<ApiResponse<{ message: string; timestamp: string }>>('/ping');
-  return response.data;
+  const response = await apiClient.get<{ message: string; timestamp: string }>('/ping');
+  return response;
 };
 
 /**
@@ -56,14 +56,12 @@ export const getSystemMetrics = async (): Promise<{
   uptime?: number;
   requestCount?: number;
 }> => {
-  const response = await apiClient.get<
-    ApiResponse<{
-      cpu?: number;
-      memory?: number;
-      disk?: number;
-      uptime?: number;
-      requestCount?: number;
-    }>
-  >('/system/metrics');
-  return response.data;
+  const response = await apiClient.get<{
+    cpu?: number;
+    memory?: number;
+    disk?: number;
+    uptime?: number;
+    requestCount?: number;
+  }>('/system/metrics');
+  return response;
 };

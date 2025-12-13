@@ -61,7 +61,7 @@ def setup_logger(log_level: str = "DEBUG"):
     logging.getLogger('agent_framework').setLevel(logging.INFO)
     logging.getLogger('httpx').setLevel(logging.WARNING)
     logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
-    logging.getLogger('uvicorn.error').setLevel(logging.ERROR)
+    logging.getLogger('uvicorn').setLevel(logging.INFO)
     logging.getLogger('azure.cosmos').setLevel(logging.WARNING)
     
     # # Configure OpenTelemetry to use Azure Monitor with the 

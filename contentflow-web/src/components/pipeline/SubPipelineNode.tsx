@@ -2,11 +2,12 @@ import { memo } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Workflow, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Workflow, ExternalLink, X } from "lucide-react";
 
 
 export const SubPipelineNode = ({ data, id }: NodeProps) => {
-  const { label, config, selectedPipelineId, savedPipelines = [] } = data;
+  const { label, config, selectedPipelineId, savedPipelines = [], onDelete } = data;
 
   // Find the selected pipeline
   const selectedPipeline = savedPipelines.find((p: any) => p.id === selectedPipelineId);
@@ -14,12 +15,32 @@ export const SubPipelineNode = ({ data, id }: NodeProps) => {
 
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-secondary/30 min-w-[260px]">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-secondary/30 min-w-[260px] relative group">
       <Handle 
         type="target" 
-        position={Position.Top} 
+        position={Position.Top}
+        id="target-top"
         className="w-3 h-3 !bg-secondary"
       />
+      <Handle 
+        type="target" 
+        position={Position.Left}
+        id="target-left"
+        className="w-3 h-3 !bg-secondary"
+      />
+      
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive/90 hover:bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete?.();
+        }}
+      >
+        <X className="h-3 w-3" />
+      </Button>
       
       <div className="p-4 bg-gradient-to-br from-secondary/10 to-transparent">
         <div className="flex items-start gap-3 mb-3">
@@ -87,7 +108,14 @@ export const SubPipelineNode = ({ data, id }: NodeProps) => {
       
       <Handle 
         type="source" 
-        position={Position.Bottom} 
+        position={Position.Bottom}
+        id="source-bottom"
+        className="w-3 h-3 !bg-secondary"
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right}
+        id="source-right"
         className="w-3 h-3 !bg-secondary"
       />
     </Card>

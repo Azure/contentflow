@@ -4,6 +4,7 @@ from .base_service import BaseService
 from .health_service import HealthService
 from .pipeline_service import PipelineService
 from .vault_service import VaultService
+from .executor_catalog_service import ExecutorCatalogService
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -14,5 +15,6 @@ __all__ = [
             "BaseService",
             "HealthService",
             "PipelineService",
-            "VaultService"
+            "VaultService",
+            "ExecutorCatalogService",
           ]

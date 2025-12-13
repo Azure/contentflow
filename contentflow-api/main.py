@@ -10,16 +10,16 @@ import uvicorn
 
 from app.settings import get_settings
 from app.utils.logging import setup_logger
-from app.dependencies import initialize_all, close_all
-# from app.routers import opportunity, analysis, chat
+from app.startup import startup, shutdown
+from app.routers import health_router, pipelines_router, executors_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await initialize_all()
+    await startup()
     yield
     # Shutdown
-    await close_all()
+    await shutdown()
 
 def initialize_api_application() -> FastAPI:
     
@@ -40,21 +40,21 @@ def initialize_api_application() -> FastAPI:
     )
 
     # # Include routers
-    # app.include_router(opportunity.router, prefix="/api")
-    # app.include_router(analysis.router, prefix="/api")
-    # app.include_router(chat.router, prefix="/api")
+    app.include_router(health_router, prefix="/api")
+    app.include_router(pipelines_router, prefix="/api")
+    app.include_router(executors_router, prefix="/api")
 
-    # Global exception handler
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request, exc):
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error": "Internal server error",
-                "details": str(exc) if app_settings.DEBUG else "An unexpected error occurred"
-            }
-        )
+    # # Global exception handler
+    # @app.exception_handler(Exception)
+    # async def global_exception_handler(request, exc):
+    #     return JSONResponse(
+    #         status_code=500,
+    #         content={
+    #             "success": False,
+    #             "error": "Internal server error",
+    #             "details": str(exc) if app_settings.DEBUG else "An unexpected error occurred"
+    #         }
+    #     )
 
     @app.get("/")
     async def root():

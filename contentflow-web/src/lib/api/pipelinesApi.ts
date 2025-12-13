@@ -1,12 +1,12 @@
 import { apiClient, buildQueryParams } from './apiClient';
 import {
+  PaginatedResponse,
+} from './apiTypes';
+import type {   
   Pipeline,
   SavePipelineRequest,
   PipelineExecutionRequest,
-  PipelineExecutionResponse,
-  ApiResponse,
-  PaginatedResponse,
-} from './apiTypes';
+  PipelineExecutionResponse, } from '@/types/components';
 
 /**
  * Pipelines API
@@ -17,26 +17,26 @@ import {
  * Get all pipelines with optional filters and pagination
  */
 export const getPipelines = async (): Promise<Pipeline[]> => {
-  const response = await apiClient.get<ApiResponse<Pipeline[]>>(
+  const response = await apiClient.get<Pipeline[]>(
     `/pipelines`
   );
-  return response.data;
+  return response;
 };
 
 /**
  * Get a specific pipeline by ID
  */
 export const getPipelineById = async (pipelineId: string): Promise<Pipeline> => {
-  const response = await apiClient.get<ApiResponse<Pipeline>>(`/pipelines/${pipelineId}`);
-  return response.data;
+  const response = await apiClient.get<Pipeline>(`/pipelines/${pipelineId}`);
+  return response;
 };
 
 /**
  * Save a pipeline, either creating a new one or updating an existing one
  */
 export const savePipeline = async (pipeline: SavePipelineRequest): Promise<Pipeline> => {
-  const response = await apiClient.post<ApiResponse<Pipeline>>('/pipelines', pipeline);
-  return response.data;
+  const response = await apiClient.post<Pipeline>('/pipelines', pipeline);
+  return response;
 };
 
 /**
@@ -55,9 +55,9 @@ export const validatePipeline = async (yaml: string): Promise<{
   warnings?: string[];
 }> => {
   const response = await apiClient.post<
-    ApiResponse<{ valid: boolean; errors?: string[]; warnings?: string[] }>
+    { valid: boolean; errors?: string[]; warnings?: string[] }
   >('/pipelines/validate', { yaml });
-  return response.data;
+  return response;
 };
 
 /**
@@ -66,21 +66,21 @@ export const validatePipeline = async (yaml: string): Promise<{
 export const executePipeline = async (
   request: PipelineExecutionRequest
 ): Promise<PipelineExecutionResponse> => {
-  const response = await apiClient.post<ApiResponse<PipelineExecutionResponse>>(
+  const response = await apiClient.post<PipelineExecutionResponse>(
     '/pipelines/execute',
     request
   );
-  return response.data;
+  return response;
 };
 
 /**
  * Get pipeline execution status
  */
 export const getExecutionStatus = async (executionId: string): Promise<PipelineExecutionResponse> => {
-  const response = await apiClient.get<ApiResponse<PipelineExecutionResponse>>(
+  const response = await apiClient.get<PipelineExecutionResponse>(
     `/pipelines/executions/${executionId}`
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -98,11 +98,11 @@ export const getExecutionHistory = async (
   page?: number,
   pageSize?: number
 ): Promise<PaginatedResponse<PipelineExecutionResponse>> => {
-  const response = await apiClient.get<ApiResponse<PaginatedResponse<PipelineExecutionResponse>>>(
+  const response = await apiClient.get<PaginatedResponse<PipelineExecutionResponse>>(
     `/pipelines/${pipelineId}/executions`,
     { params: { page, pageSize } }
   );
-  return response.data;
+  return response;
 };
 
 /**
@@ -112,10 +112,10 @@ export const duplicatePipeline = async (
   pipelineId: string,
   newName?: string
 ): Promise<Pipeline> => {
-  const response = await apiClient.post<ApiResponse<Pipeline>>(`/pipelines/${pipelineId}/duplicate`, {
+  const response = await apiClient.post<Pipeline>(`/pipelines/${pipelineId}/duplicate`, {
     name: newName,
   });
-  return response.data;
+  return response;
 };
 
 /**
@@ -140,16 +140,16 @@ export const importPipelineYaml = async (
   if (name) formData.append('name', name);
   if (description) formData.append('description', description);
 
-  const response = await apiClient.post<ApiResponse<Pipeline>>('/pipelines/import', formData);
-  return response.data;
+  const response = await apiClient.post<Pipeline>('/pipelines/import', formData);
+  return response;
 };
 
 /**
  * Get pipeline tags
  */
 export const getPipelineTags = async (): Promise<string[]> => {
-  const response = await apiClient.get<ApiResponse<string[]>>('/pipelines/tags');
-  return response.data;
+  const response = await apiClient.get<string[]>('/pipelines/tags');
+  return response;
 };
 
 /**
@@ -160,9 +160,9 @@ export const searchPipelines = async (
   page?: number,
   pageSize?: number
 ): Promise<PaginatedResponse<Pipeline>> => {
-  const response = await apiClient.get<ApiResponse<PaginatedResponse<Pipeline>>>(
+  const response = await apiClient.get<PaginatedResponse<Pipeline>>(
     `/pipelines/search`,
     { params: { q: query, page, pageSize } }
   );
-  return response.data;
+  return response;
 };

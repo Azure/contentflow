@@ -20,100 +20,84 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// ============================================================================
-// Executor Types
-// ============================================================================
+// // ============================================================================
+// // Executor Types
+// // ============================================================================
 
-export interface ExecutorType {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  color: string;
-  icon?: string;
-  parameters?: ExecutorParameter[];
-  inputSchema?: Record<string, any>;
-  outputSchema?: Record<string, any>;
-}
-
-export interface ExecutorParameter {
-  name: string;
-  type: string;
-  description: string;
-  required: boolean;
-  default?: any;
-  enum?: string[];
-  validation?: Record<string, any>;
-}
-
-export interface ExecutorCatalog {
-  executors: ExecutorType[];
-  categories: string[];
-  version: string;
-  updatedAt: string;
-}
-
-// ============================================================================
-// Pipeline Types
-// ============================================================================
-
-export interface Pipeline {
-  id: string;
-  name: string;
-  description: string;
-  yaml: string;
-  nodes?: any[];
-  edges?: any[];
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  tags?: string[];
-  version?: string;
-  enabled?: boolean; // whether the pipeline is enabled
-  retry_delay?: number; // delay between retries in seconds
-  timeout?: number; // timeout for pipeline execution in seconds
-  retries?: number; // number of retries on failure
-}
-
-export interface SavePipelineRequest {
-  id?: string; // id of the pipeline (optional for creation)
-  name: string; // name of the pipeline
-  description?: string; // description of the pipeline
-  yaml: string; // updated YAML configuration
-  tags?: string[]; // updated tags
-  version?: string; // updated version
-  enabled?: boolean; // updated enabled status
-  retry_delay?: number; // updated retry delay in seconds
-  timeout?: number; // updated timeout in seconds
-  retries?: number; // updated number of retries
-}
-
-// export interface PipelineListQuery {
-//   page?: number;
-//   pageSize?: number;
-//   search?: string;
-//   tags?: string[];
-//   sortBy?: 'name' | 'createdAt' | 'updatedAt';
-//   sortOrder?: 'asc' | 'desc';
+// export interface ExecutorType {
+//   id: string;
+//   name: string;
+//   category: string;
+//   description: string;
+//   color: string;
+//   icon?: string;
+//   parameters?: ExecutorParameter[];
+//   inputSchema?: Record<string, any>;
+//   outputSchema?: Record<string, any>;
 // }
 
-export interface PipelineExecutionRequest {
-  pipelineId: string;
-  inputs?: Record<string, any>;
-  configuration?: Record<string, any>;
-}
+// export interface ExecutorParameter {
+//   name: string;
+//   type: string;
+//   description: string;
+//   required: boolean;
+//   default?: any;
+//   enum?: string[];
+//   validation?: Record<string, any>;
+// }
 
-export interface PipelineExecutionResponse {
-  executionId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  startedAt: string;
-  completedAt?: string;
-  outputs?: Record<string, any>;
-  error?: string;
-}
+// export interface ExecutorCatalog {
+//   executors: ExecutorType[];
+//   categories: string[];
+//   version: string;
+//   updatedAt: string;
+// }
+
+// // ============================================================================
+// // Pipeline Types
+// // ============================================================================
+
+// export interface SavePipelineRequest {
+//   id?: string; // id of the pipeline (optional for creation)
+//   name: string; // name of the pipeline
+//   description?: string; // description of the pipeline
+//   yaml: string; // updated YAML configuration
+//   nodes?: any[]; // visual nodes for UI
+//   edges?: any[]; // visual edges for UI
+//   tags?: string[]; // updated tags
+//   version?: string; // updated version
+//   enabled?: boolean; // updated enabled status
+//   retry_delay?: number; // updated retry delay in seconds
+//   timeout?: number; // updated timeout in seconds
+//   retries?: number; // updated number of retries
+// }
+
+// // export interface PipelineListQuery {
+// //   page?: number;
+// //   pageSize?: number;
+// //   search?: string;
+// //   tags?: string[];
+// //   sortBy?: 'name' | 'createdAt' | 'updatedAt';
+// //   sortOrder?: 'asc' | 'desc';
+// // }
+
+// export interface PipelineExecutionRequest {
+//   pipelineId: string;
+//   inputs?: Record<string, any>;
+//   configuration?: Record<string, any>;
+// }
+
+// export interface PipelineExecutionResponse {
+//   executionId: string;
+//   status: 'pending' | 'running' | 'completed' | 'failed';
+//   startedAt: string;
+//   completedAt?: string;
+//   outputs?: Record<string, any>;
+//   error?: string;
+// }
 
 // ============================================================================
-// Template Types
+// Template Types (Backend API)
 // ============================================================================
 
 export interface PipelineTemplate {

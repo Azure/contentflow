@@ -10,7 +10,7 @@ executor_catalog:
     module_path: contentflow.executors.content_retriever
     class_name: ContentRetrieverExecutor
     tags: [input, retrieval, azure, blob, storage]
-    category: "Input"
+    category: "input"
     version: "1.0"
     
     # Settings schema for validation and UI generation
@@ -47,6 +47,7 @@ executor_catalog:
         default: 1
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -61,6 +62,7 @@ executor_catalog:
         type: string
         title: "Blob Storage Account"
         description: "Azure Blob Storage account name"
+        placeholder: "<enter storage account name>"
         required: false
         default: null
         ui_component: "input"
@@ -86,6 +88,7 @@ executor_catalog:
         type: string
         title: "Container Name"
         description: "Azure Blob Storage container name"
+        placeholder: "<enter container name>"
         required: false
         default: null
         ui_component: "input"
@@ -104,7 +107,7 @@ executor_catalog:
     module_path: contentflow.executors.azure_blob_input_executor
     class_name: AzureBlobInputExecutor
     tags: [input, discovery, azure, blob, storage, source]
-    category: "Input"
+    category: "input"
     version: "1.0"
     
     # Settings schema for validation and UI generation
@@ -113,6 +116,7 @@ executor_catalog:
         type: string
         title: "Blob Storage Account"
         description: "Azure Blob Storage account name"
+        placeholder: "<enter storage account name>"
         required: true
         default: null
         ui_component: "input"
@@ -138,6 +142,7 @@ executor_catalog:
         type: string
         title: "Container Name"
         description: "Azure Blob Storage container name to scan"
+        placeholder: "<enter container name>"
         required: true
         default: null
         ui_component: "input"
@@ -146,16 +151,18 @@ executor_catalog:
         type: string
         title: "Blob Path Prefix"
         description: "Blob path prefix filter (e.g., 'documents/2024/'). Empty means root."
+        placeholder: "/path/to/folder/"
         required: false
-        default: ""
+        default: null
         ui_component: "input"
 
       file_extensions:
-        type: array
+        type: string
         title: "File Extensions"
-        description: "File extensions to include (e.g., ['.pdf', '.docx', '.txt']). Empty means all files."
+        description: "File extensions to include as a comma-separated list (e.g., '.pdf,.docx,.txt'). Empty means all files."
+        placeholder: ".pdf,.docx,.txt"
         required: false
-        default: []
+        default: null
         ui_component: "input"
 
       max_depth:
@@ -222,7 +229,8 @@ executor_catalog:
       modified_after:
         type: string
         title: "Modified After"
-        description: "Only include files modified after this date (ISO format, e.g., '2024-01-01T00:00:00')"
+        description: "Only include files modified after this date (ISO format, e.g., '2025-01-01T00:00:00')"
+        placeholder: "2025-01-01T00:00:00"
         required: false
         default: null
         ui_component: "input"
@@ -230,14 +238,15 @@ executor_catalog:
       modified_before:
         type: string
         title: "Modified Before"
-        description: "Only include files modified before this date (ISO format, e.g., '2024-12-31T23:59:59')"
+        description: "Only include files modified before this date (ISO format, e.g., '2025-12-31T23:59:59')"
+        placeholder: "2025-12-31T23:59:59"
         required: false
         default: null
         ui_component: "input"
 
     # UI metadata
     ui_metadata:
-      icon: "folder-search"
+      icon: "cloud" # reference to lucide icon
       description_short: "Discover files in blob storage"
       description_long: "Scans Azure Blob Storage containers to discover content files. Supports filtering by prefix, file extensions, depth, size, and dates. Perfect for batch processing pipelines."
 
@@ -259,7 +268,7 @@ executor_catalog:
         title: "Content field"
         description: "Field containing content bytes"
         required: false
-        default: "content"
+        default: null
         ui_component: "input"
 
       temp_file_path_field:
@@ -300,8 +309,7 @@ executor_catalog:
         description: "Document Intelligence model to use"
         required: false
         default: "prebuilt-layout"
-        options: ["prebuilt-layout", "prebuilt-read", "prebuilt-document", "prebuilt-invoice", "prebuilt-receipt"]
-        ui_component: "select"
+        ui_component: "input"
       
       extract_text:
         type: boolean
@@ -339,6 +347,7 @@ executor_catalog:
         type: string
         title: "Pages"
         description: "Page range to analyze (e.g., '1-3,5')"
+        placeholder: "1-3,4,6"
         required: false
         default: null
         ui_component: "input"
@@ -347,6 +356,7 @@ executor_catalog:
         type: string
         title: "Locale"
         description: "Document locale (e.g., 'en-US')"
+        placeholder: "en-US"
         required: false
         default: null
         ui_component: "input"
@@ -380,6 +390,7 @@ executor_catalog:
         type: string
         title: "Azure Document Intelligence Endpoint"
         description: "Azure Document Intelligence service endpoint"
+        placeholder: "https://<your-resource>.cognitiveservices.azure.com/"
         required: true
         default: null
         ui_component: "input"
@@ -390,7 +401,8 @@ executor_catalog:
         description: "Azure Document Intelligence service credential type. Valid values are ['default_azure_credential' or 'azure_key_credential']"
         required: false
         default: "default_azure_credential"
-        ui_component: "input"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
 
       doc_intelligence_credential_key:
         type: string
@@ -402,7 +414,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "file-text"
+      icon: "scan-text" # reference to lucide icon
       description_short: "Extract content with AI"
       description_long: "Uses Azure Document Intelligence to extract text, tables, and key-value pairs from documents with high accuracy."
 
@@ -424,7 +436,7 @@ executor_catalog:
         title: "Content field"
         description: "Field containing content bytes"
         required: false
-        default: "content"
+        default: null
         ui_component: "input"
 
       temp_file_path_field:
@@ -504,6 +516,7 @@ executor_catalog:
         type: string
         title: "Default Model Deployments"
         description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-4.1-mini\":\"gpt_4.1_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
+        placeholder: '{"model_name":"deployment_id"}'
         required: true
         default: null
         ui_component: "input"
@@ -646,7 +659,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "file-pdf"
+      icon: "file-text" # reference to lucide icon
       description_short: "Extract PDF content"
       description_long: "Extracts text, page chunks, and images from PDF documents using PyMuPDF. Fast and efficient for PDF processing."
 
@@ -668,7 +681,7 @@ executor_catalog:
         title: "Content field"
         description: "Field containing Word document bytes"
         required: false
-        default: "content"
+        default: null
         ui_component: "input"
 
       temp_file_path_field:
@@ -772,7 +785,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "file-word"
+      icon: "file-text"
       description_short: "Extract Word content"
       description_long: "Extracts text, paragraphs, tables, and properties from Word documents using python-docx. Supports .docx format."
 
@@ -794,7 +807,7 @@ executor_catalog:
         title: "Content field"
         description: "Field containing PowerPoint bytes"
         required: false
-        default: "content"
+        default: null
         ui_component: "input"
 
       temp_file_path_field:
@@ -906,7 +919,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "file-powerpoint"
+      icon: "file-text"
       description_short: "Extract PowerPoint content"
       description_long: "Extracts text, slides, tables, notes, and images from PowerPoint presentations using python-pptx. Supports .pptx format."
 
@@ -917,7 +930,7 @@ executor_catalog:
     description: "Creates chunks using recursive text splitting with configurable separator hierarchy for optimal RAG retrieval"
     module_path: contentflow.executors.recursive_text_chunker_executor
     class_name: RecursiveTextChunkerExecutor
-    tags: [chunking, rag, recursive, semantic-search, nlp, universal]
+    tags: [chunking, rag, recursive, semantic-search, splitting, transform]
     category: "transform"
     version: "1.0"
     
@@ -960,11 +973,11 @@ executor_catalog:
         ui_component: "number"
 
       separators:
-        type: array
+        type: string
         title: "Separator Hierarchy"
-        description: "List of separators to try in order (e.g., ['\\n\\n', '\\n', '. ', ' ', ''])"
+        description: "List of separators to try in order as a comma separated list (e.g., '\\n\\n,\\n,.')"
         required: false
-        default: ["\n\n", "\n", ". ", " ", ""]
+        default: "\n\n,\n,."
         ui_component: "input"
 
       length_function:
@@ -1214,7 +1227,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "file-excel"
+      icon: "file-spreadsheet"
       description_short: "Extract Excel content"
       description_long: "Extracts text, sheets, tables, properties, and images from Excel workbooks using openpyxl. Supports .xlsx and .xlsm formats."
 
@@ -1314,12 +1327,12 @@ executor_catalog:
         ui_component: "checkbox"
 
       parent_data_fields:
-        type: array
+        type: string
         title: "Parent Data Fields"
-        description: "Specific parent fields to copy (if preserve_parent_data is true)"
+        description: "Specific parent fields to copy (if preserve_parent_data is true) as a comma separated list"
         required: false
         default: null
-        ui_component: "multiselect"
+        ui_component: "input"
 
       output_format:
         type: string
@@ -1366,7 +1379,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "table-rows"
+      icon: "table-rows-split"
       description_short: "Split table into rows"
       description_long: "Splits tabular data (from Word, Excel, CSV, or other sources) into individual content items for parallel processing. Supports multiple table formats and preserves row metadata."
 
@@ -1378,7 +1391,7 @@ executor_catalog:
     module_path: contentflow.executors.azure_openai_agent_executor
     class_name: AzureOpenAIAgentExecutor
     tags: [ai, agent, llm, azure-openai, agent-framework]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     # Settings schema
@@ -1499,7 +1512,7 @@ executor_catalog:
     module_path: contentflow.executors.azure_openai_embeddings_executor
     class_name: AzureOpenAIEmbeddingsExecutor
     tags: [ai, embeddings, vector, azure-openai, semantic-search]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     # Settings schema
@@ -1590,7 +1603,7 @@ executor_catalog:
 
     # UI metadata
     ui_metadata:
-      icon: "vector"
+      icon: "square"
       description_short: "Generate Embeddings"
       description_long: "Generate vector embeddings from text using Azure OpenAI embeddings models for semantic search and similarity matching."
 
@@ -1602,7 +1615,7 @@ executor_catalog:
     module_path: contentflow.executors.summarization_executor
     class_name: SummarizationExecutor
     tags: [ai, summarization, nlp, azure-openai, agent-framework]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -1747,16 +1760,16 @@ executor_catalog:
     module_path: contentflow.executors.entity_extraction_executor
     class_name: EntityExtractionExecutor
     tags: [ai, ner, entity-extraction, nlp, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
       entity_types:
-        type: array
+        type: string
         title: "Entity Types"
-        description: "Types of entities to extract"
+        description: "Types of entities to extract as a comma separated list"
         required: false
-        default: ["person", "organization", "location", "date", "money", "email", "phone", "url", "product", "event", "quantity", "skill", "ip-address"]
+        default: "person,organization,location,date,money,email,phone,url,product,event,quantity,skill,ip-address"
         ui_component: "multiselect"
 
       output_format:
@@ -1777,9 +1790,9 @@ executor_catalog:
         ui_component: "checkbox"
 
       custom_entities:
-        type: array
+        type: string
         title: "Custom Entity Types"
-        description: "Additional custom entity types to extract"
+        description: "Additional custom entity types to extract as a comma separated list"
         required: false
         default: null
         ui_component: "input"
@@ -1891,7 +1904,7 @@ executor_catalog:
     module_path: contentflow.executors.sentiment_analysis_executor
     class_name: SentimentAnalysisExecutor
     tags: [ai, sentiment, nlp, azure-openai, emotion-detection]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -2044,7 +2057,7 @@ executor_catalog:
     module_path: contentflow.executors.content_classifier_executor
     class_name: ContentClassifierExecutor
     tags: [ai, classification, categorization, nlp, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -2205,16 +2218,16 @@ executor_catalog:
     module_path: contentflow.executors.pii_detector_executor
     class_name: PIIDetectorExecutor
     tags: [ai, pii, privacy, security, nlp, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
       pii_types:
-        type: array
+        type: string
         title: "PII Types"
-        description: "Types of PII to detect"
+        description: "Types of PII to detect as a comma separated list"
         required: false
-        default: ["name", "email", "phone", "ssn", "credit_card", "address"]
+        default: "name,email,phone,ssn,credit_card,address"
         ui_component: "multiselect"
 
       action:
@@ -2367,7 +2380,7 @@ executor_catalog:
     module_path: contentflow.executors.keyword_extractor_executor
     class_name: KeywordExtractorExecutor
     tags: [ai, keywords, nlp, information-extraction, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -2532,7 +2545,7 @@ executor_catalog:
     module_path: contentflow.executors.language_detector_executor
     class_name: LanguageDetectorExecutor
     tags: [ai, language-detection, nlp, i18n, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -2694,7 +2707,7 @@ executor_catalog:
     module_path: contentflow.executors.translation_executor
     class_name: TranslationExecutor
     tags: [ai, translation, i18n, localization, azure-openai]
-    category: "analyze"
+    category: "analyse"
     version: "1.0"
     
     settings_schema:
@@ -2864,6 +2877,11 @@ executor_catalog:
     tags: [utility, passthrough, no-op]
     category: "Utility"
     version: "1.0"
+    settings_schema: {}
+    ui_metadata:
+      icon: "forward"
+      description_short: "No Operation"
+      description_long: "A utility executor that passes content through without any modifications."
 
   ##########################################################
   # AI Search Index Output
@@ -2873,7 +2891,7 @@ executor_catalog:
     module_path: contentflow.executors.ai_search_index_output
     class_name: AISearchIndexOutputExecutor
     tags: [indexing, search, azure, ai-search, output, rag]
-    category: "Output"
+    category: "output"
     version: "1.0"
     
     # Settings schema
@@ -3021,7 +3039,7 @@ executor_catalog:
     
     # UI metadata
     ui_metadata:
-      icon: "database"
+      icon: "text-search"
       description_short: "Index to AI Search"
       description_long: "Indexes documents or chunks to Azure AI Search with support for semantic search, vector fields, batch processing, and retry logic for production RAG applications."
 
@@ -3033,7 +3051,7 @@ executor_catalog:
     module_path: contentflow.executors.azure_blob_output_executor
     class_name: AzureBlobOutputExecutor
     tags: [output, storage, azure, blob, archive, backup]
-    category: "Output"
+    category: "output"
     version: "1.0"
 
     # Settings schema
@@ -3178,7 +3196,7 @@ executor_catalog:
     module_path: contentflow.executors.field_mapper_executor
     class_name: FieldMapperExecutor
     tags: [transform, mapping, restructure, fields, normalization]
-    category: "Transform"
+    category: "transform"
     version: "1.0"
     
     # Settings schema for validation and UI generation
@@ -3204,7 +3222,7 @@ executor_catalog:
         title: "Copy Mode"
         description: "How to handle source fields after mapping, move: Delete source field | copy: Keep source field."
         required: false
-        default: "move"
+        default: "copy"
         options: ["move", "copy"]
         ui_component: "select"
       
@@ -3312,7 +3330,7 @@ executor_catalog:
     module_path: contentflow.executors.field_selector_executor
     class_name: FieldSelectorExecutor
     tags: [transform, filter, privacy, fields, selection, optimization]
-    category: "Transform"
+    category: "transform"
     version: "1.0"
     
     # Settings schema for validation and UI generation
@@ -3422,305 +3440,6 @@ executor_catalog:
       description_long: "Filter Content item fields by selecting only specific fields or excluding unwanted fields. Supports wildcard patterns, nested field selection, conditional filtering, and privacy-focused data masking for GDPR compliance and payload optimization."
 
   ########################################################
-  # Knowledge Graph Entity Extractor Executor
-  - id: knowledge_graph_entity_extractor
-    name: "Knowledge Graph Entity Extractor"
-    description: "Extract entities and relationships from content for knowledge graph construction using AI"
-    module_path: contentflow.executors.knowledge_graph_entity_extractor
-    class_name: KnowledgeGraphEntityExtractorExecutor
-    tags: [ai, knowledge-graph, entity-extraction, relationships]
-    category: "AI Analysis"
-    version: "1.0"
-    
-    settings_schema:
-      ai_endpoint:
-        type: string
-        title: "AI Endpoint"
-        description: "Azure AI endpoint URL"
-        required: true
-        ui_component: "input"
-      
-      ai_credential_type:
-        type: string
-        title: "AI Credential Type"
-        description: "Credential type for AI service"
-        required: false
-        default: "default_azure_credential"
-        options: ["default_azure_credential", "azure_key_credential"]
-        ui_component: "select"
-      
-      ai_api_key:
-        type: string
-        title: "AI API Key"
-        description: "API key for AI service (if using azure_key_credential)"
-        required: false
-        ui_component: "input"
-      
-      model_name:
-        type: string
-        title: "Model Name"
-        description: "AI model deployment name"
-        required: true
-        ui_component: "input"
-      
-      entity_types:
-        type: array
-        title: "Entity Types"
-        description: "List of entity types to extract"
-        required: false
-        default: ["Organization", "Person", "Product", "Service", "Technology", "Location", "Event", "Concept"]
-        ui_component: "multi-select"
-      
-      confidence_threshold:
-        type: number
-        title: "Confidence Threshold"
-        description: "Minimum confidence score for extracted entities (0.0-1.0)"
-        required: false
-        default: 0.6
-        min: 0.0
-        max: 1.0
-        ui_component: "slider"
-      
-      output_field:
-        type: string
-        title: "Output Field"
-        description: "Field to store extracted entities"
-        required: false
-        default: "knowledge_graph_entities"
-        ui_component: "input"
-    
-    ui_metadata:
-      icon: "share-2"
-      description_short: "Extract entities for knowledge graph"
-      description_long: "Use AI to extract business entities and relationships from content to build comprehensive knowledge graphs. Identifies organizations, people, products, concepts, and their connections."
-
-  ########################################################
-  # Knowledge Graph Writer Executor
-  - id: knowledge_graph_writer
-    name: "Knowledge Graph Writer"
-    description: "Write entities and relationships to Azure Cosmos DB Graph API (Gremlin)"
-    module_path: contentflow.executors.knowledge_graph_writer
-    class_name: KnowledgeGraphWriterExecutor
-    tags: [knowledge-graph, cosmos-db, gremlin, graph-database]
-    category: "Output"
-    version: "1.0"
-    
-    settings_schema:
-      gremlin_endpoint:
-        type: string
-        title: "Gremlin Endpoint"
-        description: "Cosmos DB Gremlin endpoint (e.g., wss://account.gremlin.cosmos.azure.com:443/)"
-        required: true
-        ui_component: "input"
-      
-      gremlin_database:
-        type: string
-        title: "Database Name"
-        description: "Cosmos DB database name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_collection:
-        type: string
-        title: "Collection Name"
-        description: "Graph collection/container name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_password:
-        type: string
-        title: "Primary Key"
-        description: "Cosmos DB primary or secondary key"
-        required: true
-        ui_component: "input"
-      
-      input_field:
-        type: string
-        title: "Input Field"
-        description: "Field containing extracted entities"
-        required: false
-        default: "knowledge_graph_entities"
-        ui_component: "input"
-      
-      merge_strategy:
-        type: string
-        title: "Merge Strategy"
-        description: "How to handle existing entities"
-        required: false
-        default: "merge"
-        options: ["merge", "overwrite", "skip"]
-        ui_component: "select"
-      
-      enable_deduplication:
-        type: boolean
-        title: "Enable Deduplication"
-        description: "Merge duplicate entities"
-        required: false
-        default: true
-        ui_component: "checkbox"
-    
-    ui_metadata:
-      icon: "database"
-      description_short: "Write to knowledge graph"
-      description_long: "Persist extracted entities and relationships to Azure Cosmos DB Graph API, building an evolving knowledge graph with deduplication and merge capabilities."
-
-  ########################################################
-  # Knowledge Graph Query Executor
-  - id: knowledge_graph_query
-    name: "Knowledge Graph Query"
-    description: "Query knowledge graph for entity retrieval and relationship traversal"
-    module_path: contentflow.executors.knowledge_graph_query
-    class_name: KnowledgeGraphQueryExecutor
-    tags: [knowledge-graph, query, gremlin, graph-traversal]
-    category: "Input"
-    version: "1.0"
-    
-    settings_schema:
-      gremlin_endpoint:
-        type: string
-        title: "Gremlin Endpoint"
-        description: "Cosmos DB Gremlin endpoint"
-        required: true
-        ui_component: "input"
-      
-      gremlin_database:
-        type: string
-        title: "Database Name"
-        description: "Cosmos DB database name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_collection:
-        type: string
-        title: "Collection Name"
-        description: "Graph collection/container name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_password:
-        type: string
-        title: "Primary Key"
-        description: "Cosmos DB primary or secondary key"
-        required: true
-        ui_component: "input"
-      
-      query_type:
-        type: string
-        title: "Query Type"
-        description: "Type of graph query to execute"
-        required: false
-        default: "find_entity"
-        options: ["find_entity", "traverse", "pattern_match", "aggregate", "custom"]
-        ui_component: "select"
-      
-      query_parameters:
-        type: object
-        title: "Query Parameters"
-        description: "Parameters for the query (JSON object)"
-        required: false
-        default: {}
-        ui_component: "json-editor"
-      
-      max_results:
-        type: integer
-        title: "Max Results"
-        description: "Maximum number of results to return"
-        required: false
-        default: 100
-        min: 1
-        max: 1000
-        ui_component: "number"
-    
-    ui_metadata:
-      icon: "search"
-      description_short: "Query knowledge graph"
-      description_long: "Retrieve entities, traverse relationships, and perform pattern matching on the knowledge graph using Gremlin queries."
-
-  ########################################################
-  # Knowledge Graph Enrichment Executor
-  - id: knowledge_graph_enrichment
-    name: "Knowledge Graph Enrichment"
-    description: "Enrich knowledge graph entities with AI-generated properties and inferred relationships"
-    module_path: contentflow.executors.knowledge_graph_enrichment
-    class_name: KnowledgeGraphEnrichmentExecutor
-    tags: [knowledge-graph, enrichment, ai, graph-analytics]
-    category: "AI Analysis"
-    version: "1.0"
-    
-    settings_schema:
-      gremlin_endpoint:
-        type: string
-        title: "Gremlin Endpoint"
-        description: "Cosmos DB Gremlin endpoint"
-        required: true
-        ui_component: "input"
-      
-      gremlin_database:
-        type: string
-        title: "Database Name"
-        description: "Cosmos DB database name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_collection:
-        type: string
-        title: "Collection Name"
-        description: "Graph collection/container name"
-        required: true
-        ui_component: "input"
-      
-      gremlin_password:
-        type: string
-        title: "Primary Key"
-        description: "Cosmos DB primary or secondary key"
-        required: true
-        ui_component: "input"
-      
-      enrichment_type:
-        type: string
-        title: "Enrichment Type"
-        description: "Type of enrichment to perform"
-        required: true
-        options: ["ai_properties", "infer_relationships", "compute_metrics", "entity_classification"]
-        ui_component: "select"
-      
-      ai_endpoint:
-        type: string
-        title: "AI Endpoint"
-        description: "Azure AI endpoint (for AI-based enrichment)"
-        required: false
-        ui_component: "input"
-      
-      ai_api_key:
-        type: string
-        title: "AI API Key"
-        description: "API key for AI service"
-        required: false
-        ui_component: "input"
-      
-      model_name:
-        type: string
-        title: "Model Name"
-        description: "AI model deployment name (for AI-based enrichment)"
-        required: false
-        ui_component: "input"
-      
-      entity_selector:
-        type: string
-        title: "Entity Selector"
-        description: "How to select entities to enrich"
-        required: false
-        default: "all"
-        options: ["all", "by_label", "by_property"]
-        ui_component: "select"
-    
-    ui_metadata:
-      icon: "zap"
-      description_short: "Enrich knowledge graph"
-      description_long: "Enhance the knowledge graph by adding AI-generated properties, inferring implicit relationships, and computing graph metrics for entities."
-
-
-  ########################################################
   # Web Scraping Executor
   - id: web_scraper
     name: "Web Scraper"
@@ -3728,7 +3447,7 @@ executor_catalog:
     module_path: contentflow.executors.web_scraping_executor
     class_name: WebScrapingExecutor
     tags: [input, scraping, web, playwright]
-    category: "Input"
+    category: "input"
     version: "1.0"
     
     settings_schema:
@@ -3902,6 +3621,22 @@ executor_catalog:
         ui_component: "input"
 
     ui_metadata:
-      icon: "globe"
+      icon: "link"
       description_short: "Scrape web pages"
       description_long: "Scrape and extract content from web pages using Playwright with support for JavaScript rendering, crawling, and screenshot capture."
+
+  ########################################################
+  # Sub-pipeline Executor
+  - id: subpipeline
+    name: "Sub-pipeline"
+    description: "Execute a nested ContentFlow pipeline as part of the current pipeline"
+    module_path: ""  # Dynamically loaded
+    class_name: ""  # Dynamically loaded
+    tags: [pipeline, sub-pipeline, nested, modular]
+    category: "pipeline"
+    version: "1.0"
+
+    ui_metadata:
+      icon: "workflow"
+      description_short: "Execute a nested ContentFlow pipeline"
+      description_long: "Execute a nested ContentFlow pipeline as part of the current pipeline."

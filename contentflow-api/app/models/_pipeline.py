@@ -9,6 +9,9 @@ class Pipeline(CosmosBaseModel):
     name: str = Field(..., description="Pipeline name")
     description: Optional[str] = Field(default="", description="Pipeline description")
     yaml: str = Field(default=..., description="Pipeline YAML definition")
+    # Visual representation (for UI)
+    nodes: Optional[List[Any]] = Field(default=None, description="Pipeline nodes for visual representation")
+    edges: Optional[List[Any]] = Field(default=None, description="Pipeline edges for visual representation")
     # Additional fields for pipeline metadata
     created_by: Optional[str] = Field(default=None, description="Creator of the pipeline")
     tags: Optional[List[str]] = Field(default_factory=list, description="Tags associated with the pipeline")

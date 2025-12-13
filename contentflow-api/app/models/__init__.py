@@ -2,6 +2,7 @@ import importlib.metadata
 
 from ._base import CosmosBaseModel
 from ._pipeline import Pipeline
+from ._executor import ExecutorCatalogDefinition, ExecutorSettingsSchema, ExecutorUIMetadata
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -10,5 +11,8 @@ except importlib.metadata.PackageNotFoundError:
 
 __all__ = [
             "CosmosBaseModel", 
-            "Pipeline", 
+            "Pipeline",
+            "ExecutorCatalogDefinition",
+            "ExecutorSettingsSchema",
+            "ExecutorUIMetadata"
           ]

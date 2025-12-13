@@ -26,7 +26,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Options: "prebuilt-documentSearch", "prebuilt-layout", "prebuilt-read",
                    "prebuilt-invoice", "prebuilt-receipt", etc.
         - content_field (str): Field containing document bytes
-          Default: "content"
+          Default: None
         - temp_file_path_field (str): Field containing temp file path
           Default: "temp_file_path"
         - url_field (str): Field containing document URL
@@ -92,7 +92,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         
         # Extract configuration
         self.analyzer_id = self.get_setting("analyzer_id", default="prebuilt-documentSearch")
-        self.content_field = self.get_setting("content_field", default="content")
+        self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="content_understanding_output")
         
@@ -191,7 +191,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
                     analyzer_id=self.analyzer_id
                 )
             
-            elif self.content_field in content.data:
+            elif self.content_field and self.content_field in content.data:
                 # Need to write to temp file for binary analysis
                 import tempfile
                 
