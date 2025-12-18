@@ -15,7 +15,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
-from agent_framework import Workflow, WorkflowRunResult, WorkflowOutputEvent
+from agent_framework import ExecutorFailedEvent, Workflow, WorkflowFailedEvent, WorkflowRunResult, WorkflowOutputEvent, WorkflowStatusEvent
+import yaml
 
 from ..models import Content
 from .pipeline_factory import PipelineFactory
@@ -127,6 +128,64 @@ class PipelineExecutor:
             pipeline_name=pipeline_name,
             auto_initialize=auto_initialize
         )
+        
+    @classmethod
+    def from_pipeline_definition_dict(
+        cls,
+        pipeline_definition: Dict[str, Any],
+        executor_catalog_path: Optional[Union[str, Path]] = None,
+        auto_initialize: bool = True
+    ) -> "PipelineExecutor":
+        """
+        Create a PipelineExecutor from a pipeline definition dictionary.
+        
+        Pipeline definition dict format:
+        ```python
+        {
+            "name": "document_processing",
+            "executors": [
+                {
+                    "id": "retrieve_content",
+                    "type": "content_retriever",
+                    "settings": {
+                        "container_name": "documents"
+                    }
+                },
+                {
+                    "id": "extract_content",
+                    "type": "azure_document_intelligence_extractor"
+                }
+            ],
+            "execution_sequence": ["retrieve_content", "extract_content"]
+            # or
+            "edges": [
+                {"from": "retrieve_content", "to": "extract_content"}
+            ]
+        }
+        ```
+        
+        Args:
+            pipeline_definition: Dict with a pipeline definition
+            executor_catalog_path: Optional path to executor catalog
+            auto_initialize: Whether to auto-initialize on first execute
+            
+        Returns:
+            Configured PipelineExecutor instance
+        """
+        logger.info(f"Creating PipelineExecutor from pipeline definition dict.")
+        
+        # Create factory
+        factory = PipelineFactory.from_pipeline_definition_dict(
+            pipeline_definition=pipeline_definition,
+            executor_catalog_path=executor_catalog_path
+        )
+        
+        # Create executor
+        return cls(
+            factory=factory,
+            pipeline_name=pipeline_definition['name'],
+            auto_initialize=auto_initialize
+        )
     
     @classmethod
     async def from_config_file_initialized(
@@ -146,15 +205,15 @@ class PipelineExecutor:
         Returns:
             Initialized PipelineExecutor instance
         """
-        executor = cls.from_config_file(
+        pipeline_executor = cls.from_config_file(
             config_path=config_path,
             pipeline_name=pipeline_name,
             executor_catalog_path=executor_catalog_path,
             auto_initialize=False
         )
         
-        await executor.initialize()
-        return executor
+        await pipeline_executor.initialize()
+        return pipeline_executor
     
     async def initialize(self) -> None:
         """
@@ -309,7 +368,7 @@ class PipelineExecutor:
         if not self._initialized:
             raise RuntimeError("PipelineExecutor not initialized")
         
-        logger.info(f"Streaming pipeline execution: {self.pipeline_name}")
+        logger.debug(f"Streaming pipeline execution: {self.pipeline_name}")
         
         try:
             async for event in self._pipeline.run_stream(input):
@@ -317,9 +376,25 @@ class PipelineExecutor:
                 pipeline_event = PipelineEvent(
                     event_type=type(event).__name__,
                     executor_id=event.executor_id if hasattr(event, "executor_id") else (event.source_executor_id if hasattr(event, "source_executor_id") else None),
-                    data=event.data if hasattr(event, "data") else {},
-                    error=None
+                    data=event.data if hasattr(event, "data") else {}
                 )
+                
+                # Special handling for status events
+                if (isinstance(event, WorkflowStatusEvent)):
+                    logger.debug(
+                        f"Pipeline execution status update: {self.pipeline_name} - Status: {pipeline_event.data}"
+                    )
+                    _additional_info = pipeline_event.additional_info or {}
+                    _additional_info["state"] = event.state
+                    pipeline_event.additional_info = _additional_info
+                
+                # Special handling for failure events
+                if (isinstance(event, WorkflowFailedEvent) or isinstance(event, ExecutorFailedEvent)):
+                    logger.error(
+                        f"Pipeline execution failed during streaming: {self.pipeline_name} - Error: {pipeline_event.error}"
+                    )
+                    pipeline_event.error = event.details
+                
                 
                 # Yield event
                 yield pipeline_event
@@ -327,7 +402,7 @@ class PipelineExecutor:
         except Exception as e:
             # Yield error event
             error_event = PipelineEvent(
-                event_type="error",
+                event_type="Error",
                 error=str(e),
                 data={"exception": type(e).__name__}
             )

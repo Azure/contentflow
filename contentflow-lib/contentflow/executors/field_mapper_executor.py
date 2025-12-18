@@ -80,7 +80,7 @@ class FieldMapperExecutor(ParallelExecutor):
         - merge_filter_empty (bool): Filter out None/empty values when merging lists
           Default: True
           
-        Also inherits settings from ParallelExecutor.
+        Also setting from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -160,17 +160,11 @@ class FieldMapperExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -228,11 +222,12 @@ class FieldMapperExecutor(ParallelExecutor):
         self.template_fields = self.get_setting("template_fields", default=False)
         self.nested_delimiter = self.get_setting("nested_delimiter", default=".")
         
-        logger.info(
-            f"FieldMapperExecutor '{self.id}' initialized with "
-            f"{len(self.mappings)} mappings, copy_mode={self.copy_mode}"
-        )
-    
+        if self.debug_mode:
+            logger.debug(
+                f"FieldMapperExecutor '{self.id}' initialized with "
+                f"{len(self.mappings)} mappings, copy_mode={self.copy_mode}"
+            )
+        
     async def process_content_item(
         self,
         content: Content
@@ -295,8 +290,7 @@ class FieldMapperExecutor(ParallelExecutor):
                         logger.debug(f"Created {len(combined_objects)} objects at '{target_path}'")
             except Exception as e:
                 logger.error(f"Failed to apply object mapping to '{target_path}': {e}")
-                if self.fail_on_error:
-                    raise
+                raise
         
         # Resolve templates if enabled
         mappings = self._resolve_template_mappings(content) if self.template_fields else self.mappings
@@ -334,8 +328,7 @@ class FieldMapperExecutor(ParallelExecutor):
                     
             except Exception as e:
                 logger.error(f"Failed to map '{source_path}' -> '{target_path}': {e}")
-                if self.fail_on_error:
-                    raise
+                raise
         
         # Clean up empty objects if moving fields
         if self.copy_mode == "move" and self.remove_empty_objects:

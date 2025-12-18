@@ -11,6 +11,7 @@ import io
 from . import ParallelExecutor
 from ..models import Content
 from ..connectors import AzureBlobConnector
+from ..utils import make_safe_json
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,9 @@ class AzureBlobOutputExecutor(ParallelExecutor):
           Default: True
         - pretty_print (bool): Pretty print JSON output
           Default: True
-        - max_concurrent (int): Maximum concurrent blob uploads
-          Default: 3
-        - timeout_secs (int): Timeout per blob write in seconds
-          Default: 60
-        - continue_on_error (bool): Continue processing if a blob write fails
-          Default: True
+        
+        Also setting from ParallelExecutor and BaseExecutor apply.
+
     
     Used Connectors:
         - AzureBlobConnector: For Azure Blob Storage operations
@@ -126,17 +124,11 @@ class AzureBlobOutputExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -156,12 +148,8 @@ class AzureBlobOutputExecutor(ParallelExecutor):
         
         # Write options
         self.compression = self.get_setting("compression", default=None)
-        valid_compression = [None, "gzip", "zip"]
-        if self.compression not in valid_compression:
-            raise ValueError(
-                f"Invalid compression: {self.compression}. "
-                f"Must be one of {valid_compression}"
-            )
+        if self.compression is not None:
+            self.compression = self.compression.lower().strip()
         
         self.overwrite_existing = self.get_setting("overwrite_existing", default=True)
         self.add_timestamp = self.get_setting("add_timestamp", default=True)
@@ -330,6 +318,9 @@ class AzureBlobOutputExecutor(ParallelExecutor):
             # Write entire content
             data = content.model_dump()
         
+        if data:
+            data = make_safe_json(data)
+        
         # Serialize to JSON
         if self.pretty_print:
             json_str = json.dumps(data, indent=2, ensure_ascii=False)
@@ -423,12 +414,16 @@ class AzureBlobOutputExecutor(ParallelExecutor):
                 metadata=metadata
             )
             
+            blob_output_summary = {
+                "blob_path": blob_path,
+                "blob_size": len(content_bytes),
+                "blob_etag": result.get('etag'),
+                "blob_last_modified": result.get('last_modified').isoformat() if result.get('last_modified') else None,
+                "write_status": "success"
+            }
+            
             # Update content with write results
-            content.summary_data['blob_path'] = blob_path
-            content.summary_data['blob_size'] = len(content_bytes)
-            content.summary_data['blob_etag'] = result.get('etag')
-            content.summary_data['blob_last_modified'] = result.get('last_modified').isoformat() if result.get('last_modified') else None
-            content.summary_data['write_status'] = "success"
+            content.summary_data['blob_output'] = blob_output_summary
             
             if self.debug_mode:
                 logger.debug(

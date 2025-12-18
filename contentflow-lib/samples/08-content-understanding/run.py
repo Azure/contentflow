@@ -71,7 +71,7 @@ async def run_pipeline():
         print(f"\n✓ Created {len(documents)} documents for batch processing")
         
         # Process all documents using batch executor
-        result = await pipeline_executor.execute(documents[0:2])  # limit to first 2 for testing
+        result = await pipeline_executor.execute(documents[0:1])  # limit to first 1 for testing
         
         # Write results to output folder
         output_folder = Path(__file__).parent / "output"

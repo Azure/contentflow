@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, ValidationError
 import yaml
 import logging
 
-logger = logging.getLogger("doc_proc_workflow.executor_config")
+logger = logging.getLogger("contentflow.lib.executors.executor_config")
 
 
 class SettingSchema(BaseModel):
@@ -166,7 +166,7 @@ class ExecutorConfig(BaseModel):
                     )
                 
                 # Options validation
-                if schema.options and value not in schema.options:
+                if schema.options and (schema.required and value not in schema.options):
                     raise ValueError(
                         f"Setting '{key}' must be one of {schema.options}, got {value}"
                     )
@@ -209,9 +209,6 @@ class ExecutorInstanceConfig(BaseModel):
     id: str  # Instance ID (unique within workflow)
     type: str  # Executor type (references ExecutorConfig.id)
     settings: Dict[str, Any] = Field(default_factory=dict)
-    enabled: bool = True
-    fail_on_error: bool = False
-    debug_mode: bool = False
     
     class Config:
         extra = "allow"  # Allow additional fields

@@ -6,7 +6,9 @@ import type {
   Pipeline,
   SavePipelineRequest,
   PipelineExecutionRequest,
-  PipelineExecutionResponse, } from '@/types/components';
+  PipelineExecutionResponse,
+  PipelineExecution,
+  PipelineExecutionEvent } from '@/types/components';
 
 /**
  * Pipelines API
@@ -64,11 +66,13 @@ export const validatePipeline = async (yaml: string): Promise<{
  * Execute a pipeline
  */
 export const executePipeline = async (
-  request: PipelineExecutionRequest
-): Promise<PipelineExecutionResponse> => {
-  const response = await apiClient.post<PipelineExecutionResponse>(
-    '/pipelines/execute',
-    request
+  pipelineId: string,
+  inputs?: Record<string, any>,
+  configuration?: Record<string, any>
+): Promise<{ execution_id: string; status: string; message: string }> => {
+  const response = await apiClient.post<{ execution_id: string; status: string; message: string }>(
+    `/pipelines/${pipelineId}/execute`,
+    { inputs, configuration }
   );
   return response;
 };
@@ -76,11 +80,62 @@ export const executePipeline = async (
 /**
  * Get pipeline execution status
  */
-export const getExecutionStatus = async (executionId: string): Promise<PipelineExecutionResponse> => {
-  const response = await apiClient.get<PipelineExecutionResponse>(
+export const getExecutionStatus = async (executionId: string): Promise<PipelineExecution> => {
+  const response = await apiClient.get<PipelineExecution>(
     `/pipelines/executions/${executionId}`
   );
   return response;
+};
+
+/**
+ * Stream pipeline execution events using Server-Sent Events (SSE)
+ * Returns an EventSource that emits execution events
+ */
+export const streamExecutionEvents = (
+  executionId: string,
+  onEvent: (event: PipelineExecutionEvent) => void,
+  onError?: (error: Error) => void
+): EventSource => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const eventSource = new EventSource(`${apiUrl}${apiUrl.endsWith('/') ? '' : '/'}pipelines/executions/${executionId}/stream`);
+  
+  // Track if we intentionally closed the connection
+  let intentionallyClosed = false;
+  
+  // Store original close method
+  const originalClose = eventSource.close.bind(eventSource);
+  
+  // Override close to set flag
+  eventSource.close = () => {
+    intentionallyClosed = true;
+    originalClose();
+  };
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data) as PipelineExecutionEvent;
+      onEvent(data);
+    } catch (error) {
+      console.error('Error parsing SSE event:', error);
+      if (onError) {
+        onError(new Error('Failed to parse event data'));
+      }
+    }
+  };
+  
+  eventSource.onerror = (error) => {
+    eventSource.close();
+
+    // Only call onError if the connection was not intentionally closed
+    if (!intentionallyClosed && eventSource.readyState !== EventSource.CLOSED) {
+      console.log('SSE connection error occurred');
+      if (onError) {
+        onError(new Error('SSE connection error'));
+      }
+    }
+  };
+  
+  return eventSource;
 };
 
 /**
@@ -95,12 +150,11 @@ export const cancelExecution = async (executionId: string): Promise<void> => {
  */
 export const getExecutionHistory = async (
   pipelineId: string,
-  page?: number,
-  pageSize?: number
-): Promise<PaginatedResponse<PipelineExecutionResponse>> => {
-  const response = await apiClient.get<PaginatedResponse<PipelineExecutionResponse>>(
+  limit?: number
+): Promise<PipelineExecution[]> => {
+  const response = await apiClient.get<PipelineExecution[]>(
     `/pipelines/${pipelineId}/executions`,
-    { params: { page, pageSize } }
+    { params: { limit } }
   );
   return response;
 };

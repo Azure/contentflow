@@ -20,8 +20,8 @@ class PipelineEvent(BaseModel):
     event_type: str
     executor_id: Optional[str] = None
     data: Optional[Any] = None
-    error: Optional[str] = None
-
+    additional_info: Optional[Any] = None
+    error: Optional[Any] = None
 
 class PipelineResult(BaseModel):
     """Pipeline execution result."""

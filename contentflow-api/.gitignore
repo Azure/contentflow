@@ -198,3 +198,5 @@ Thumbs.db
 # data/
 
 # Other files to ignore
+/tmp
+/screenshots

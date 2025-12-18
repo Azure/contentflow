@@ -69,7 +69,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
         </div>
 
         {/* Visual Element */}
-        <div className="mt-20 max-w-5xl mx-auto">
+        {/* <div className="mt-20 max-w-5xl mx-auto">
           <div className="relative rounded-2xl overflow-hidden border border-border bg-card shadow-lg">
             <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
             <div className="relative p-12">
@@ -80,7 +80,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

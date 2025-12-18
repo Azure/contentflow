@@ -46,7 +46,8 @@ class HealthService:
                  blob_storage_account: str = None,
                  blob_storage_container: str = None,
                  storage_account_worker_queue_url: str = None,
-                 storage_worker_queue_name: str = None):
+                 storage_worker_queue_name: str = None,
+                 worker_engine_api_endpoint: str = None):
         
         self.cosmos_endpoint = cosmos_endpoint
         self.cosmos_db_name = cosmos_db_name
@@ -55,6 +56,7 @@ class HealthService:
         self.blob_storage_container = blob_storage_container
         self.storage_account_worker_queue_url = storage_account_worker_queue_url
         self.storage_worker_queue_name = storage_worker_queue_name
+        self.worker_engine_api_endpoint = worker_engine_api_endpoint
         
         self.cosmos_client: Optional[CosmosClient] = None
         self.queue_client: Optional[QueueServiceClient] = None
@@ -74,10 +76,11 @@ class HealthService:
             self._check_cosmos_db_health(),
             self._check_blob_storage_health(),
             self._check_storage_queue_health(),
+            self._check_worker_health(),
             return_exceptions=True
         )
         
-        service_names = ["app_config", "cosmos_db", "blob_storage", "storage_queue"]
+        service_names = ["app_config", "cosmos_db", "blob_storage", "storage_queue", "worker"]
         
         for i, result in enumerate(results):
             if isinstance(result, Exception):
@@ -421,6 +424,60 @@ class HealthService:
                 endpoint=endpoint or connection_string or "Not configured"
             )
     
+    async def _check_worker_health(self) -> ServiceHealth:
+        """Check worker service health by querying the worker FastAPI health endpoint via aiohttp."""
+        import aiohttp
+        
+        start_time = datetime.now(timezone.utc)
+        endpoint = self.worker_engine_api_endpoint
+        url = endpoint.rstrip("/") + "/status"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=5) as resp:
+                    response_time = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return ServiceHealth(
+                            name="worker",
+                            status="connected",
+                            message="Worker engine is running",
+                            details={
+                                "status": data.get("running"),
+                                "worker_name": data.get("worker_name"),
+                                "timestamp": data.get("timestamp"),
+                                "processing_workers": data.get("processing_workers"),
+                                "source_workers": data.get("source_workers")
+                            },
+                            response_time_ms=response_time,
+                            last_checked=datetime.now(timezone.utc).isoformat(),
+                            endpoint=self.worker_engine_api_endpoint
+                        )
+                    else:
+                        text = await resp.text()
+                        return ServiceHealth(
+                            name="worker",
+                            status="error",
+                            message=f"Worker health endpoint returned status {resp.status}",
+                            error=text,
+                            details={"http_status": resp.status},
+                            response_time_ms=response_time,
+                            last_checked=datetime.now(timezone.utc).isoformat(),
+                            endpoint=url
+                        )
+        except Exception as e:
+            response_time = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+            return ServiceHealth(
+                name="worker",
+                status="error",
+                message=f"Worker health check failed: {e.__class__.__name__}",
+                error=f'{str(e)}',
+                details={"error_type": type(e).__name__},
+                response_time_ms=response_time,
+                last_checked=datetime.now(timezone.utc).isoformat(),
+                endpoint=url
+            )
+    
     async def check_service_health(self, service_name: str) -> ServiceHealth:
         """Check the health of a specific service"""
         if service_name == "cosmos_db":
@@ -431,6 +488,8 @@ class HealthService:
             return await self._check_app_config_health()
         elif service_name == "blob_storage":
             return await self._check_blob_storage_health()
+        elif service_name == "worker":
+            return await self._check_worker_health()
         else:
             return ServiceHealth(
                 name=service_name,

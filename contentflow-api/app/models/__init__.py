@@ -3,6 +3,19 @@ import importlib.metadata
 from ._base import CosmosBaseModel
 from ._pipeline import Pipeline
 from ._executor import ExecutorCatalogDefinition, ExecutorSettingsSchema, ExecutorUIMetadata
+from ._pipeline_execution import (
+    PipelineExecution,
+    PipelineExecutionEvent,
+    ExecutorOutput,
+    ExecutionStatus,
+    ExecutorStatus
+)
+from ._vault import (
+    Vault,
+    VaultCreateRequest,
+    VaultUpdateRequest,
+    VaultStorageConfig,
+)
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -14,5 +27,14 @@ __all__ = [
             "Pipeline",
             "ExecutorCatalogDefinition",
             "ExecutorSettingsSchema",
-            "ExecutorUIMetadata"
+            "ExecutorUIMetadata",
+            "PipelineExecution",
+            "PipelineExecutionEvent",
+            "ExecutorOutput",
+            "ExecutionStatus",
+            "ExecutorStatus",
+            "Vault",
+            "VaultCreateRequest",
+            "VaultUpdateRequest",
+            "VaultStorageConfig",
           ]

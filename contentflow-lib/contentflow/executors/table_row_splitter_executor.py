@@ -57,7 +57,8 @@ class TableRowSplitterExecutor(BaseExecutor):
           Default: None (all rows)
         - start_row (int): Row index to start from (after header)
           Default: 0
-    
+
+        Also setting from BaseExecutor apply.
     Example:
         ```python
         # Process list of dicts
@@ -110,17 +111,11 @@ class TableRowSplitterExecutor(BaseExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -274,11 +269,7 @@ class TableRowSplitterExecutor(BaseExecutor):
                 f"{content.id.canonical_id}: {str(e)}",
                 exc_info=True
             )
-            
-            if self.fail_on_error:
-                raise
-            
-            return []
+            raise
     
     def _parse_table(self, table_data: Any) -> tuple[Optional[List[str]], List[Any]]:
         """

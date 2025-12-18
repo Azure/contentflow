@@ -54,10 +54,8 @@ class PowerPointExtractorExecutor(ParallelExecutor):
           Default: "\n\n---\n\n"
         - include_slide_layouts (bool): Include slide layout information
           Default: False
-        - max_concurrent (int): Max concurrent PowerPoint processing
-          Default: 3
-        - continue_on_error (bool): Continue if a content item fails
-          Default: True
+          
+        Also setting from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -93,17 +91,11 @@ class PowerPointExtractorExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         

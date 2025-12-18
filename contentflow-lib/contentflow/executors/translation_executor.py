@@ -69,9 +69,6 @@ class TranslationExecutor(AzureOpenAIAgentExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         # Extract translation-specific settings
@@ -138,9 +135,6 @@ class TranslationExecutor(AzureOpenAIAgentExecutor):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         

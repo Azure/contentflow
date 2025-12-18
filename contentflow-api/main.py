@@ -11,7 +11,7 @@ import uvicorn
 from app.settings import get_settings
 from app.utils.logging import setup_logger
 from app.startup import startup, shutdown
-from app.routers import health_router, pipelines_router, executors_router
+from app.routers import health_router, pipelines_router, executors_router, vaults_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +43,7 @@ def initialize_api_application() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(pipelines_router, prefix="/api")
     app.include_router(executors_router, prefix="/api")
+    app.include_router(vaults_router, prefix="/api")
 
     # # Global exception handler
     # @app.exception_handler(Exception)

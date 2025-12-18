@@ -7,17 +7,29 @@ name = "contentflow"
 version = "0.1.0"
 description = "Workflow-based document processing using Microsoft Agent Framework"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
     {name = "Document Processing Team"}
 ]
 dependencies = [
-    "agent-framework-azure-ai>=0.1.0",
     "pydantic>=2.0.0",
     "pyyaml>=6.0.0",
     "python-dotenv>=1.0.0",
     "azure-identity>=1.15.0",
+    "aiohttp>=3.13.2",
+    "agent-framework==1.0.0b251211",
+    "azure-core==1.37.0",
+    "azure-identity==1.25.1",
+    "azure-storage-blob==12.27.1",
+    "azure-ai-documentintelligence==1.0.2",
+    "azure.appconfiguration.provider==2.3.1",
+    "pymupdf==1.26.6",
+    "python-docx==1.2.0",
+    "python-pptx==1.0.2",
+    "openpyxl==3.1.5",
+    "colorama==0.4.6",
+    "playwright>=1.57.0"
 ]
 
 [project.optional-dependencies]

@@ -19,8 +19,7 @@ from agent_framework import Executor, handler, WorkflowContext
 
 from ..models import Content
 
-logger = logging.getLogger("doc_proc_workflow.executors.base")
-
+logger = logging.getLogger(__name__)
 
 class BaseExecutor(Executor, ABC):
     """
@@ -70,9 +69,6 @@ class BaseExecutor(Executor, ABC):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         """
@@ -81,17 +77,14 @@ class BaseExecutor(Executor, ABC):
         Args:
             id: Unique identifier for this executor
             settings: Configuration dict for the executor
-            enabled: Whether this executor is enabled
-            fail_on_error: Whether to fail the workflow on error
-            debug_mode: Enable debug logging
             **kwargs: Additional executor configuration
         """
         super().__init__(id=id)
         
         self.settings = settings or {}
-        self.enabled = enabled
-        self.fail_on_error = fail_on_error
-        self.debug_mode = debug_mode
+        self.enabled = self.settings.get("enabled", True)
+        self.fail_pipeline_on_error = self.settings.get("fail_pipeline_on_error", False)
+        self.debug_mode = self.settings.get("debug_mode", False)
         self.params = kwargs
         
         if self.debug_mode:
@@ -264,7 +257,7 @@ class BaseExecutor(Executor, ABC):
                 exc_info=True
             )
             
-            if self.fail_on_error:
+            if self.fail_pipeline_on_error:
                 raise
             else:
                 # Pass through the original document if error is not fatal

@@ -5,6 +5,8 @@ from .base import BaseExecutor
 # Parallel processing executor
 from .parallel_executor import ParallelExecutor
 
+from .input_executor import InputExecutor
+
 # # Batch processing executors
 # from .batch_splitter import (
 #     DocumentSplitter,
@@ -66,11 +68,12 @@ from .pass_through import PassThroughExecutor
 # from .knowledge_graph_enrichment import KnowledgeGraphEnrichmentExecutor
 
 from .executor_registry import ExecutorRegistry
-from .executor_config import ExecutorInstanceConfig
+from .executor_config import ExecutorConfig, ExecutorInstanceConfig
 
 __all__ = [
     # Base
     "BaseExecutor",
+    "InputExecutor",
     # Parallel processing
     "ParallelExecutor",
     # # Batch splitters
@@ -124,5 +127,6 @@ __all__ = [
     # "KnowledgeGraphEnrichmentExecutor",
     # Registry and config
     "ExecutorRegistry",
+    "ExecutorConfig",
     "ExecutorInstanceConfig",
 ]

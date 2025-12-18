@@ -1,178 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultCard } from "@/components/vaults/VaultCard";
-import { VaultContentView } from "@/components/vaults/VaultContentView";
+import { VaultExecutionsView } from "@/components/vaults/VaultExecutionsView";
 import { CreateVaultDialog } from "@/components/vaults/CreateVaultDialog";
-import { UploadContentDialog } from "@/components/vaults/UploadContentDialog";
-import { Plus, Search, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Vault {
-  id: string;
-  name: string;
-  description: string;
-  pipelineId: string;
-  pipelineName: string;
-  tags: string[];
-  documentCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ContentFile {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploadedAt: Date;
-  status: "processing" | "ready" | "error";
-  extractedEntities?: number;
-}
+import { getVaults, createVault, updateVault, deleteVault } from "@/lib/api/vaultsApi";
+import { getPipelines } from "@/lib/api/pipelinesApi";
+import type { Vault, CreateVaultRequest, UpdateVaultRequest } from "@/types/components";
+import type { Pipeline } from "@/types/components";
 
 export const Vaults = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
   const [viewingVaultId, setViewingVaultId] = useState<string | null>(null);
+  const [vaults, setVaults] = useState<Vault[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Mock pipelines data
-  const pipelines = [
-    { id: "p1", name: "Document Processing Pipeline" },
-    { id: "p2", name: "Internal Docs Pipeline" },
-    { id: "p3", name: "Research Content Pipeline" },
-  ];
+  // Fetch vaults and pipelines on mount
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // Mock data - replace with actual API calls
-  const [vaults, setVaults] = useState<Vault[]>([
-    {
-      id: "1",
-      name: "Research Papers Collection",
-      description: "Academic papers and research documents for ML/AI domain knowledge",
-      pipelineId: "p1",
-      pipelineName: "Document Processing Pipeline",
-      tags: ["research", "ml", "ai"],
-      documentCount: 45,
-      createdAt: new Date("2024-01-15"),
-      updatedAt: new Date("2024-03-10"),
-    },
-    {
-      id: "2",
-      name: "Company Documentation",
-      description: "Internal company docs, policies, and procedures",
-      pipelineId: "p2",
-      pipelineName: "Internal Docs Pipeline",
-      tags: ["internal", "policies"],
-      documentCount: 23,
-      createdAt: new Date("2024-02-01"),
-      updatedAt: new Date("2024-03-08"),
-    },
-    {
-      id: "3",
-      name: "Technical Specifications",
-      description: "API documentation, architecture diagrams, and technical specs",
-      pipelineId: "p1",
-      pipelineName: "Document Processing Pipeline",
-      tags: ["technical", "api", "architecture"],
-      documentCount: 67,
-      createdAt: new Date("2024-01-20"),
-      updatedAt: new Date("2024-03-12"),
-    },
-  ]);
-
-  // Mock content data
-  const [vaultContent] = useState<Record<string, ContentFile[]>>({
-    "1": [
-      {
-        id: "f1",
-        name: "Attention Is All You Need.pdf",
-        type: "pdf",
-        size: 2456789,
-        uploadedAt: new Date("2024-03-10T14:30:00"),
-        status: "ready",
-        extractedEntities: 89,
-      },
-      {
-        id: "f2",
-        name: "BERT Pre-training of Deep Bidirectional Transformers.pdf",
-        type: "pdf",
-        size: 1234567,
-        uploadedAt: new Date("2024-03-09T10:15:00"),
-        status: "ready",
-        extractedEntities: 76,
-      },
-      {
-        id: "f3",
-        name: "GPT-3 Language Models are Few-Shot Learners.pdf",
-        type: "pdf",
-        size: 3456789,
-        uploadedAt: new Date("2024-03-08T16:45:00"),
-        status: "processing",
-      },
-    ],
-    "2": [
-      {
-        id: "f4",
-        name: "Employee Handbook 2024.docx",
-        type: "docx",
-        size: 567890,
-        uploadedAt: new Date("2024-03-08T09:00:00"),
-        status: "ready",
-        extractedEntities: 34,
-      },
-    ],
-    "3": [
-      {
-        id: "f5",
-        name: "API Documentation v2.1.pdf",
-        type: "pdf",
-        size: 987654,
-        uploadedAt: new Date("2024-03-12T11:20:00"),
-        status: "ready",
-        extractedEntities: 156,
-      },
-      {
-        id: "f6",
-        name: "System Architecture Overview.pptx",
-        type: "pptx",
-        size: 4567890,
-        uploadedAt: new Date("2024-03-11T15:30:00"),
-        status: "ready",
-        extractedEntities: 92,
-      },
-    ],
-  });
-
-  const handleCreateVault = (vaultData: any) => {
-    const pipeline = pipelines.find(p => p.id === vaultData.pipelineId);
-    const newVault: Vault = {
-      id: Date.now().toString(),
-      name: vaultData.name,
-      description: vaultData.description,
-      pipelineId: vaultData.pipelineId,
-      pipelineName: pipeline?.name || "Unknown Pipeline",
-      tags: vaultData.tags,
-      documentCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setVaults([...vaults, newVault]);
-    setIsCreateDialogOpen(false);
-    toast.success("Vault created successfully!");
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [vaultsData, pipelinesData] = await Promise.all([
+        getVaults(),
+        getPipelines(),
+      ]);
+      setVaults(vaultsData);
+      setPipelines(pipelinesData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Failed to load vaults and pipelines");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUploadComplete = () => {
-    // Mock upload handling - refresh vault data
-    setIsUploadDialogOpen(false);
-    
-    // Update document count for the selected vault
-    if (selectedVaultId) {
-      setVaults(vaults.map(v => 
-        v.id === selectedVaultId 
-          ? { ...v, documentCount: v.documentCount + 1, updatedAt: new Date() }
-          : v
-      ));
+  const handleCreateVault = async (vaultData: CreateVaultRequest) => {
+    setIsUpdating(true);
+    try {
+      const newVault = await createVault(vaultData);
+      setVaults([...vaults, newVault]);
+      setIsCreateDialogOpen(false);
+      toast.success("Vault created successfully!");
+    } catch (error) {
+      console.error("Error creating vault:", error);
+      toast.error("Failed to create vault");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -180,29 +61,30 @@ export const Vaults = () => {
     setViewingVaultId(vaultId);
   };
 
-  const handleUploadToVault = (vaultId: string) => {
-    setSelectedVaultId(vaultId);
-    setIsUploadDialogOpen(true);
-  };
-
   const handleEditVault = (vaultId: string) => {
+    // TODO: Implement edit dialog
     toast.info("Edit vault functionality coming soon!");
   };
 
-  const handleDeleteVault = (vaultId: string) => {
+  const handleDeleteVault = async (vaultId: string) => {
     const vault = vaults.find(v => v.id === vaultId);
-    if (vault) {
+    if (!vault) return;
+
+    if (!confirm(`Are you sure you want to delete "${vault.name}"?`)) {
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await deleteVault(vaultId);
       setVaults(vaults.filter(v => v.id !== vaultId));
       toast.success(`Vault "${vault.name}" deleted successfully!`);
+    } catch (error) {
+      console.error("Error deleting vault:", error);
+      toast.error("Failed to delete vault");
+    } finally {
+      setIsUpdating(false);
     }
-  };
-
-  const handleDeleteFile = (fileId: string) => {
-    toast.success("File deleted successfully!");
-  };
-
-  const handleViewFile = (fileId: string) => {
-    toast.info("File viewer coming soon!");
   };
 
   const filteredVaults = vaults.filter(vault =>
@@ -212,7 +94,6 @@ export const Vaults = () => {
   );
 
   const viewingVault = viewingVaultId ? vaults.find(v => v.id === viewingVaultId) : null;
-  const currentContent = viewingVaultId ? (vaultContent[viewingVaultId] || []) : [];
 
   // Vault detail view
   if (viewingVault) {
@@ -228,45 +109,33 @@ export const Vaults = () => {
             Back to Vaults
           </Button>
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2">{viewingVault.name}</h1>
               <p className="text-lg text-muted-foreground mb-4">
-                {viewingVault.description}
+                {viewingVault.description || "No description"}
               </p>
               <div className="flex items-center gap-4">
                 <div className="text-sm">
                   <span className="text-muted-foreground">Pipeline: </span>
-                  <span className="font-semibold">{viewingVault.pipelineName}</span>
+                  <span className="font-semibold">{viewingVault.pipeline_name || "Unknown"}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Documents: </span>
-                  <span className="font-semibold">{viewingVault.documentCount}</span>
-                </div>
+                {viewingVault.tags && viewingVault.tags.length > 0 && (
+                  <div className="flex gap-2">
+                    {viewingVault.tags.map((tag) => (
+                      <span key={tag} className="text-xs px-2 py-1 bg-secondary rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <Button
-              onClick={() => handleUploadToVault(viewingVault.id)}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Upload Content
-            </Button>
           </div>
         </div>
 
-        <VaultContentView
+        <VaultExecutionsView
           vaultId={viewingVault.id}
-          content={currentContent}
-          onDelete={handleDeleteFile}
-          onView={handleViewFile}
-        />
-
-        <UploadContentDialog
-          open={isUploadDialogOpen}
-          onOpenChange={setIsUploadDialogOpen}
-          vaultId={selectedVaultId || ""}
-          vaultName={viewingVault.name}
-          onUploadComplete={handleUploadComplete}
+          pipelineId={viewingVault.pipeline_id}
         />
       </div>
     );
@@ -282,7 +151,7 @@ export const Vaults = () => {
             Manage your knowledge bases and document collections
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" disabled={isUpdating}>
           <Plus className="w-4 h-4" />
           Create Vault
         </Button>
@@ -300,7 +169,11 @@ export const Vaults = () => {
         </div>
       </div>
 
-      {filteredVaults.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredVaults.length === 0 ? (
         <div className="text-center py-16">
           <h3 className="text-xl font-semibold mb-2">No vaults found</h3>
           <p className="text-muted-foreground mb-4">
@@ -322,7 +195,6 @@ export const Vaults = () => {
               key={vault.id}
               vault={vault}
               onView={handleViewVault}
-              onUpload={handleUploadToVault}
               onEdit={handleEditVault}
               onDelete={handleDeleteVault}
             />
@@ -335,14 +207,7 @@ export const Vaults = () => {
         onOpenChange={setIsCreateDialogOpen}
         onCreateVault={handleCreateVault}
         pipelines={pipelines}
-      />
-
-      <UploadContentDialog
-        open={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
-        vaultId={selectedVaultId || ""}
-        vaultName={vaults.find(v => v.id === selectedVaultId)?.name || ""}
-        onUploadComplete={handleUploadComplete}
+        isLoading={isUpdating}
       />
     </div>
   );

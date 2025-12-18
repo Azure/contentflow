@@ -76,7 +76,9 @@ class WebScrapingExecutor(BaseExecutor):
             Default: "{timestamp}_{index}.{ext}"
         - output_field (str): Field name for extracted data
             Default: "web_scraping_output"
-    
+
+        Also setting from BaseExecutor apply.
+        
     Example:
         ```yaml
         - id: web_scraper
@@ -116,17 +118,11 @@ class WebScrapingExecutor(BaseExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -134,7 +130,7 @@ class WebScrapingExecutor(BaseExecutor):
         self.start_urls = self.get_setting("start_urls", default=None)
         self.link_patterns = self.get_setting("link_patterns", default=None)
         
-        self.selectors = self.get_setting("selectors", default={"title": "title", "body": "body"})
+        self.selectors = self.get_setting("selectors", default="{\"title\": \"title\", \"body\": \"body\"}")
         self.render_js = self.get_setting("render_js", default=True)
         self.follow_links = self.get_setting("follow_links", default=False)
         self.max_depth = self.get_setting("max_depth", default=1)
@@ -152,6 +148,12 @@ class WebScrapingExecutor(BaseExecutor):
         self.screenshot_output_dir = self.get_setting("screenshot_output_dir", default="./screenshots")
         self.screenshot_filename_template = self.get_setting("screenshot_filename_template", default="{timestamp}_{index}.{ext}")
         self.output_field = self.get_setting("output_field", default="web_scraping_output")
+        
+        if self.selectors and isinstance(self.selectors, str):
+            if self.selectors.strip() != "":
+                import json
+                self.selectors = json.loads(self.selectors)
+        
         
         # Create screenshot directory if saving to file
         if self.screenshot_save_to_file and self.screenshot_enabled:
@@ -285,8 +287,7 @@ class WebScrapingExecutor(BaseExecutor):
                                         
                     except Exception as e:
                         logger.error(f"[{self.id}] Error scraping {url}: {str(e)}")
-                        if self.fail_on_error:
-                            raise e
+                        raise e
             
             finally:
                 await context.close()
@@ -314,34 +315,35 @@ class WebScrapingExecutor(BaseExecutor):
 
             # Extract data based on selectors
             extracted_data = {}
-            for field, selector in self.selectors.items():
-                try:
-                    # Try to get multiple elements if it looks like a list selector?
-                    # For now, just get text content or attribute
-                    # Simple heuristic: if selector ends with @attr, get attribute
-                    attr = None
-                    clean_selector = selector
-                    if "@" in selector:
-                        parts = selector.rsplit("@", 1)
-                        if len(parts) == 2:
-                            clean_selector = parts[0].strip()
-                            attr = parts[1].strip()
-                    
-                    if clean_selector:
-                        element = page.locator(clean_selector).first
-                        if await element.count() > 0:
-                            if attr:
-                                value = await element.get_attribute(attr)
-                            else:
-                                value = await element.text_content()
-                            extracted_data[field] = value.strip() if value else None
-                    else:
-                        # If selector was just @attr (e.g. on body?), unlikely but possible
-                        pass
+            if self.selectors not in ["", None] and isinstance(self.selectors, dict):
+                for field, selector in self.selectors.items():
+                    try:
+                        # Try to get multiple elements if it looks like a list selector?
+                        # For now, just get text content or attribute
+                        # Simple heuristic: if selector ends with @attr, get attribute
+                        attr = None
+                        clean_selector = selector
+                        if "@" in selector:
+                            parts = selector.rsplit("@", 1)
+                            if len(parts) == 2:
+                                clean_selector = parts[0].strip()
+                                attr = parts[1].strip()
                         
-                except Exception as e:
-                    logger.warning(f"[{self.id}] Failed to extract field '{field}' with selector '{selector}': {e}")
-                    extracted_data[field] = None
+                        if clean_selector:
+                            element = page.locator(clean_selector).first
+                            if await element.count() > 0:
+                                if attr:
+                                    value = await element.get_attribute(attr)
+                                else:
+                                    value = await element.text_content()
+                                extracted_data[field] = value.strip() if value else None
+                        else:
+                            # If selector was just @attr (e.g. on body?), unlikely but possible
+                            pass
+                            
+                    except Exception as e:
+                        logger.warning(f"[{self.id}] Failed to extract field '{field}' with selector '{selector}': {e}")
+                        extracted_data[field] = None
 
             # Extract title
             title = await page.title()
@@ -354,8 +356,8 @@ class WebScrapingExecutor(BaseExecutor):
             if self.screenshot_enabled:
                 screenshot_result = await self._capture_screenshot(page, url, index)
                 if screenshot_result:
-                    screenshot_base64 = screenshot_result.get("base64")
-                    screenshot_path = screenshot_result.get("path")
+                    screenshot_base64 = screenshot_result.get("base64", None)
+                    screenshot_path = screenshot_result.get("path", None)
             
             # Extract links for crawling
             links = []
@@ -419,7 +421,7 @@ class WebScrapingExecutor(BaseExecutor):
             
             # Save to file if requested
             if self.screenshot_save_to_file:
-                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
                 ext = self.screenshot_type
                 
                 filename = self.screenshot_filename_template.format(

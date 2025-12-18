@@ -70,7 +70,7 @@ class FieldSelectorExecutor(ParallelExecutor):
           Default: False
           When True, adds selection info to content.summary_data
           
-        Also inherits settings from ParallelExecutor.
+        Also setting from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -128,17 +128,11 @@ class FieldSelectorExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -185,10 +179,11 @@ class FieldSelectorExecutor(ParallelExecutor):
         # Core fields that should always be preserved
         self.core_fields = {"id", "canonical_id", "source_id"} if self.keep_id_fields else set()
         
-        logger.info(
-            f"FieldSelectorExecutor '{self.id}' initialized with "
-            f"mode={self.mode}, {len(self.fields)} field patterns"
-        )
+        if self.debug_mode:
+            logger.debug(
+                f"FieldSelectorExecutor '{self.id}' initialized with "
+                f"mode={self.mode}, {len(self.fields)} field patterns"
+            )
     
     async def process_content_item(
         self,

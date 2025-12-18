@@ -104,6 +104,83 @@ export interface PipelineExecutionResponse {
   error?: string;
 }
 
+export interface PipelineExecution {
+  id: string;
+  pipeline_id: string;
+  pipeline_name: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  inputs?: Record<string, any>;
+  configuration?: Record<string, any>;
+  outputs?: Record<string, any>;
+  started_at?: string;
+  completed_at?: string;
+  duration_seconds?: number;
+  error?: string;
+  executor_outputs?: Record<string, ExecutorOutput>;
+  events?: PipelineExecutionEvent[];
+  created_by?: string;
+}
+
+export interface ExecutorOutput {
+  executor_id: string;
+  timestamp: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  data?: any;
+  error?: any;
+  duration_ms?: number;
+}
+
+export interface PipelineExecutionEvent {
+  event_type: string;
+  executor_id?: string;
+  timestamp: string;
+  data?: any;
+  additional_info?: any;
+  error?: any;
+  status?: string;
+}
+
+
+// ============================================================================
+// Vault Types
+// ============================================================================
+
+export interface Vault {
+  id: string;
+  name: string;
+  description?: string;
+  pipeline_id: string;
+  pipeline_name?: string;
+  tags: string[];
+  storage_config?: VaultStorageConfig;
+  enabled?: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaultStorageConfig {
+  account_name: string;
+  container_name: string;
+  credential_type: string;
+  credential_key?: string;
+}
+
+export interface CreateVaultRequest {
+  name: string;
+  description?: string;
+  pipeline_id: string;
+  tags?: string[];
+  storage_config?: VaultStorageConfig;
+}
+
+export interface UpdateVaultRequest {
+  name?: string;
+  description?: string;
+  tags?: string[];
+  enabled?: boolean;
+}
+
 // ============================================================================
 // Template Types (for local component use)
 // ============================================================================
@@ -119,6 +196,7 @@ export interface PipelineTemplate {
   edges: TemplateEdge[];
   useCases: string[];
   features: string[];
+  yaml: string;
 }
 
 export interface TemplateNode {

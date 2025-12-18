@@ -33,10 +33,6 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Default: "url"
         - output_field (str): Field name for extracted data
           Default: "content_understanding_output"
-        - max_concurrent (int): Max concurrent document processing
-          Default: 3
-        - continue_on_error (bool): Continue if a content item fails
-          Default: True
         - content_understanding_endpoint (str): Content Understanding service endpoint
           Default: None (must be provided)
         - content_understanding_credential_type (str): Credential type for service
@@ -50,7 +46,9 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Default: 60
         - content_understanding_model_mappings (str): Default model deployment mappings in Json format.
           Default: None
-    
+
+        Also setting from ParallelExecutor and BaseExecutor apply.
+        
     Example:
         ```python
         executor = AzureContentUnderstandingExtractorExecutor(
@@ -76,17 +74,11 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -121,6 +113,14 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             "content_understanding_polling_interval", 
             default=2
         )
+        self.content_understanding_max_retries = self.get_setting(
+            "content_understanding_max_retries",
+            default=3
+        )
+        self.content_understanding_retry_backoff_factor = self.get_setting(
+            "content_understanding_retry_backoff_factor",
+            default=2.0
+        )
         self.content_understanding_model_mappings = self.get_setting(
             "content_understanding_model_mappings",
             default=None,
@@ -141,7 +141,9 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             "api_version": self.content_understanding_api_version,
             "timeout": self.content_understanding_timeout,
             "polling_interval": self.content_understanding_polling_interval,
-            "default_model_deployments": self.content_understanding_model_mappings
+            "default_model_deployments": self.content_understanding_model_mappings,
+            "max_retries": self.content_understanding_max_retries,
+            "retry_backoff_factor": self.content_understanding_retry_backoff_factor
         }
         
         if self.content_understanding_subscription_key:

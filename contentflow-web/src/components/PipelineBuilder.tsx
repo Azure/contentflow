@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { 
   Plus, Play, ChevronDown, ChevronRight,
   Film, Wand2, Network, FolderInput, Save, Brain, GitBranch, FileText, Search,
-  FileUp, FilePlus, Code, Layout, Loader2,
+  FileUp, FilePlus, Code, Layout, Loader2, Clock,
   Settings
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,10 +29,12 @@ import { ExecutorConfigDialog } from "@/components/pipeline/ExecutorConfigDialog
 import { PipelineSaveDialog, PipelineSaveDialogDataProps } from "@/components/pipeline/PipelineSaveDialog";
 import { LoadPipelinesDialog } from "@/components/pipeline/LoadPipelinesDialog";
 import { PipelineYamlEditor } from "@/components/pipeline/PipelineYamlEditor";
+import { PipelineExecutionStatus } from "@/components/pipeline/PipelineExecutionStatus";
+import { PipelineExecutionsListDialog } from "@/components/pipeline/PipelineExecutionsListDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PipelineTemplate, ExecutorCatalogDefinition, Pipeline, SavePipelineRequest } from "@/types/components";
 import { nodesToYaml, yamlToNodes } from "@/lib/pipelineYamlConverter";
-import { getPipelines, savePipeline as savePipelineApi, deletePipeline as deletePipelineApi } from "@/lib/api/pipelinesApi";
+import { getPipelines, savePipeline as savePipelineApi, deletePipeline as deletePipelineApi, executePipeline, getExecutionHistory } from "@/lib/api/pipelinesApi";
 import { getExecutors } from "@/lib/api/executorsApi";
 import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
 
@@ -66,6 +68,12 @@ export const PipelineBuilder = () => {
   const [viewMode, setViewMode] = useState<"canvas" | "yaml">("canvas");
   const [yamlContent, setYamlContent] = useState<string>("");
   const [yamlHasChanges, setYamlHasChanges] = useState(false);
+  
+  // Execution state
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionsDialogOpen, setExecutionsDialogOpen] = useState(false);
+  const [hasExecutions, setHasExecutions] = useState(false);
 
   // Load executors from API
   useEffect(() => {
@@ -88,6 +96,11 @@ export const PipelineBuilder = () => {
 
   // Load template from localStorage if available
   useEffect(() => {
+    // Only load template after executors are loaded
+    if (isLoadingExecutors || executorTypes.length === 0) {
+      return;
+    }
+    
     const templateData = localStorage.getItem("selectedTemplate");
     if (templateData) {
       try {
@@ -102,7 +115,7 @@ export const PipelineBuilder = () => {
     
     // Load saved pipelines
     loadSavedPipelines();
-  }, []);
+  }, [executorTypes, isLoadingExecutors]);
 
   // Load saved pipelines from API
   const loadSavedPipelines = async () => {
@@ -143,22 +156,27 @@ export const PipelineBuilder = () => {
   }, [viewMode, nodes, edges, currentPipeline]);
 
   const loadTemplate = (template: PipelineTemplate) => {
-    setNodes(template.nodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
-        executor: node.data.executor,
-        onDelete: () => handleDeleteNode(node.id),
-        ...(node.type === "subpipeline" && {
-          selectedPipelineId: node.data.selectedPipelineId || "",
-          availablePipelines: loadedPipelines,
-        }),
-      },
-    })));
+    setNodes(template.nodes.map(node => {
+      // Re-hydrate executor with full details from catalog
+      const fullExecutor = executorTypes.find(et => et.id === node.data.executor?.id);
+      
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          executor: fullExecutor || node.data.executor,
+          onDelete: () => handleDeleteNode(node.id),
+          ...(node.type === "subpipeline" && {
+            selectedPipelineId: node.data.selectedPipelineId || "",
+            availablePipelines: loadedPipelines,
+          }),
+        },
+      };
+    }));
     
     setEdges(template.edges.map(edge => ({
       ...edge,
-      type: "smoothstep",
+      type: "default",
       animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "hsl(var(--secondary))", strokeWidth: 2 },
@@ -172,7 +190,7 @@ export const PipelineBuilder = () => {
         addEdge(
           {
             ...params,
-            type: "bezier",
+            type: "default",
             animated: true,
             markerEnd: { type: MarkerType.ArrowClosed },
             style: { stroke: "hsl(var(--secondary))", strokeWidth: 2 },
@@ -322,14 +340,6 @@ export const PipelineBuilder = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdges, handleDeleteSelectedEdges]);
 
-  const runPipeline = () => {
-    if (nodes.length === 0) {
-      toast.error("Add at least one executor to run the pipeline");
-      return;
-    }
-    toast.success("Pipeline executed successfully!");
-  };
-
   // Group executors by category
   const groupedExecutors = executorTypes.reduce((acc, executor) => {
     const category = executor.category.toLocaleLowerCase();
@@ -470,6 +480,40 @@ export const PipelineBuilder = () => {
     setSaveDialogOpen(true);
   };
 
+  const handleExecutePipeline = async () => {
+    if (!currentPipeline?.id) {
+      toast.error("Please save the pipeline before executing");
+      return;
+    }
+
+    try {
+      setIsExecuting(true);
+      const result = await executePipeline(currentPipeline.id, {}, {});
+      setExecutionId(result.execution_id);
+      setHasExecutions(true);
+      toast.success("Pipeline execution started");
+    } catch (error) {
+      console.error("Failed to execute pipeline:", error);
+      toast.error("Failed to execute pipeline");
+      setIsExecuting(false);
+    }
+  };
+
+  const checkPipelineExecutions = async () => {
+    if (!currentPipeline?.id) {
+      setHasExecutions(false);
+      return;
+    }
+    
+    try {
+      const executions = await getExecutionHistory(currentPipeline.id, 1);
+      setHasExecutions(executions.length > 0);
+    } catch (error) {
+      console.error("Failed to check executions:", error);
+      setHasExecutions(false);
+    }
+  };
+
   const loadPipeline = (pipeline: Pipeline) => {
     setNodes(pipeline.nodes.map(node => {
       // Re-hydrate executor with full details from catalog
@@ -493,7 +537,14 @@ export const PipelineBuilder = () => {
     setCurrentPipeline(pipeline);
     setHasUnsavedChanges(false);
     toast.success(`Loaded: ${pipeline.name}`);
+    // Check if this pipeline has executions
+    checkPipelineExecutions();
   };
+
+  // Check for executions when current pipeline changes
+  useEffect(() => {
+    checkPipelineExecutions();
+  }, [currentPipeline?.id]);
 
   const deletePipeline = async (pipelineId: string) => {
     try {
@@ -594,6 +645,29 @@ export const PipelineBuilder = () => {
                 )}
                 {hasUnsavedChanges ? "*" : ""} Save Pipeline
               </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleExecutePipeline}
+                  disabled={!currentPipeline?.id || isExecuting}
+                  className="gap-2"
+                >
+                  {isExecuting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  Execute
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setExecutionsDialogOpen(true)}
+                  disabled={!currentPipeline?.id || !hasExecutions}
+                  className="gap-2"
+                >
+                  <Clock className="w-4 h-4" />
+                  View Executions
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -717,15 +791,6 @@ export const PipelineBuilder = () => {
               )}
             </div>
 
-            <div className="mt-6 pt-6 border-t border-border">
-              <Button 
-                onClick={runPipeline}
-                className="w-full bg-gradient-secondary hover:opacity-90 gap-2"
-              >
-                <Play className="w-4 h-4" />
-                Run Pipeline
-              </Button>
-            </div>
           </Card>
 
           {/* ReactFlow Canvas / YAML Editor */}
@@ -827,6 +892,25 @@ export const PipelineBuilder = () => {
         onLoad={loadPipeline}
         onDelete={deletePipeline}
       />
+
+      {executionId && (
+        <PipelineExecutionStatus
+          executionId={executionId}
+          onClose={() => {
+            setExecutionId(null);
+            setIsExecuting(false);
+          }}
+        />
+      )}
+
+      {currentPipeline && (
+        <PipelineExecutionsListDialog
+          pipelineId={currentPipeline.id}
+          pipelineName={currentPipeline.name}
+          open={executionsDialogOpen}
+          onOpenChange={setExecutionsDialogOpen}
+        />
+      )}
     </>
   );
 };

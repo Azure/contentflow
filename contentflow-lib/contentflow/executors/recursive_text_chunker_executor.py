@@ -69,10 +69,8 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
         - include_page_numbers (bool): Track page numbers for chunks (when available)
           Default: True
           Note: Requires input from extractors that provide page data (PDF, Word, PowerPoint)
-        - max_concurrent (int): Max concurrent processing
-          Default: 3
-        - continue_on_error (bool): Continue if a content item fails
-          Default: True
+
+        Also setting from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -133,17 +131,11 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         

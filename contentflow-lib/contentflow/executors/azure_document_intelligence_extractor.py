@@ -27,8 +27,8 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         - output_format (str): Format of extracted content
           Default: "markdown"
           Options: "markdown", "text"
-        - doc_intel_features (list): Additional features to extract
-          Default: []
+        - doc_intel_features (str): Comma separated list of additional features to extract
+          Default: ""
         - extract_text (bool): Extract plain text
           Default: True
         - extract_tables (bool): Extract tables
@@ -50,16 +50,14 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         - include_full_result (bool): Include full raw result from document 
           intelligence service. Useful for debugging.
           Default: False
-        - max_concurrent (int): Max concurrent document processing
-          Default: 3
-        - continue_on_error (bool): Continue if a content item fails
-          Default: True
         - doc_intelligence_endpoint (str): Document Intelligence service endpoint
           Default: None (must be provided)
         - doc_intelligence_credential_type (str): Credential type for service
           Default: "default_azure_credential"
         - doc_intelligence_credential_key (str): Credential key if needed
           Default: None
+          
+        Also setting from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -92,24 +90,18 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
         # Extract configuration
         self.model_id = self.get_setting("model_id", default="prebuilt-layout")
         self.output_format = self.get_setting("output_format", default="markdown")
-        self.doc_intel_features = self.get_setting("doc_intel_features", default=[])
+        self.doc_intel_features = self.get_setting("doc_intel_features", default=None)
         self.extract_text = self.get_setting("extract_text", default=True)
         self.extract_tables = self.get_setting("extract_tables", default=True)
         self.extract_kv_pairs = self.get_setting("extract_key_value_pairs", default=False)
@@ -120,6 +112,14 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="doc_intell_output")
         self.include_full_result = self.get_setting("include_full_result", default=False)
+        
+        if self.doc_intel_features is not None:
+            if isinstance(self.doc_intel_features, str):
+                if self.doc_intel_features.strip() == "":
+                    self.doc_intel_features = None
+                else:
+                    self.doc_intel_features = self.doc_intel_features.strip().split(",")
+                    self.doc_intel_features = [feature.strip() for feature in self.doc_intel_features]
         
         # Document intelligence connector config
         self.doc_intelligence_endpoint = self.get_setting("doc_intelligence_endpoint", default=None)

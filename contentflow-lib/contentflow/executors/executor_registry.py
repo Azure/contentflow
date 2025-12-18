@@ -8,12 +8,14 @@ from catalog and instance creation.
 import logging
 import importlib
 from typing import Dict, List, Optional, Type, Any
+from pathlib import Path
 
 from .executor_config import ExecutorConfig, ExecutorInstanceConfig
 from .base import BaseExecutor
 
-logger = logging.getLogger("doc_proc_workflow.executor_registry")
+logger = logging.getLogger(__name__)
 
+DEFAULT_CATALOG_PATH = f'{Path(__file__).parent.parent.parent}/executor_catalog.yaml'
 
 class ExecutorRegistry:
     """
@@ -31,27 +33,56 @@ class ExecutorRegistry:
         self._executors: Dict[str, ExecutorConfig] = {}
         self._instances: Dict[str, BaseExecutor] = {}
         self._loaded_classes: Dict[str, Type[BaseExecutor]] = {}
+
+    @classmethod
+    def load_default_catalog(cls) -> 'ExecutorRegistry':
+        """Load the default executor catalog."""
+        return cls.load_from_yaml(DEFAULT_CATALOG_PATH)
     
-    def load_from_yaml(self, file_path: str) -> None:
+    @classmethod
+    def load(cls, executor_configs: List[ExecutorConfig]) -> 'ExecutorRegistry':
+        """
+        Load multiple executor configurations into the registry.
+        
+        Args:
+            executor_configs: List of ExecutorConfig objects
+            
+        Returns:
+            ExecutorRegistry instance with loaded configurations
+        """
+        registry = cls()
+        for config in executor_configs:
+            registry._executors[config.id] = config
+            logger.debug(f"Loaded executor config: {config.id}")
+        return registry
+    
+    @classmethod
+    def load_from_yaml(cls, file_path: str) -> 'ExecutorRegistry':
         """
         Load executor configurations from YAML catalog file.
         
         Args:
             file_path: Path to executor_catalog.yaml
+            
+        Returns:
+            ExecutorRegistry instance with loaded configurations
         """
+        registry = cls()
         try:
             executor_configs = ExecutorConfig.from_file(file_path)
-            self._executors = {
+            registry._executors = {
                 config.id: config for config in executor_configs
             }
             
             logger.info(
-                f"Loaded {len(self._executors)} executor configurations from {file_path}"
+                f"Loaded {len(registry._executors)} executor configurations from {file_path}"
             )
             
         except Exception as e:
             logger.error(f"Failed to load executor catalog from {file_path}: {e}")
             raise
+        
+        return registry
     
     def register_executor(self, executor_config: ExecutorConfig) -> None:
         """
@@ -173,10 +204,7 @@ class ExecutorRegistry:
         try:
             instance = executor_class(
                 id=instance_config.id,
-                settings=validated_settings,
-                enabled=instance_config.enabled,
-                fail_on_error=instance_config.fail_on_error,
-                debug_mode=instance_config.debug_mode
+                settings=validated_settings
             )
             
             # Cache the instance
@@ -266,51 +294,19 @@ class ExecutorRegistry:
             config for config in self._executors.values()
             if tag in config.tags
         ]
-    
-    def get_executors_by_connector(self, connector_type: str) -> List[ExecutorConfig]:
-        """
-        Get all executors that require a specific connector type.
         
-        Args:
-            connector_type: Connector type (e.g., "blob_storage", "ai_inference")
-            
-        Returns:
-            List of matching ExecutorConfig objects
+    def get_executor_info(self, executor_id: str) -> Optional[ExecutorConfig]:
         """
-        return [
-            config for config in self._executors.values()
-            if connector_type in config.required_connectors
-        ]
-    
-    def validate_executor_connectors(
-        self,
-        executor_id: str,
-        available_connectors: List[str]
-    ) -> bool:
-        """
-        Validate that required connectors are available.
+        Get detailed executor configuration by ID.
         
         Args:
             executor_id: Executor type ID
-            available_connectors: List of available connector names
             
         Returns:
-            True if all required connectors are available
+            ExecutorConfig or None if not found
         """
-        executor_config = self.get_executor_config(executor_id)
-        if not executor_config:
-            return False
+        return self._executors.get(executor_id)
         
-        for required in executor_config.required_connectors:
-            if required not in available_connectors:
-                logger.warning(
-                    f"Executor '{executor_id}' requires connector '{required}' "
-                    f"which is not available"
-                )
-                return False
-        
-        return True
-    
     def __len__(self) -> int:
         """Get number of registered executors."""
         return len(self._executors)
@@ -320,20 +316,18 @@ class ExecutorRegistry:
         return executor_id in self._executors
 
 
-# Global registry instance
-_executor_registry = ExecutorRegistry()
+# # Global registry instance
+# _executor_registry = ExecutorRegistry()
 
+# def get_executor_registry() -> ExecutorRegistry:
+#     """Get the global executor registry instance."""
+#     return _executor_registry
 
-def get_executor_registry() -> ExecutorRegistry:
-    """Get the global executor registry instance."""
-    return _executor_registry
-
-
-def load_executor_catalog(file_path: str = "executor_catalog.yaml") -> None:
-    """
-    Load executors from catalog file into global registry.
+# def load_executor_catalog(file_path: str = "executor_catalog.yaml") -> None:
+#     """
+#     Load executors from catalog file into global registry.
     
-    Args:
-        file_path: Path to executor catalog YAML file
-    """
-    _executor_registry.load_from_yaml(file_path)
+#     Args:
+#         file_path: Path to executor catalog YAML file
+#     """
+#     _executor_registry.load_from_yaml(file_path)

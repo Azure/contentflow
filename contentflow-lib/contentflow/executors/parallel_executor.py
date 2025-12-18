@@ -51,17 +51,11 @@ class ParallelExecutor(BaseExecutor, ABC):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -69,7 +63,13 @@ class ParallelExecutor(BaseExecutor, ABC):
         self.timeout_secs = self.get_setting("timeout_secs", default=300)
         self.continue_on_error = self.get_setting("continue_on_error", default=True)
         
-        logger.info(f"Initialized ParallelProcessor: max_concurrent={self.max_concurrent}")
+        if self.debug_mode:
+            logger.debug(
+                f"Initialized ParallelExecutor {self.id} with settings: "
+                f"max_concurrent={self.max_concurrent}, "
+                f"timeout_secs={self.timeout_secs}, "
+                f"continue_on_error={self.continue_on_error}"
+            )
     
     async def process_input(
         self,
@@ -155,7 +155,7 @@ class ParallelExecutor(BaseExecutor, ABC):
                 errors=[str(e)]
             ))
             
-            if not self.continue_on_error:
+            if self.fail_pipeline_on_error:
                 raise
             else:
                 return content  # Return original content on error"

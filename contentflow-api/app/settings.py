@@ -48,9 +48,6 @@ class AppSettings(BaseModel):
     COSMOS_DB_CONTAINER_VAULTS: str = "vaults"
     COSMOS_DB_CONTAINER_VAULTS_PARTITION_KEY: str = "/id"
     
-    COSMOS_DB_CONTAINER_VAULT_CONTENTS: str = "vault_contents"
-    COSMOS_DB_CONTAINER_VAULT_CONTENTS_PARTITION_KEY: str = "/id"
-    
     COSMOS_DB_CONTAINER_BATCH_EXECUTIONS: str = "batch_executions"
     COSMOS_DB_CONTAINER_BATCH_EXECUTIONS_PARTITION_KEY: str = "/id"
     
@@ -64,6 +61,8 @@ class AppSettings(BaseModel):
     # Azure Storage Queue settings
     STORAGE_ACCOUNT_WORKER_QUEUE_URL: str = ""
     STORAGE_WORKER_QUEUE_NAME: str = "contentflow-execution-requests"
+
+    WORKER_ENGINE_API_ENDPOINT: str = "http://localhost:8099"
 
     def __init__(self, **kwargs):
         """Initialize AppSettings and load configuration from Azure App Configuration"""
@@ -87,6 +86,7 @@ class AppSettings(BaseModel):
                 "BLOB_STORAGE_CONTAINER_NAME",
                 "STORAGE_ACCOUNT_WORKER_QUEUE_URL",
                 "STORAGE_WORKER_QUEUE_NAME",
+                "WORKER_ENGINE_API_ENDPOINT",
                 "API_SERVER_HOST",
                 "API_SERVER_PORT",
                 "API_SERVER_WORKERS",
@@ -151,7 +151,6 @@ class AppSettings(BaseModel):
             self.COSMOS_DB_CONTAINER_EXECUTOR_CATALOG: self.COSMOS_DB_CONTAINER_EXECUTOR_CATALOG_PARTITION_KEY,
             self.COSMOS_DB_CONTAINER_PIPELINES : self.COSMOS_DB_CONTAINER_PIPELINES_PARTITION_KEY,
             self.COSMOS_DB_CONTAINER_VAULTS: self.COSMOS_DB_CONTAINER_VAULTS_PARTITION_KEY,
-            self.COSMOS_DB_CONTAINER_VAULT_CONTENTS: self.COSMOS_DB_CONTAINER_VAULT_CONTENTS_PARTITION_KEY,
             self.COSMOS_DB_CONTAINER_BATCH_EXECUTIONS: self.COSMOS_DB_CONTAINER_BATCH_EXECUTIONS_PARTITION_KEY,
             self.COSMOS_DB_CONTAINER_PIPELINE_EXECUTIONS: self.COSMOS_DB_CONTAINER_PIPELINE_EXECUTIONS_PARTITION_KEY
         }

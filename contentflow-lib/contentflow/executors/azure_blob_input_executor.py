@@ -7,14 +7,14 @@ from typing import Dict, Any, List, Optional, Union
 
 from agent_framework import WorkflowContext
 
-from .base import BaseExecutor
+from .input_executor import InputExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
 from ..connectors import AzureBlobConnector
 
 logger = logging.getLogger(__name__)
 
 
-class AzureBlobInputExecutor(BaseExecutor):
+class AzureBlobInputExecutor(InputExecutor):
     """
     Discover and list content files from Azure Blob Storage.
     
@@ -34,8 +34,8 @@ class AzureBlobInputExecutor(BaseExecutor):
           Required: True
         - prefix (str): Blob path prefix filter (e.g., "documents/2024/")
           Default: "" (root)
-        - file_extensions (list): File extensions to include (e.g., [".pdf", ".docx", ".txt"])
-          Default: [] (all files)
+        - file_extensions (str): Comma separated list of file extensions to include (e.g., ".pdf,.docx,.txt")
+          Default: "" (all files)
         - max_depth (int): Maximum folder depth to traverse (0 = unlimited)
           Default: 0 (unlimited)
         - max_results (int): Maximum number of blobs to return (0 = unlimited)
@@ -55,6 +55,8 @@ class AzureBlobInputExecutor(BaseExecutor):
           Default: None
         - modified_before (str): Only include files modified before this date (ISO format)
           Default: None
+        
+        Also setting from BaseExecutor applies.
     
     Example:
         ```yaml
@@ -94,17 +96,11 @@ class AzureBlobInputExecutor(BaseExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
         
@@ -119,9 +115,8 @@ class AzureBlobInputExecutor(BaseExecutor):
         
         # Filtering and traversal configuration
         self.prefix = self.get_setting("prefix", default="")
-        self.file_extensions = self.get_setting("file_extensions", default=[])
+        self.file_extensions = self.get_setting("file_extensions", default="")
         self.max_depth = self.get_setting("max_depth", default=0)
-        self.max_results = self.get_setting("max_results", default=0)
         
         # Metadata and sorting
         self.include_metadata = self.get_setting("include_metadata", default=True)
@@ -144,10 +139,10 @@ class AzureBlobInputExecutor(BaseExecutor):
             )
         
         # Normalize file extensions
-        if self.file_extensions:
+        if self.file_extensions and isinstance(self.file_extensions, str):
             self.file_extensions = [
                 ext if ext.startswith('.') else f'.{ext}' 
-                for ext in self.file_extensions
+                for ext in self.file_extensions.split(',')
             ]
         
         # Parse date filters
@@ -178,6 +173,74 @@ class AzureBlobInputExecutor(BaseExecutor):
                 f"max_results={self.max_results}"
             )
     
+    async def crawl(
+        self,
+        checkpoint_timestamp: Optional[datetime] = None,
+        continuation_token: Optional[str] = None
+    ) -> tuple[List[Content], Optional[str]]:
+        """
+        Crawl Azure Blob Storage and return a batch of Content items.
+        
+        Args:
+            checkpoint_timestamp: Optional timestamp to fetch only blobs modified after this time
+            continuation_token: Optional token for pagination
+            
+        Returns:
+            Tuple of (List[Content], Optional continuation token)
+        """
+        try:
+            # Initialize blob connector if not already done
+            await self.blob_connector.initialize()
+            
+            if self.debug_mode:
+                logger.debug(
+                    f"Crawling container '{self.blob_container_name}' "
+                    f"with prefix '{self.prefix}', "
+                    f"checkpoint={checkpoint_timestamp}, "
+                    f"continuation_token={continuation_token is not None}"
+                )
+            
+            # List blobs with pagination support
+            # Note: Azure SDK returns a continuation token for pagination
+            blobs = await self.blob_connector.list_blobs(
+                container_name=self.blob_container_name,
+                prefix=self.prefix if self.prefix else None,
+                max_results=self.batch_size
+            )
+            
+            blob_list = blobs
+            next_token = None
+            
+            if self.debug_mode:
+                logger.debug(f"Found {len(blob_list)} blobs before filtering")
+            
+            # Filter blobs based on checkpoint and other criteria
+            filtered_blobs = self._filter_blobs(
+                blob_list,
+                checkpoint_timestamp=checkpoint_timestamp
+            )
+            
+            if self.debug_mode:
+                logger.debug(f"After filtering: {len(filtered_blobs)} blobs")
+            
+            # Sort blobs
+            sorted_blobs = self._sort_blobs(filtered_blobs)
+            
+            # Create Content objects
+            content_items = []
+            for blob in sorted_blobs:
+                content = self._create_content_from_blob(blob)
+                content_items.append(content)
+            
+            return content_items, next_token
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to crawl blobs from container '{self.blob_container_name}': {str(e)}",
+                exc_info=True
+            )
+            raise
+    
     async def process_input(
         self,
         input: Union[Content, List[Content]],
@@ -185,6 +248,9 @@ class AzureBlobInputExecutor(BaseExecutor):
     ) -> List[Content]:
         """
         Discover and list blobs from Azure Blob Storage.
+        
+        This method uses crawl_all() to fetch all content items in batches,
+        respecting the max_results and batch_size settings.
         
         Args:
             input: Ignored for this executor (source executor)
@@ -196,43 +262,17 @@ class AzureBlobInputExecutor(BaseExecutor):
         start_time = datetime.now()
         
         try:
-            # Initialize blob connector
-            await self.blob_connector.initialize()
-            
-            if self.debug_mode:
-                logger.debug(
-                    f"Scanning container '{self.blob_container_name}' "
-                    f"with prefix '{self.prefix}'"
-                )
-            
-            # List all blobs with prefix
-            blobs = await self.blob_connector.list_blobs(
-                container_name=self.blob_container_name,
-                prefix=self.prefix if self.prefix else None,
-                max_results=None  # We'll filter ourselves
-            )
-            
-            if self.debug_mode:
-                logger.debug(f"Found {len(blobs)} total blobs before filtering")
-            
-            # Filter blobs
-            filtered_blobs = self._filter_blobs(blobs)
-            
-            if self.debug_mode:
-                logger.debug(f"After filtering: {len(filtered_blobs)} blobs")
-            
-            # Sort blobs
-            sorted_blobs = self._sort_blobs(filtered_blobs)
-            
-            # Limit results
-            if self.max_results > 0:
-                sorted_blobs = sorted_blobs[:self.max_results]
-            
-            # Create Content objects
+            # Use crawl_all to fetch all content with automatic pagination
             content_items = []
-            for blob in sorted_blobs:
-                content = self._create_content_from_blob(blob)
-                content_items.append(content)
+            
+            async for batch in self.crawl_all(checkpoint_timestamp=None):
+                content_items.extend(batch)
+                
+                if self.debug_mode:
+                    logger.debug(
+                        f"Processed batch of {len(batch)} items, "
+                        f"total so far: {len(content_items)}"
+                    )
             
             elapsed = (datetime.now() - start_time).total_seconds()
             
@@ -252,12 +292,17 @@ class AzureBlobInputExecutor(BaseExecutor):
             )
             raise
     
-    def _filter_blobs(self, blobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _filter_blobs(
+        self,
+        blobs: List[Dict[str, Any]],
+        checkpoint_timestamp: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
         """
-        Filter blobs based on configuration.
+        Filter blobs based on configuration and checkpoint.
         
         Args:
             blobs: List of blob metadata dicts
+            checkpoint_timestamp: Optional timestamp to filter blobs modified after this time
             
         Returns:
             Filtered list of blob metadata dicts
@@ -303,6 +348,16 @@ class AzureBlobInputExecutor(BaseExecutor):
                     # If blob timestamp is naive, make it timezone-aware (UTC)
                     from datetime import timezone
                     last_modified = last_modified.replace(tzinfo=timezone.utc)
+                
+                # Check checkpoint timestamp (incremental crawling)
+                if checkpoint_timestamp:
+                    checkpoint = checkpoint_timestamp
+                    if checkpoint.tzinfo is None:
+                        from datetime import timezone
+                        checkpoint = checkpoint.replace(tzinfo=timezone.utc)
+                    
+                    if last_modified <= checkpoint:
+                        continue
                 
                 if self.modified_after_dt:
                     # Make filter timezone-aware if needed

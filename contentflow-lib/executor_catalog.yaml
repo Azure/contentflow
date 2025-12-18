@@ -15,6 +15,32 @@ executor_catalog:
     
     # Settings schema for validation and UI generation
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       include_content_bytes_as_field:
         type: boolean
         title: "Include Content Bytes"
@@ -112,6 +138,32 @@ executor_catalog:
     
     # Settings schema for validation and UI generation
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       blob_storage_account:
         type: string
         title: "Blob Storage Account"
@@ -151,7 +203,7 @@ executor_catalog:
         type: string
         title: "Blob Path Prefix"
         description: "Blob path prefix filter (e.g., 'documents/2024/'). Empty means root."
-        placeholder: "/path/to/folder/"
+        placeholder: "path/to/folder/"
         required: false
         default: null
         ui_component: "input"
@@ -181,6 +233,15 @@ executor_catalog:
         required: false
         default: 0
         min: 0
+        ui_component: "number"
+
+      batch_size:
+        type: integer
+        title: "Batch Size"
+        description: "Number of blobs to fetch per batch"
+        required: false
+        default: 100
+        min: 1
         ui_component: "number"
 
       include_metadata:
@@ -226,6 +287,16 @@ executor_catalog:
         min: 0
         ui_component: "number"
 
+      polling_interval_seconds:
+        type: integer
+        title: "Polling Interval (seconds)"
+        description: "Seconds between polling for new blobs"
+        required: false
+        default: 300 # default 5 minutes
+        min: 1 # min 1 second
+        max: 86400 # max 1 day
+        ui_component: "number"
+
       modified_after:
         type: string
         title: "Modified After"
@@ -263,6 +334,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -364,7 +461,7 @@ executor_catalog:
       doc_intel_features: 
         type: string
         title: "Azure Document Intelligence Features"
-        description: "Additional Document Intelligence Features to extract"
+        description: "Comma separated list of additional Document Intelligence Features to extract"
         required: false
         default: null
         ui_component: "input"
@@ -431,6 +528,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -512,6 +635,22 @@ executor_catalog:
         default: 2
         ui_component: "number"
 
+      content_understanding_max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for transient failures"
+        required: false
+        default: 3
+        ui_component: "number"
+
+      content_understanding_retry_backoff_factor:
+        type: number
+        title: "Retry Backoff Factor"
+        description: "Backoff factor for retry delays"
+        required: false
+        default: 2.0
+        ui_component: "number"
+
       content_understanding_model_mappings:
         type: string
         title: "Default Model Deployments"
@@ -556,6 +695,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -676,6 +841,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -802,6 +993,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -936,6 +1153,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       input_field:
         type: string
         title: "Input Field"
@@ -1068,6 +1311,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       content_field: 
         type: string
         title: "Content field"
@@ -1244,6 +1513,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       table_field:
         type: string
         title: "Table Field"
@@ -1396,6 +1691,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       instructions:
         type: string
         title: "Agent Instructions"
@@ -1517,6 +1838,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       endpoint:
         type: string
         title: "Azure OpenAI Endpoint"
@@ -1619,6 +1966,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       summary_length:
         type: string
         title: "Summary Length"
@@ -1764,6 +2137,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       entity_types:
         type: string
         title: "Entity Types"
@@ -1908,6 +2307,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       granularity:
         type: string
         title: "Analysis Granularity"
@@ -2061,6 +2486,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       categories:
         type: array
         title: "Categories"
@@ -2222,6 +2673,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       pii_types:
         type: string
         title: "PII Types"
@@ -2384,6 +2861,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       max_keywords:
         type: integer
         title: "Max Keywords"
@@ -2549,6 +3052,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       detect_multiple:
         type: boolean
         title: "Detect Multiple Languages"
@@ -2711,6 +3240,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       target_language:
         type: string
         title: "Target Language"
@@ -2877,7 +3432,33 @@ executor_catalog:
     tags: [utility, passthrough, no-op]
     category: "Utility"
     version: "1.0"
-    settings_schema: {}
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
     ui_metadata:
       icon: "forward"
       description_short: "No Operation"
@@ -2896,6 +3477,32 @@ executor_catalog:
     
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       ai_search_account:
         type: string
         title: "AI Search Account"
@@ -3056,6 +3663,32 @@ executor_catalog:
 
     # Settings schema
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       storage_account_name:
         type: string
         title: "Storage Account Name"
@@ -3126,8 +3759,8 @@ executor_catalog:
         title: "Compression"
         description: "Compression type for blob content"
         required: false
-        default: "none"
-        options: ["none", "gzip", "zip"]
+        default: null
+        options: ["gzip", "zip"]
         ui_component: "select"
       
       overwrite_existing:
@@ -3201,6 +3834,32 @@ executor_catalog:
     
     # Settings schema for validation and UI generation
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       mappings:
         type: string
         title: "Field Mappings"
@@ -3335,6 +3994,32 @@ executor_catalog:
     
     # Settings schema for validation and UI generation
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       mode:
         type: string
         title: "Selection Mode"
@@ -3451,6 +4136,32 @@ executor_catalog:
     version: "1.0"
     
     settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
       start_urls:
         type: string
         title: "Start URLs"
@@ -3470,7 +4181,7 @@ executor_catalog:
       selectors:
         type: string
         title: "Selectors"
-        description: "Dictionary of field names to CSS/XPath selectors"
+        description: "Dictionary of field names to CSS/XPath selectors in JSON format for content extraction"
         required: false
         default: "{\"title\": \"title\", \"body\": \"body\"}"
         ui_component: textarea

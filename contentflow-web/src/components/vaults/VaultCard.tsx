@@ -3,29 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Folder,
-  FileText,
   Settings,
   Trash2,
-  Upload,
   Eye,
 } from "lucide-react";
 
-interface Vault {
-  id: string;
-  name: string;
-  description: string;
-  pipelineId: string;
-  pipelineName: string;
-  tags: string[];
-  documentCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { Vault } from "@/types/components";
 
 interface VaultCardProps {
   vault: Vault;
   onView: (vaultId: string) => void;
-  onUpload: (vaultId: string) => void;
   onEdit: (vaultId: string) => void;
   onDelete: (vaultId: string) => void;
 }
@@ -33,7 +20,6 @@ interface VaultCardProps {
 export const VaultCard = ({
   vault,
   onView,
-  onUpload,
   onEdit,
   onDelete,
 }: VaultCardProps) => {
@@ -82,22 +68,21 @@ export const VaultCard = ({
       <div className="space-y-3 mb-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Pipeline:</span>
-          <Badge variant="secondary">{vault.pipelineName}</Badge>
+          <Badge variant="secondary">{vault.pipeline_name || "Unknown"}</Badge>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Documents:</span>
-          <div className="flex items-center gap-1">
-            <FileText className="w-4 h-4" />
-            <span className="font-semibold">{vault.documentCount}</span>
-          </div>
+          <span className="text-muted-foreground">Status:</span>
+          <Badge variant={vault.enabled !== false ? "default" : "outline"}>
+            {vault.enabled !== false ? "Enabled" : "Disabled"}
+          </Badge>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Last updated:</span>
-          <span>{formatDate(vault.updatedAt)}</span>
+          <span>{formatDate(new Date(vault.updated_at))}</span>
         </div>
       </div>
 
-      {vault.tags.length > 0 && (
+      {vault.tags && vault.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {vault.tags.map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
@@ -114,15 +99,7 @@ export const VaultCard = ({
           onClick={() => onView(vault.id)}
         >
           <Eye className="w-4 h-4" />
-          View Content
-        </Button>
-        <Button
-          className="flex-1 gap-2"
-          variant="outline"
-          onClick={() => onUpload(vault.id)}
-        >
-          <Upload className="w-4 h-4" />
-          Upload
+          View Executions
         </Button>
       </div>
     </Card>

@@ -19,24 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-
-interface Pipeline {
-  id: string;
-  name: string;
-}
+import type { Pipeline, CreateVaultRequest } from "@/types/components";
 
 interface CreateVaultDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateVault: (vault: VaultFormData) => void;
+  onCreateVault: (vault: CreateVaultRequest) => void;
   pipelines: Pipeline[];
-}
-
-export interface VaultFormData {
-  name: string;
-  description: string;
-  pipelineId: string;
-  tags: string[];
+  isLoading?: boolean;
 }
 
 export const CreateVaultDialog = ({
@@ -44,11 +34,12 @@ export const CreateVaultDialog = ({
   onOpenChange,
   onCreateVault,
   pipelines,
+  isLoading = false,
 }: CreateVaultDialogProps) => {
-  const [formData, setFormData] = useState<VaultFormData>({
+  const [formData, setFormData] = useState<CreateVaultRequest>({
     name: "",
     description: "",
-    pipelineId: "",
+    pipeline_id: "",
     tags: [],
   });
   const [tagInput, setTagInput] = useState("");
@@ -58,7 +49,7 @@ export const CreateVaultDialog = ({
       toast.error("Please enter a vault name");
       return;
     }
-    if (!formData.pipelineId) {
+    if (!formData.pipeline_id) {
       toast.error("Please select a content pipeline");
       return;
     }
@@ -67,18 +58,17 @@ export const CreateVaultDialog = ({
     setFormData({
       name: "",
       description: "",
-      pipelineId: "",
+      pipeline_id: "",
       tags: [],
     });
     setTagInput("");
-    onOpenChange(false);
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+    if (tagInput.trim() && !(formData.tags || []).includes(tagInput.trim())) {
       setFormData({
         ...formData,
-        tags: [...formData.tags, tagInput.trim()],
+        tags: [...(formData.tags || []), tagInput.trim()],
       });
       setTagInput("");
     }
@@ -87,7 +77,7 @@ export const CreateVaultDialog = ({
   const removeTag = (tag: string) => {
     setFormData({
       ...formData,
-      tags: formData.tags.filter((t) => t !== tag),
+      tags: (formData.tags || []).filter((t) => t !== tag),
     });
   };
 
@@ -126,8 +116,8 @@ export const CreateVaultDialog = ({
           <div className="space-y-2">
             <Label htmlFor="pipeline">Content Pipeline *</Label>
             <Select
-              value={formData.pipelineId}
-              onValueChange={(value) => setFormData({ ...formData, pipelineId: value })}
+              value={formData.pipeline_id}
+              onValueChange={(value) => setFormData({ ...formData, pipeline_id: value })}
             >
               <SelectTrigger id="pipeline">
                 <SelectValue placeholder="Select a pipeline" />
@@ -156,7 +146,7 @@ export const CreateVaultDialog = ({
                 Add
               </Button>
             </div>
-            {formData.tags.length > 0 && (
+            {(formData.tags && formData.tags.length > 0) && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.tags.map((tag) => (
                   <div
@@ -178,11 +168,11 @@ export const CreateVaultDialog = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="bg-gradient-secondary">
-            Create Vault
+          <Button onClick={handleSubmit} className="bg-gradient-secondary" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Vault"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PipelineTemplate } from "@/types/pipeline";
-import { CheckCircle2, Clock, Layers, ArrowRight } from "lucide-react";
+import { CheckCircle2, Clock, Layers, ArrowRight, FileCode } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { YamlViewerDialog } from "./YamlViewerDialog";
+import { useState } from "react";
 
 interface TemplatePreviewDialogProps {
   template: PipelineTemplate | null;
@@ -26,10 +28,13 @@ export const TemplatePreviewDialog = ({
   onOpenChange,
   onUse,
 }: TemplatePreviewDialogProps) => {
+  const [yamlViewerOpen, setYamlViewerOpen] = useState(false);
+
   if (!template) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl">
@@ -138,6 +143,16 @@ export const TemplatePreviewDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
+          {template.yaml && (
+            <Button
+              variant="secondary"
+              onClick={() => setYamlViewerOpen(true)}
+              className="gap-2"
+            >
+              <FileCode className="w-4 h-4" />
+              View YAML
+            </Button>
+          )}
           <Button 
             className="bg-gradient-secondary gap-2"
             onClick={() => {
@@ -151,5 +166,16 @@ export const TemplatePreviewDialog = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* YAML Viewer Dialog */}
+    {template.yaml && (
+      <YamlViewerDialog
+        title={template.name}
+        yaml={template.yaml}
+        open={yamlViewerOpen}
+        onOpenChange={setYamlViewerOpen}
+      />
+    )}
+    </>
   );
 };

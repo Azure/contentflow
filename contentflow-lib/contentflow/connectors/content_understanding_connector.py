@@ -6,11 +6,12 @@ for document analysis, content extraction, and field extraction.
 """
 
 import logging
-import time
+import asyncio
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+from functools import wraps
 
-import requests
+import aiohttp
 
 from .base import ConnectorBase
 from ..utils.credential_provider import get_azure_credential
@@ -102,18 +103,32 @@ class ContentUnderstandingConnector(ConnectorBase):
         
         self.default_model_deployments = self._resolve_setting("default_model_deployments", default=None)
         
-        # Initialize headers reference
+        # Retry configuration
+        self.max_retries = self._resolve_setting("max_retries", default=3)
+        if isinstance(self.max_retries, str):
+            self.max_retries = int(self.max_retries)
+        
+        self.retry_backoff_factor = self._resolve_setting("retry_backoff_factor", default=2.0)
+        if isinstance(self.retry_backoff_factor, str):
+            self.retry_backoff_factor = float(self.retry_backoff_factor)
+        
+        # Initialize session and headers reference
+        self.session: Optional[aiohttp.ClientSession] = None
         self.headers: Optional[Dict[str, str]] = None
     
     async def initialize(self) -> None:
         """Initialize the Content Understanding connector."""
-        if self.headers:
+        if self.session:
             return
         
         logger.debug(
             f"Initializing ContentUnderstandingConnector with endpoint: {self.endpoint} "
             f"and credential type: {self.credential_type}"
         )
+        
+        # Create aiohttp session with timeout
+        timeout = aiohttp.ClientTimeout(total=self.timeout)
+        self.session = aiohttp.ClientSession(timeout=timeout)
         
         self.headers = {}
         
@@ -138,12 +153,12 @@ class ContentUnderstandingConnector(ConnectorBase):
                         deployments_dict[model.strip()] = deployment.strip()
                 self.default_model_deployments = deployments_dict
             
-                self.update_defaults(self.default_model_deployments)
+                await self.update_defaults(self.default_model_deployments)
                 logger.info(
                     f"Set default model deployments: {self.default_model_deployments}"
                 )
             else:
-                self.update_defaults(self.default_model_deployments)
+                await self.update_defaults(self.default_model_deployments)
                 logger.info(
                     f"Set default model deployments: {self.default_model_deployments}"
                 )
@@ -161,19 +176,54 @@ class ContentUnderstandingConnector(ConnectorBase):
     def _get_defaults_url(self) -> str:
         return f"{self.endpoint}/contentunderstanding/defaults?api-version={self.api_version}"
     
-    def _raise_for_status_with_detail(self, response: requests.Response) -> None:
+    def _retry_on_error(self, method):
+        """Decorator to add retry logic with exponential backoff."""
+        @wraps(method)
+        async def wrapper(*args, **kwargs):
+            last_exception = None
+            
+            for attempt in range(self.max_retries + 1):
+                try:
+                    return await method(*args, **kwargs)
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    last_exception = e
+                    
+                    if attempt < self.max_retries:
+                        # Calculate backoff time with exponential increase
+                        backoff_time = self.retry_backoff_factor ** attempt
+                        logger.warning(
+                            f"Request failed (attempt {attempt + 1}/{self.max_retries + 1}): {str(e)}. "
+                            f"Retrying in {backoff_time:.2f} seconds..."
+                        )
+                        await asyncio.sleep(backoff_time)
+                    else:
+                        logger.error(
+                            f"Request failed after {self.max_retries + 1} attempts: {str(e)}"
+                        )
+                except Exception as e:
+                    # Don't retry on non-retryable errors
+                    logger.error(f"Non-retryable error occurred: {str(e)}")
+                    raise
+            
+            # If we've exhausted retries, raise the last exception
+            raise last_exception
+        
+        return wrapper
+    
+    async def _raise_for_status_with_detail(self, response: aiohttp.ClientResponse) -> None:
         """Raise HTTPError with detailed error message if request failed."""
         if not response.ok:
             try:
-                error_detail = response.json()
-                error_msg = f"HTTP {response.status_code}: {error_detail}"
+                error_detail = await response.json()
+                error_msg = f"HTTP {response.status}: {error_detail}"
             except Exception:
-                error_msg = f"HTTP {response.status_code}: {response.text}"
+                error_text = await response.text()
+                error_msg = f"HTTP {response.status}: {error_text}"
             
             logger.error(f"Content Understanding API error: {error_msg}")
             response.raise_for_status()
     
-    def get_defaults(self) -> Dict[str, Any]:
+    async def get_defaults(self) -> Dict[str, Any]:
         """
         Retrieves the current default settings for the Content Understanding resource.
 
@@ -185,16 +235,23 @@ class ContentUnderstandingConnector(ConnectorBase):
                   Example: {"modelDeployments": {"gpt-4.1": "myGpt41Deployment", ...}}
 
         Raises:
-            requests.exceptions.HTTPError: If the HTTP request returned an unsuccessful status code.
+            aiohttp.ClientError: If the HTTP request returned an unsuccessful status code.
         """
-        response = requests.get(
-            url=self._get_defaults_url(),
-            headers=self.headers,
-        )
-        self._raise_for_status_with_detail(response)
-        return response.json()
+        if not self.session:
+            raise RuntimeError("Connector not initialized. Call initialize() first.")
+        
+        @self._retry_on_error
+        async def _get():
+            async with self.session.get(
+                url=self._get_defaults_url(),
+                headers=self.headers
+            ) as response:
+                await self._raise_for_status_with_detail(response)
+                return await response.json()
+        
+        return await _get()
 
-    def update_defaults(self, model_deployments: Dict[str, Optional[str]]) -> Dict[str, Any]:
+    async def update_defaults(self, model_deployments: Dict[str, Optional[str]]) -> Dict[str, Any]:
         """
         Updates the default model deployment mappings for the Content Understanding resource.
 
@@ -211,30 +268,37 @@ class ContentUnderstandingConnector(ConnectorBase):
             dict: A dictionary containing the updated default settings.
 
         Raises:
-            requests.exceptions.HTTPError: If the HTTP request returned an unsuccessful status code.
+            aiohttp.ClientError: If the HTTP request returned an unsuccessful status code.
 
         Example:
             # Update specific deployments
-            client.update_defaults({
+            await client.update_defaults({
                 "gpt-4o": "new-deployment-name",
                 "text-embedding-3-large": "myTextEmbedding3LargeDeployment"
             })
 
             # Remove a deployment mapping
-            client.update_defaults({"gpt-4.1": None})
+            await client.update_defaults({"gpt-4.1": None})
         """
+        if not self.session:
+            raise RuntimeError("Connector not initialized. Call initialize() first.")
+        
         headers = self.headers.copy()
         headers["Content-Type"] = "application/merge-patch+json"
 
         body = {"modelDeployments": model_deployments}
 
-        response = requests.patch(
-            url=self._get_defaults_url(),
-            headers=headers,
-            json=body,
-        )
-        self._raise_for_status_with_detail(response)
-        return response.json()
+        @self._retry_on_error
+        async def _patch():
+            async with self.session.patch(
+                url=self._get_defaults_url(),
+                headers=headers,
+                json=body
+            ) as response:
+                await self._raise_for_status_with_detail(response)
+                return await response.json()
+        
+        return await _patch()
     
     async def analyze_document_binary(
         self,
@@ -252,7 +316,7 @@ class ContentUnderstandingConnector(ConnectorBase):
         Returns:
             Analysis result dictionary
         """
-        if not self.headers:
+        if not self.session:
             raise RuntimeError("Connector not initialized. Call initialize() first.")
         
         file_path_obj = Path(file_path)
@@ -271,18 +335,25 @@ class ContentUnderstandingConnector(ConnectorBase):
                 f"with analyzer '{analyzer_id}'"
             )
             
-            response = requests.post(
-                url=self._get_analyze_binary_url(analyzer_id),
-                headers=headers,
-                data=file_bytes
-            )
+            @self._retry_on_error
+            async def _post():
+                async with self.session.post(
+                    url=self._get_analyze_binary_url(analyzer_id),
+                    headers=headers,
+                    data=file_bytes
+                ) as response:
+                    await self._raise_for_status_with_detail(response)
+                    operation_location = response.headers.get("operation-location", "")
+                    if not operation_location:
+                        raise ValueError("Operation location not found in response headers")
+                    return operation_location
             
-            self._raise_for_status_with_detail(response)
+            operation_location = await _post()
             
             logger.info(f"Started analysis for file {file_path} with analyzer {analyzer_id}")
             
             # Poll for results
-            return await self.poll_result(response)
+            return await self.poll_result(operation_location)
             
         except Exception as e:
             logger.error(f"Error analyzing document from file {file_path}: {str(e)}")
@@ -304,7 +375,7 @@ class ContentUnderstandingConnector(ConnectorBase):
         Returns:
             Analysis result dictionary
         """
-        if not self.headers:
+        if not self.session:
             raise RuntimeError("Connector not initialized. Call initialize() first.")
         
         if not (url.startswith("https://") or url.startswith("http://")):
@@ -318,18 +389,25 @@ class ContentUnderstandingConnector(ConnectorBase):
             
             logger.debug(f"Analyzing document from URL {url} with analyzer '{analyzer_id}'")
             
-            response = requests.post(
-                url=self._get_analyze_url(analyzer_id),
-                headers=headers,
-                json=data
-            )
+            @self._retry_on_error
+            async def _post():
+                async with self.session.post(
+                    url=self._get_analyze_url(analyzer_id),
+                    headers=headers,
+                    json=data
+                ) as response:
+                    await self._raise_for_status_with_detail(response)
+                    operation_location = response.headers.get("operation-location", "")
+                    if not operation_location:
+                        raise ValueError("Operation location not found in response headers")
+                    return operation_location
             
-            self._raise_for_status_with_detail(response)
+            operation_location = await _post()
             
             logger.info(f"Started analysis for URL {url} with analyzer {analyzer_id}")
             
             # Poll for results
-            return await self.poll_result(response)
+            return await self.poll_result(operation_location)
             
         except Exception as e:
             logger.error(f"Error analyzing document from URL {url}: {str(e)}")
@@ -337,7 +415,7 @@ class ContentUnderstandingConnector(ConnectorBase):
     
     async def poll_result(
         self,
-        response: requests.Response,
+        operation_location: str,
         timeout_seconds: int = None,
         polling_interval_seconds: int = None
     ) -> Dict[str, Any]:
@@ -345,37 +423,38 @@ class ContentUnderstandingConnector(ConnectorBase):
         Poll for analysis results until completion.
         
         Args:
-            response: Initial response from analyze operation
+            operation_location: URL to poll for operation status
             timeout_seconds: Maximum time to wait for results
             polling_interval_seconds: Time between polling attempts
             
         Returns:
             Final analysis result
         """
+        if not self.session:
+            raise RuntimeError("Connector not initialized. Call initialize() first.")
+        
         timeout = timeout_seconds or self.timeout
         interval = polling_interval_seconds or self.polling_interval
         
-        operation_location = response.headers.get("operation-location", "")
-        if not operation_location:
-            raise ValueError("Operation location not found in response headers")
-        
-        start_time = time.time()
+        start_time = asyncio.get_event_loop().time()
         
         while True:
-            if time.time() - start_time > timeout:
+            if asyncio.get_event_loop().time() - start_time > timeout:
                 raise TimeoutError(
                     f"Analysis operation timed out after {timeout} seconds"
                 )
             
-            # Poll the operation location
-            poll_response = requests.get(
-                url=operation_location,
-                headers=self.headers
-            )
+            # Poll the operation location with retry
+            @self._retry_on_error
+            async def _poll():
+                async with self.session.get(
+                    url=operation_location,
+                    headers=self.headers
+                ) as poll_response:
+                    await self._raise_for_status_with_detail(poll_response)
+                    return await poll_response.json()
             
-            self._raise_for_status_with_detail(poll_response)
-            
-            result = poll_response.json()
+            result = await _poll()
             status = result.get("status", "").lower()
             
             logger.debug(f"Polling status: {status}")
@@ -390,7 +469,7 @@ class ContentUnderstandingConnector(ConnectorBase):
                 )
             
             # Wait before next poll
-            time.sleep(interval)
+            await asyncio.sleep(interval)
     
     def extract_content(
         self,
@@ -453,5 +532,8 @@ class ContentUnderstandingConnector(ConnectorBase):
     
     async def cleanup(self) -> None:
         """Cleanup connector resources."""
+        if self.session:
+            await self.session.close()
+            self.session = None
         self.headers = None
         logger.info(f"Cleaned up ContentUnderstandingConnector '{self.name}'")

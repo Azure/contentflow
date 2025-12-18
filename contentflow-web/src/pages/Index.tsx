@@ -4,6 +4,7 @@ import { Hero } from "@/components/Hero";
 import { PipelineBuilder } from "@/components/PipelineBuilder";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { Vaults } from "@/pages/Vaults";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { BookOpen, FolderOpen, Workflow } from "lucide-react";
 
@@ -22,7 +23,7 @@ const Index = () => {
   }, [viewParam]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-12">
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -45,12 +46,12 @@ const Index = () => {
             >
               Pipeline Builder
             </Button>
-            <Button
+            {/* <Button
               variant={activeView === "graph" ? "default" : "ghost"}
               onClick={() => setActiveView("graph")}
             >
               Knowledge Graph
-            </Button>
+            </Button> */}
             <Button
               variant={activeView === "vaults" ? "default" : "ghost"}
               onClick={() => setActiveView("vaults")}
@@ -77,6 +78,8 @@ const Index = () => {
         {activeView === "graph" && <KnowledgeGraph />}
         {activeView === "vaults" && <Vaults />}
       </main>
+
+      <Footer />
     </div>
   );
 };

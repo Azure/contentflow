@@ -58,7 +58,8 @@ def get_health_service():
                          blob_storage_account=app_settings.BLOB_STORAGE_ACCOUNT_NAME,
                          blob_storage_container=app_settings.BLOB_STORAGE_CONTAINER_NAME,
                          storage_account_worker_queue_url=app_settings.STORAGE_ACCOUNT_WORKER_QUEUE_URL,
-                         storage_worker_queue_name=app_settings.STORAGE_WORKER_QUEUE_NAME)
+                         storage_worker_queue_name=app_settings.STORAGE_WORKER_QUEUE_NAME,
+                         worker_engine_api_endpoint=app_settings.WORKER_ENGINE_API_ENDPOINT)
 
 @ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
 async def get_pipeline_service():
@@ -77,6 +78,12 @@ async def get_executor_catalog_service():
     """Dependency to get ExecutorCatalogService"""
     from app.services import ExecutorCatalogService
     return ExecutorCatalogService(await get_cosmos_client())
+
+@ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
+async def get_pipeline_execution_service():
+    """Dependency to get PipelineExecutionService"""
+    from app.services.pipeline_execution_service import PipelineExecutionService
+    return PipelineExecutionService(await get_cosmos_client())
 
 # async def get_analysis_service():
 #     """Dependency to get AnalysisService"""

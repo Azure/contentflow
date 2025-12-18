@@ -49,10 +49,8 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
           Default: 3
         - retry_delay (float): Delay between retries in seconds
           Default: 1.0
-        - max_concurrent (int): Max concurrent processing
-          Default: 3
-        - continue_on_error (bool): Continue if an item fails
-          Default: True
+        
+        All settings from ParallelExecutor are also supported.
     
     Required Connectors:
         - AISearchConnector: For Azure AI Search operations
@@ -142,17 +140,11 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
         self,
         id: str,
         settings: Optional[Dict[str, Any]] = None,
-        enabled: bool = True,
-        fail_on_error: bool = False,
-        debug_mode: bool = False,
         **kwargs
     ):
         super().__init__(
             id=id,
             settings=settings,
-            enabled=enabled,
-            fail_on_error=fail_on_error,
-            debug_mode=debug_mode,
             **kwargs
         )
        

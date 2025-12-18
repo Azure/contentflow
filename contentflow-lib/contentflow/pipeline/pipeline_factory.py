@@ -53,7 +53,7 @@ class PipelineFactory:
         Args:
             executor_registry: Registry of executor configurations (for dynamic loading)
         """
-        self.executor_registry = executor_registry or ExecutorRegistry()
+        self.executor_registry = executor_registry
         
         # Cache for loaded configurations
         self._pipeline_configs: Dict[str, Dict[str, Any]] = {}
@@ -61,6 +61,78 @@ class PipelineFactory:
         logger.info(
             f"PipelineFactory initialized."
         )
+    
+    @classmethod
+    def from_pipeline_definition_dict(
+        cls,
+        pipeline_definition: Dict[str, Any],
+        executor_catalog_path: Optional[Union[str, Path]] = None
+    ) -> "PipelineFactory":
+        """
+        Create a PipelineFactory from a pipeline definition dictionary.
+        
+        Pipeline definition dict format:
+        ```python
+        {
+            "name": "document_processing",
+            "executors": [
+                {
+                    "id": "retrieve_content",
+                    "type": "content_retriever",
+                    "settings": {
+                        "container_name": "documents"
+                    }
+                },
+                {
+                    "id": "extract_content",
+                    "type": "azure_document_intelligence_extractor"
+                }
+            ],
+            "execution_sequence": ["retrieve_content", "extract_content"]
+            # or
+            "edges": [
+                {"from": "retrieve_content", "to": "extract_content"}
+            ]
+        }
+        ```
+        
+        Args:
+            pipeline_definition: Dict with pipeline definition
+            executor_catalog_path: Optional path to executor catalog YAML.
+                                   If provided, enables dynamic executor loading.
+            
+        Returns:
+            Configured PipelineFactory instance
+        """
+        logger.info(f"Creating PipelineFactory from config dict.")
+        
+        # Create executor registry if catalog provided
+        executor_registry = None
+        
+        # Load executor catalog if path provided or use default executor catalog from the library
+
+        if executor_catalog_path:
+            executor_registry = ExecutorRegistry.load_from_yaml(str(executor_catalog_path))
+            logger.info(
+                f"Loaded executor catalog: {len(executor_registry)} executors"
+            )
+        else:
+            executor_registry = ExecutorRegistry.load_default_catalog()
+            logger.info(
+                f"Loaded default executor catalog: {len(executor_registry)} executors"
+            )
+        
+        factory = cls(
+            executor_registry=executor_registry
+        )
+        
+        # Load pipeline workflow configurations
+        pipeline_name = pipeline_definition['name']
+        factory._pipeline_configs[pipeline_name] = pipeline_definition
+            
+        logger.info(f"Loaded single pipeline configuration: {pipeline_name}")
+        
+        return factory
     
     @classmethod
     def from_config_file(
@@ -102,11 +174,18 @@ class PipelineFactory:
         
         # Create executor registry if catalog provided
         executor_registry = None
+        
+        # Load executor catalog if path provided or use default executor catalog from the library
+
         if executor_catalog_path:
-            executor_registry = ExecutorRegistry()
-            executor_registry.load_from_yaml(str(executor_catalog_path))
+            executor_registry = ExecutorRegistry.load_from_yaml(str(executor_catalog_path))
             logger.info(
                 f"Loaded executor catalog: {len(executor_registry)} executors"
+            )
+        else:
+            executor_registry = ExecutorRegistry.load_default_catalog()
+            logger.info(
+                f"Loaded default executor catalog: {len(executor_registry)} executors"
             )
         
         factory = cls(
@@ -318,10 +397,7 @@ class PipelineFactory:
                     instance_config = ExecutorInstanceConfig(
                         id=executor_id,
                         type=executor_type,
-                        settings=exec_def.get('settings', {}),
-                        enabled=exec_def.get('enabled', True),
-                        fail_on_error=exec_def.get('fail_on_error', False),
-                        debug_mode=exec_def.get('debug_mode', False)
+                        settings=exec_def.get('settings', {})
                     )
                     
                     # Create executor using registry (dynamic loading)
@@ -667,46 +743,6 @@ class PipelineFactory:
         """Get list of available workflow names."""
         return list(self._pipeline_configs.keys())
     
-    def get_executor_catalog(self) -> List[Dict[str, Any]]:
-        """
-        Get executor catalog information.
-        
-        Returns:
-            List of executor configurations with metadata
-        """
-        if not self.use_dynamic_loading:
-            # Return legacy executor types
-            return [
-                {
-                    "id": executor_id,
-                    "class": executor_class.__name__,
-                    "module": executor_class.__module__,
-                }
-                for executor_id, executor_class in EXECUTOR_TYPES.items()
-            ]
-        
-        # Return catalog executors
-        executors = []
-        for config in self.executor_registry.list_executors():
-            executors.append({
-                "id": config.id,
-                "name": config.name,
-                "description": config.description,
-                "category": config.category,
-                "tags": config.tags,
-                "settings_schema": {
-                    key: {
-                        "type": schema.type,
-                        "title": schema.title,
-                        "description": schema.description,
-                        "required": schema.required,
-                        "default": schema.default,
-                    }
-                    for key, schema in config.settings_schema.items()
-                }
-            })
-        
-        return executors
     
     def validate_pipeline_executors(
         self,
@@ -738,29 +774,23 @@ class PipelineFactory:
             executor_type = exec_def['type']
             
             # Check if executor type exists
-            if self.use_dynamic_loading:
-                if executor_type not in self.executor_registry:
-                    errors.append(
-                        f"Executor '{executor_id}': type '{executor_type}' not found in catalog"
-                    )
-                    continue
-                
-                # Get executor config
-                executor_config = self.executor_registry.get_executor_config(executor_type)
-                
-                # Validate settings
-                try:
-                    executor_config.validate_settings(exec_def.get('settings', {}))
-                except Exception as e:
-                    errors.append(
-                        f"Executor '{executor_id}': invalid settings - {e}"
-                    )
-            else:
-                # Legacy validation
-                if executor_type not in EXECUTOR_TYPES:
-                    errors.append(
-                        f"Executor '{executor_id}': type '{executor_type}' not found"
-                    )
+            if executor_type not in self.executor_registry:
+                errors.append(
+                    f"Executor '{executor_id}': type '{executor_type}' not found in catalog"
+                )
+                continue
+            
+            # Get executor config
+            executor_config = self.executor_registry.get_executor_config(executor_type)
+            
+            # Validate settings
+            try:
+                executor_config.validate_settings(exec_def.get('settings', {}))
+            except Exception as e:
+                errors.append(
+                    f"Executor '{executor_id}': invalid settings - {e}"
+                )
+            
         
         return {
             "valid": len(errors) == 0,
