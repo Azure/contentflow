@@ -1,0 +1,42 @@
+executors:
+  - id: news_aggregator
+    type: web_scraper
+    settings:
+      # Start from homepage and specific sections
+      start_urls:
+        - "https://news.example.com/"
+        - "https://news.example.com/technology"
+        - "https://news.example.com/business"
+      
+      # Allow following to article pages, but not to other sections
+      # This prevents crawling the entire site
+      link_patterns:
+        - "https://news.example.com/technology/*"
+        - "https://news.example.com/business/*"
+        - "https://news.example.com/article/*"
+        - "https://news.example.com/*/202*/*"  # Year-based URLs
+      
+      # Extract article data
+      selectors:
+        headline: "h1.article-title"
+        summary: ".article-summary"
+        author: ".byline .author"
+        published: "time.published@datetime"
+        body: ".article-body"
+        image: ".featured-image img@src"
+        tags: ".tag-list a"
+      
+      # Crawling configuration
+      follow_links: true
+      max_depth: 2
+      max_pages: 100
+      
+      # JavaScript rendering
+      render_js: true
+      wait_for_selector: ".article-body"
+      
+      # Rate limiting
+      rate_limit: 0.5  # 2 seconds between requests
+      
+      # Output
+      output_field: "web_scraping_output"

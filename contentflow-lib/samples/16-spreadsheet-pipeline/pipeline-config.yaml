@@ -1,0 +1,147 @@
+# Spreadsheet Data Processing Pipeline Configuration
+#
+# Process Excel/CSV files with schema detection, data validation, transformation,
+# and structured output generation. Extract data from spreadsheets, split into
+# individual rows, normalize fields, and export to Azure Blob Storage.
+#
+# Pipeline Flow:
+# 1. Content Retriever - Load Excel files from local storage or blob
+# 2. Excel Extractor - Extract sheets, tables, and data with schema detection
+# 3. Table Row Splitter - Split table data into individual content items (rows)
+# 4. Field Mapper - Rename and normalize field names for standardization
+# 5. Field Selector - Select/exclude specific fields for output
+# 6. Azure Blob Output - Write processed data to blob storage as JSON
+
+pipelines:
+  - name: spreadsheet_data_pipeline
+    description: Extract, transform, and export spreadsheet data with validation and normalization
+    executors:
+      # Step 1: Load Excel files
+      - id: content_loader
+        type: content_retriever
+        debug_mode: true
+        settings:
+          include_content_bytes_as_field: false
+          use_temp_file_for_content: true
+          temp_folder: "./tmp/spreadsheets"
+          max_concurrent: 2
+          continue_on_error: true
+
+      # Step 2: Extract Excel content
+      - id: excel_extractor
+        type: excel_extractor
+        debug_mode: true
+        settings:
+          temp_file_path_field: temp_file_path
+          output_field: excel_output
+          max_concurrent: 3
+          continue_on_error: true
+          extract_text: true
+          extract_sheets: true
+          extract_tables: true
+          extract_properties: true
+          extract_images: false
+          extract_formulas: false
+          sheet_separator: "\n\n---SHEET---\n\n"
+          table_format: dict
+          include_empty_cells: false
+          include_sheet_names: true
+          include_cell_formatting: false
+          max_rows_per_sheet: null
+          specific_sheets: null
+          exclude_sheets: null
+          skip_hidden_sheets: true
+          first_row_as_header: true
+          auto_detect_headers: true
+          image_output_mode: base64
+
+      # Step 3: Split table rows into individual items
+      - id: row_splitter
+        type: table_row_splitter
+        debug_mode: true
+        settings:
+          table_field: excel_output.sheets.0.table  # First sheet's table data
+          output_mode: content_items
+          preserve_table_metadata: true
+          include_row_number: true
+          include_header_info: true
+          flatten_nested_fields: false
+          skip_empty_rows: true
+          skip_rows_with_empty_key: true
+          key_field: null  # Use first column as key if available
+          max_concurrent: 5
+          continue_on_error: true
+          validate_row_data: true
+          max_rows: null
+          start_row: 0
+
+      # Step 4: Map and normalize field names
+      - id: field_mapper
+        type: field_mapper_executor
+        debug_mode: true
+        settings:
+          # Example mappings - adjust based on your spreadsheet columns
+          mappings: '{
+            "customer_name": "name",
+            "email_address": "email",
+            "phone_number": "phone",
+            "order_date": "date",
+            "order_total": "amount",
+            "status_code": "status"
+          }'
+          copy_mode: move
+          create_nested: true
+          overwrite_existing: true
+          template_fields: false
+          nested_delimiter: "."
+          case_transform: snake
+          fail_on_missing_source: false
+          remove_empty_objects: true
+
+      # Step 5: Select relevant fields for output
+      - id: field_selector
+        type: field_selector_executor
+        debug_mode: true
+        settings:
+          mode: include
+          # Keep only these fields in output
+          fields: '["name", "email", "phone", "date", "amount", "status", "row_number"]'
+          nested_delimiter: "."
+          preserve_structure: true
+          conditional_selection: false
+          condition_field: null
+          condition_operator: equals
+          condition_value: null
+          keep_id_fields: true
+          bulk_operations: false
+          fail_on_missing_field: false
+          add_selection_metadata: true
+
+      # Step 6: Write to Azure Blob Storage
+      - id: blob_writer
+        type: azure_blob_output_executor
+        debug_mode: true
+        settings:
+          storage_account_name: ${AZURE_STORAGE_ACCOUNT}
+          credential_type: default_azure_credential
+          credential_key: null
+          container_name: ${AZURE_OUTPUT_CONTAINER_NAME}
+          path_template: "processed-data/{year}/{month}/{day}/"
+          filename_template: "record_{row_number}_{timestamp}.json"
+          content_field: null  # Write entire Content item
+          metadata_fields: "name,email,status"
+          compression: none
+          overwrite_existing: true
+          add_timestamp: true
+          pretty_print: true
+          max_concurrent: 5
+          timeout_secs: 60
+          continue_on_error: true
+    
+    execution_sequence:
+      - content_loader
+      - excel_extractor
+      - row_splitter
+      - field_mapper
+      - field_selector
+      - blob_writer

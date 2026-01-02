@@ -1,0 +1,36 @@
+executors:
+  - id: web_crawler
+    type: web_scraper  # refers to the id in executor_catalog.yaml
+    debug_mode: true
+    settings:
+      # Start URL with wildcard pattern for filtering
+      start_urls: "https://techcommunity.microsoft.com/category/azure-ai-foundry/blog/azure-ai-foundry-blog/"
+      link_patterns: "https://techcommunity.microsoft.com/category/azure-ai-foundry/blog/azure-ai-foundry-blog/*, https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/*"
+      # JavaScript rendering
+      render_js: true
+      wait_for_selector: "#main-content"  # Wait for content to load
+      
+      # Screenshot settings - save to organized folders
+      screenshot_enabled: true
+      screenshot_full_page: true
+      screenshot_save_to_file: true
+      screenshot_output_dir: "./screenshots"
+      screenshot_filename_template: "{timestamp}_{index}.{ext}"
+      screenshot_type: "png"
+      
+      # Crawling settings - follow pagination links
+      follow_links: true
+      max_depth: 2
+      max_pages: 5
+      
+      # Rate limiting - be respectful
+      rate_limit: 0.5  # 2 seconds between requests
+      
+      # Include full HTML for further processing
+      include_html: true
+      
+      # Custom user agent
+      user_agent: "Mozilla/5.0 (compatible; ContentFlowBot/1.0)"
+      
+      # Output field name
+      output_field: "web_scraping_output"

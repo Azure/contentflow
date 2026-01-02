@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contentflow"
+version = "0.1.0"
+description = "Workflow-based content processing using orchestrated by Microsoft Agent Framework"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "ContentFlow Team"}
+]
+dependencies = [
+    "pydantic>=2.12.5",
+    "pyyaml>=6.0.3",
+    "python-dotenv>=1.2.1",
+    "azure-identity>=1.15.0",
+    "aiohttp>=3.13.2",
+    "agent-framework==1.0.0b251223",
+    "azure-core==1.37.0",
+    "azure-identity==1.25.1",
+    "azure-storage-blob==12.27.1",
+    "azure-ai-documentintelligence==1.0.2",
+    "azure.appconfiguration.provider==2.3.1",
+    "azure-monitor-opentelemetry==1.8.3",
+    "pymupdf==1.26.7",
+    "python-docx==1.2.0",
+    "python-pptx==1.0.2",
+    "openpyxl==3.1.5",
+    "colorlog>=6.7.0",
+    "colorama==0.4.6",
+    "playwright>=1.57.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.0.0",
+    "mypy>=1.8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["contentflow*"]
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

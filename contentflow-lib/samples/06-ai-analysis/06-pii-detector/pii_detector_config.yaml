@@ -1,0 +1,30 @@
+# PII Detector Configuration
+#
+# Demonstrates using PII detector for identifying and redacting personally identifiable information
+
+pipelines:
+  - name: pii_detector_pipeline
+    description: Pipeline to detect and redact PII using Azure OpenAI.
+    executors:
+      - id: pii_detector
+        type: pii_detector # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          pii_types: ["name", "email", "phone", "ssn", "credit_card", "address"]
+          action: "redact"  # Options: "detect", "redact", "mask", "label"
+          include_positions: true
+          confidence_threshold: 0.7
+          input_field: "text"
+          output_field: "pii_detected"
+          redacted_field: "text_redacted"
+          include_full_response: false
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [pii_detector, pass_through]

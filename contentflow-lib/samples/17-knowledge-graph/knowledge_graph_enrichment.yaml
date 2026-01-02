@@ -1,0 +1,78 @@
+name: knowledge_graph_enrichment
+description: Enrich knowledge graph with AI insights, inferred relationships, and metrics
+
+executors:
+  # Enrichment 1: Add AI-generated properties to Person entities
+  - id: ai_property_enricher_people
+    type: knowledge_graph_enrichment
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      enrichment_type: ai_properties
+      ai_endpoint: "${AI_ENDPOINT}"
+      ai_credential_type: azure_key_credential
+      ai_api_key: "${AI_API_KEY}"
+      model_name: "${AI_MODEL_NAME}"
+      entity_selector: by_label
+      selector_criteria:
+        label: Person
+      output_field: enrichment_stats_people
+  
+  # Enrichment 2: Add AI-generated properties to Organization entities
+  - id: ai_property_enricher_orgs
+    type: knowledge_graph_enrichment
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      enrichment_type: ai_properties
+      ai_endpoint: "${AI_ENDPOINT}"
+      ai_credential_type: azure_key_credential
+      ai_api_key: "${AI_API_KEY}"
+      model_name: "${AI_MODEL_NAME}"
+      entity_selector: by_label
+      selector_criteria:
+        label: Organization
+      output_field: enrichment_stats_orgs
+  
+  # Enrichment 3: Infer implicit relationships
+  - id: relationship_inferrer
+    type: knowledge_graph_enrichment
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      enrichment_type: infer_relationships
+      entity_selector: all
+      output_field: relationship_inference_stats
+  
+  # Enrichment 4: Compute graph metrics for all entities
+  - id: metrics_computer
+    type: knowledge_graph_enrichment
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      enrichment_type: compute_metrics
+      entity_selector: all
+      output_field: metrics_computation_stats
+
+# Workflow execution order
+workflow:
+  steps:
+    - executor: ai_property_enricher_people
+      description: "Add AI-generated properties to Person entities"
+    
+    - executor: ai_property_enricher_orgs
+      description: "Add AI-generated properties to Organization entities"
+    
+    - executor: relationship_inferrer
+      description: "Infer implicit relationships between entities"
+    
+    - executor: metrics_computer
+      description: "Compute graph analytics metrics"

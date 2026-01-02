@@ -1,0 +1,26 @@
+# AI Agent Configuration
+#
+# Demonstrates using AI agent for content processing
+
+pipelines:
+  - name: ai_agent_pipeline
+    description: Pipeline to process content using AI agent with Azure OpenAI.
+    executors:
+      - id: ai_agent
+        type: azure_openai_agent # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          instructions: "You are a helpful AI assistant that summarizes text content. Provide clear, concise summaries."
+          input_field: "text"
+          output_field: "summary"
+          include_full_response: true
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [ai_agent, pass_through]

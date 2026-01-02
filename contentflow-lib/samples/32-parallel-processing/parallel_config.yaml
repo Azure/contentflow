@@ -1,0 +1,56 @@
+# Parallel Processing Configuration
+#
+# Demonstrates parallel execution paths that merge results
+
+pipelines:
+  - name: parallel_processing
+    executors:
+      - id: get_content
+        type: content_retriever
+        
+      - id: extract
+        type: document_intelligence_extractor
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+      
+      # Parallel processing branches
+      - id: extract_metadata
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract metadata from document"
+          user_prompt: "Extract key metadata: {content}"
+      
+      - id: extract_entities
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract entities from document"
+          user_prompt: "Extract named entities: {content}"
+      
+      - id: extract_summary
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Summarize document"
+          user_prompt: "Create summary: {content}"
+      
+      # Merge results
+      - id: merge_results
+        type: batch_aggregator
+        settings:
+          merge_strategy: combine
+    
+    # Parallel edges - all three extractions run in parallel
+    edges:
+      - from: get_content
+        to: extract
+      
+      - from: extract
+        to: [extract_metadata, extract_entities, extract_summary]
+      
+      - from: extract_metadata
+        to: merge_results
+      
+      - from: extract_entities
+        to: merge_results
+      
+      - from: extract_summary
+        to: merge_results

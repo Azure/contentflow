@@ -1,0 +1,17 @@
+# ContentFlow Worker Dependencies
+
+# Core dependencies
+pydantic>=2.12.5
+pydantic-settings==2.12.0
+python-dotenv>=1.2.1
+pyyaml>=6.0.3
+
+# Azure SDK
+azure-identity==1.25.1
+azure-storage-queue==12.14.1
+azure-cosmos==4.14.3
+azure-storage-blob==12.27.1
+
+# FastAPI framework
+fastapi==0.128.0
+uvicorn[standard]==0.40.0

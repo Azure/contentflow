@@ -1,0 +1,4510 @@
+# executor_catalog.yaml - Catalog of available pipeline executors
+
+executor_catalog:
+  
+  ########################################################
+  # Azure Blob Input Executor
+  - id: azure_blob_input_discovery
+    name: "Azure Blob Input Discovery"
+    description: "Discovers and lists content files from Azure Blob Storage containers. Must be used with an Azure Blob Content Retriever executor to fetch the actual content."
+    module_path: contentflow.executors.azure_blob_input_discovery
+    class_name: AzureBlobInputDiscoveryExecutor
+    tags: [input, discovery, azure, blob, storage, source]
+    category: "input"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      blob_storage_account:
+        type: string
+        title: "Blob Storage Account"
+        description: "Azure Blob Storage account name"
+        placeholder: "<enter storage account name>"
+        required: true
+        default: null
+        ui_component: "input"
+
+      blob_storage_credential_type:
+        type: string
+        title: "Blob Storage Credential Type"
+        description: "Credential type for accessing Azure Blob Storage"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      blob_storage_account_key:
+        type: string
+        title: "Blob Storage Account Key"
+        description: "Azure Blob Storage account key (if using azure_key_credential credential type)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      blob_container_name:
+        type: string
+        title: "Container Name"
+        description: "Azure Blob Storage container name to scan"
+        placeholder: "<enter container name>"
+        required: true
+        default: null
+        ui_component: "input"
+
+      prefix:
+        type: string
+        title: "Blob Path Prefix"
+        description: "Blob path prefix filter (e.g., 'documents/2024/'). Empty means root."
+        placeholder: "path/to/folder/"
+        required: false
+        default: null
+        ui_component: "input"
+
+      file_extensions:
+        type: string
+        title: "File Extensions"
+        description: "File extensions to include as a comma-separated list (e.g., '.pdf,.docx,.txt'). Empty means all files."
+        placeholder: ".pdf,.docx,.txt"
+        required: false
+        default: null
+        ui_component: "input"
+
+      max_depth:
+        type: integer
+        title: "Max Folder Depth"
+        description: "Maximum folder depth to traverse (0 = unlimited)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      max_results:
+        type: integer
+        title: "Max Results"
+        description: "Maximum number of blobs to return (0 = unlimited)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      batch_size:
+        type: integer
+        title: "Batch Size"
+        description: "Number of blobs to fetch per batch"
+        required: false
+        default: 100
+        min: 1
+        ui_component: "number"
+
+      include_metadata:
+        type: boolean
+        title: "Include Metadata"
+        description: "Include blob metadata in content data"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      sort_by:
+        type: string
+        title: "Sort By"
+        description: "Sort results by field"
+        required: false
+        default: "name"
+        options: ["name", "last_modified", "size"]
+        ui_component: "select"
+
+      sort_ascending:
+        type: boolean
+        title: "Sort Ascending"
+        description: "Sort in ascending order"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      min_size_bytes:
+        type: integer
+        title: "Minimum File Size"
+        description: "Minimum file size in bytes (0 = no minimum)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      max_size_bytes:
+        type: integer
+        title: "Maximum File Size"
+        description: "Maximum file size in bytes (0 = no maximum)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      polling_interval_seconds:
+        type: integer
+        title: "Polling Interval (seconds)"
+        description: "Seconds between polling for new blobs"
+        required: false
+        default: 300 # default 5 minutes
+        min: 1 # min 1 second
+        max: 86400 # max 1 day
+        ui_component: "number"
+
+      modified_after:
+        type: string
+        title: "Modified After"
+        description: "Only include files modified after this date (ISO format, e.g., '2025-01-01T00:00:00')"
+        placeholder: "2025-01-01T00:00:00"
+        required: false
+        default: null
+        ui_component: "input"
+
+      modified_before:
+        type: string
+        title: "Modified Before"
+        description: "Only include files modified before this date (ISO format, e.g., '2025-12-31T23:59:59')"
+        placeholder: "2025-12-31T23:59:59"
+        required: false
+        default: null
+        ui_component: "input"
+
+    # UI metadata
+    ui_metadata:
+      icon: "cloud" # reference to lucide icon
+      description_short: "Discover files in blob storage"
+      description_long: "Scans Azure Blob Storage containers to discover content files. Supports filtering by prefix, file extensions, depth, size, and dates. Perfect for batch processing pipelines."
+
+  ########################################################
+  # Azure Blob Content Retriever
+  - id: azure_blob_content_retriever
+    name: "Azure Blob Content Retriever"
+    description: "Retrieves document content from azure blob sources. Must be used after an Azure Blob Input Discovery executor."
+    module_path: contentflow.executors.azure_blob_content_retriever
+    class_name: AzureBlobContentRetrieverExecutor
+    tags: [input, retrieval, azure, blob, storage]
+    category: "input"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      include_content_bytes_as_field:
+        type: boolean
+        title: "Include Content Bytes"
+        description: "Include retrieved content as bytes in document data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      use_temp_file_for_content:
+        type: boolean
+        title: "Use Temporary File"
+        description: "Save content to temporary file and provide file path"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      temp_folder:
+        type: string
+        title: "Temporary Folder"
+        description: "Path to temporary folder for downloaded content"
+        required: false
+        default: "./tmp/contentflow"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "download"
+      description_short: "Retrieve content from storage"
+      description_long: "Retrieves document content from Azure Blob Storage or local file system. Essential first step for processing documents."
+
+  ########################################################
+  # Content Retriever Executor
+  - id: content_retriever
+    name: "Content Retriever"
+    description: "Retrieves document content from various sources (Azure Blob, local files)"
+    module_path: contentflow.executors.content_retriever
+    class_name: ContentRetrieverExecutor
+    tags: [input, retrieval, azure, blob, storage]
+    category: "input"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      include_content_bytes_as_field:
+        type: boolean
+        title: "Include Content Bytes"
+        description: "Include retrieved content as bytes in document data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      use_temp_file_for_content:
+        type: boolean
+        title: "Use Temporary File"
+        description: "Save content to temporary file and provide file path"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      temp_folder:
+        type: string
+        title: "Temporary Folder"
+        description: "Path to temporary folder for downloaded content"
+        required: false
+        default: "./tmp/contentflow"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      blob_storage_account:
+        type: string
+        title: "Blob Storage Account"
+        description: "Azure Blob Storage account name"
+        placeholder: "<enter storage account name>"
+        required: false
+        default: null
+        ui_component: "input"
+
+      blob_storage_account_credential_type:
+        type: string
+        title: "Blob Storage Account Credential Type"
+        description: "Credential type for accessing Azure Blob Storage"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      blob_storage_account_key:
+        type: string
+        title: "Blob Storage Account Key"
+        description: "Azure Blob Storage account key (if using azure_key_credential credential type)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      blob_container_name:
+        type: string
+        title: "Container Name"
+        description: "Azure Blob Storage container name"
+        placeholder: "<enter container name>"
+        required: false
+        default: null
+        ui_component: "input"
+
+    # UI metadata
+    ui_metadata:
+      icon: "download"
+      description_short: "Retrieve content from storage"
+      description_long: "Retrieves document content from Azure Blob Storage or local file system. Essential first step for processing documents."
+
+  ########################################################
+  # Azure Document Intelligence Extractor
+  - id: azure_document_intelligence_extractor
+    name: "Azure Document Intelligence Extractor"
+    description: "Extracts content from documents using Azure Document Intelligence"
+    module_path: contentflow.executors.azure_document_intelligence_extractor
+    class_name: AzureDocumentIntelligenceExtractorExecutor
+    tags: [extraction, ocr, azure, document-intelligence, analysis]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing content bytes"
+        required: false
+        default: null
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path"
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "doc_intell_output"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      model_id:
+        type: string
+        title: "Model ID"
+        description: "Document Intelligence model to use"
+        required: false
+        default: "prebuilt-layout"
+        ui_component: "input"
+      
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Extract text content from document"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_tables:
+        type: boolean
+        title: "Extract Tables"
+        description: "Extract tables from document"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_key_value_pairs:
+        type: boolean
+        title: "Extract Key-Value Pairs"
+        description: "Extract key-value pairs from document"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      extract_figures:
+        type: boolean
+        title: "Extract Figures"
+        description: "Extract figures from document"
+        required: false
+        default: true
+        ui_component: "checkbox"
+        
+      pages:
+        type: string
+        title: "Pages"
+        description: "Page range to analyze (e.g., '1-3,5')"
+        placeholder: "1-3,4,6"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      locale:
+        type: string
+        title: "Locale"
+        description: "Document locale (e.g., 'en-US')"
+        placeholder: "en-US"
+        required: false
+        default: null
+        ui_component: "input"
+
+      doc_intel_features: 
+        type: string
+        title: "Azure Document Intelligence Features"
+        description: "Comma separated list of additional Document Intelligence Features to extract"
+        required: false
+        default: null
+        ui_component: "input"
+
+      output_format:
+        type: string
+        title: "Output Format"
+        description: "Format of extracted content"
+        required: false
+        default: "markdown"
+        options: ["markdown", "text"]
+        ui_component: "select"
+
+      include_full_result:
+        type: boolean
+        title: "Include Full Result"
+        description: "Include full raw result from document intelligence service. Useful for debugging."
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      doc_intelligence_endpoint:
+        type: string
+        title: "Azure Document Intelligence Endpoint"
+        description: "Azure Document Intelligence service endpoint"
+        placeholder: "https://<your-resource>.cognitiveservices.azure.com/"
+        required: true
+        default: null
+        ui_component: "input"
+
+      doc_intelligence_credential_type:
+        type: string
+        title: "Azure Document Intelligence Credential Type"
+        description: "Azure Document Intelligence service credential type. Valid values are ['default_azure_credential' or 'azure_key_credential']"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      doc_intelligence_credential_key:
+        type: string
+        title: "Azure Document Intelligence Credential Key"
+        description: "Azure Document Intelligence service credential key. Required if using 'azure_key_credential'."
+        required: false
+        default: null
+        ui_component: "input"
+
+    # UI metadata
+    ui_metadata:
+      icon: "scan-text" # reference to lucide icon
+      description_short: "Extract content with AI"
+      description_long: "Uses Azure Document Intelligence to extract text, tables, and key-value pairs from documents with high accuracy."
+
+  ########################################################
+  # Azure Content Understanding Extractor
+  - id: azure_content_understanding_extractor
+    name: "Azure Content Understanding Extractor"
+    description: "Extracts content from documents using Azure AI Content Understanding with 70+ prebuilt analyzers"
+    module_path: contentflow.executors.azure_content_understanding_extractor
+    class_name: AzureContentUnderstandingExtractorExecutor
+    tags: [extraction, ai, azure, content-understanding, rag, analysis, fields]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing content bytes"
+        required: false
+        default: null
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path"
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "content_understanding_output"
+        ui_component: "input"
+        
+      analyzer_id:
+        type: string
+        title: "Analyzer ID"
+        description: "Content Understanding analyzer to use. Any of the pre-built analyzers or custom analyzers. See https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference for more details."
+        required: false
+        default: "prebuilt-documentSearch"
+        ui_component: "input"
+      
+      content_understanding_endpoint:
+        type: string
+        title: "Azure Content Understanding Endpoint"
+        description: "Azure Content Understanding service endpoint"
+        required: true
+        default: null
+        ui_component: "input"
+
+      content_understanding_credential_type:
+        type: string
+        title: "Azure Content Understanding Credential Type"
+        description: "Credential type. Valid values: 'default_azure_credential', 'subscription_key'"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "subscription_key"]
+        ui_component: "select"
+
+      content_understanding_subscription_key:
+        type: string
+        title: "Azure Content Understanding Subscription Key"
+        description: "Subscription key. Required if using 'subscription_key' credential type."
+        required: false
+        default: null
+        ui_component: "input"
+
+      content_understanding_api_version:
+        type: string
+        title: "API Version"
+        description: "Content Understanding API version"
+        required: false
+        default: "2025-11-01"
+        ui_component: "input"
+      
+      content_understanding_timeout:
+        type: integer
+        title: "Timeout (seconds)"
+        description: "Timeout in seconds for service calls"
+        required: false
+        default: 60
+        ui_component: "number"
+
+      content_understanding_polling_interval:
+        type: integer
+        title: "Polling Interval (seconds)"
+        description: "Seconds between polling for result for long-running operations"
+        required: false
+        default: 2
+        ui_component: "number"
+
+      content_understanding_max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for transient failures"
+        required: false
+        default: 3
+        ui_component: "number"
+
+      content_understanding_retry_backoff_factor:
+        type: number
+        title: "Retry Backoff Factor"
+        description: "Backoff factor for retry delays"
+        required: false
+        default: 2.0
+        ui_component: "number"
+
+      content_understanding_model_mappings:
+        type: string
+        title: "Default Model Deployments"
+        description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-4.1-mini\":\"gpt_4.1_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
+        placeholder: '{"model_name":"deployment_id"}'
+        required: true
+        default: null
+        ui_component: "input"
+      
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "sparkles"
+      description_short: "AI content extraction with 70+ analyzers"
+      description_long: "Uses Azure AI Content Understanding to extract text, markdown, tables, and fields from documents. Supports RAG-optimized analyzers and 70+ prebuilt document types including invoices, receipts, tax forms, and more. Can process documents from URLs, files, or bytes."
+
+  ########################################################
+  # PDF Extractor
+  - id: pdf_extractor
+    name: "PDF Extractor"
+    description: "Extracts text, pages, and images from PDF documents using PyMuPDF"
+    module_path: contentflow.executors.pdf_extractor
+    class_name: PDFExtractorExecutor
+    tags: [extraction, pdf, pymupdf, text, images]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing PDF bytes. Either this or 'temp_file_path_field' must be provided."
+        required: false
+        default: null
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path. Either this or 'content_field' must be provided."
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "pdf_output"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Extract full text content from PDF"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_pages:
+        type: boolean
+        title: "Extract Pages"
+        description: "Create page-level text chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_images:
+        type: boolean
+        title: "Extract Images"
+        description: "Extract embedded images from PDF"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      image_format:
+        type: string
+        title: "Image Format"
+        description: "Format for extracted images"
+        required: false
+        default: "png"
+        options: ["png", "jpeg", "jpg"]
+        ui_component: "select"
+
+      image_output_mode:
+        type: string
+        title: "Image Output Mode"
+        description: "How to store extracted images"
+        required: false
+        default: "base64"
+        options: ["base64", "bytes"]
+        ui_component: "select"
+
+      min_image_size:
+        type: integer
+        title: "Minimum Image Size"
+        description: "Minimum image size in pixels (width or height)"
+        required: false
+        default: 100
+        min: 0
+        ui_component: "number"
+
+      page_separator:
+        type: string
+        title: "Page Separator"
+        description: "Separator between pages in full text"
+        required: false
+        default: "\n\n---\n\n"
+        ui_component: "input"
+
+    # UI metadata
+    ui_metadata:
+      icon: "file-text" # reference to lucide icon
+      description_short: "Extract PDF content"
+      description_long: "Extracts text, page chunks, and images from PDF documents using PyMuPDF. Fast and efficient for PDF processing."
+
+  ########################################################
+  # Word Extractor
+  - id: word_extractor
+    name: "Word Extractor"
+    description: "Extracts text, paragraphs, tables, and properties from Word documents using python-docx"
+    module_path: contentflow.executors.word_extractor
+    class_name: WordExtractorExecutor
+    tags: [extraction, word, docx, text, tables]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing Word document bytes"
+        required: false
+        default: null
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path"
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "word_output"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Extract full text content from document"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_paragraphs:
+        type: boolean
+        title: "Extract Paragraphs"
+        description: "Create paragraph-level text chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_tables:
+        type: boolean
+        title: "Extract Tables"
+        description: "Extract tables from document"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_properties:
+        type: boolean
+        title: "Extract Properties"
+        description: "Extract document properties (author, title, etc.)"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_images:
+        type: boolean
+        title: "Extract Images"
+        description: "Extract embedded images from document"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      image_output_mode:
+        type: string
+        title: "Image Output Mode"
+        description: "How to store extracted images"
+        required: false
+        default: "base64"
+        options: ["base64", "bytes"]
+        ui_component: "select"
+
+      paragraph_separator:
+        type: string
+        title: "Paragraph Separator"
+        description: "Separator between paragraphs in full text"
+        required: false
+        default: "\n"
+        ui_component: "input"
+
+      include_empty_paragraphs:
+        type: boolean
+        title: "Include Empty Paragraphs"
+        description: "Include empty paragraphs in extraction"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "file-text"
+      description_short: "Extract Word content"
+      description_long: "Extracts text, paragraphs, tables, and properties from Word documents using python-docx. Supports .docx format."
+
+  ########################################################
+  # PowerPoint Extractor
+  - id: powerpoint_extractor
+    name: "PowerPoint Extractor"
+    description: "Extracts text, slides, tables, notes, and images from PowerPoint presentations using python-pptx"
+    module_path: contentflow.executors.powerpoint_extractor
+    class_name: PowerPointExtractorExecutor
+    tags: [extraction, powerpoint, pptx, slides, presentations]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing PowerPoint bytes"
+        required: false
+        default: null
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path"
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "pptx_output"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Extract full text content from presentation"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_slides:
+        type: boolean
+        title: "Extract Slides"
+        description: "Create slide-level text chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_tables:
+        type: boolean
+        title: "Extract Tables"
+        description: "Extract tables from slides"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_notes:
+        type: boolean
+        title: "Extract Notes"
+        description: "Extract speaker notes from slides"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_properties:
+        type: boolean
+        title: "Extract Properties"
+        description: "Extract presentation properties (author, title, etc.)"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_images:
+        type: boolean
+        title: "Extract Images"
+        description: "Extract embedded images from slides"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      image_output_mode:
+        type: string
+        title: "Image Output Mode"
+        description: "How to store extracted images"
+        required: false
+        default: "base64"
+        options: ["base64", "bytes"]
+        ui_component: "select"
+
+      slide_separator:
+        type: string
+        title: "Slide Separator"
+        description: "Separator between slides in full text"
+        required: false
+        default: "\n\n---\n\n"
+        ui_component: "input"
+
+      include_slide_layouts:
+        type: boolean
+        title: "Include Slide Layouts"
+        description: "Include slide layout information in extraction"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "file-text"
+      description_short: "Extract PowerPoint content"
+      description_long: "Extracts text, slides, tables, notes, and images from PowerPoint presentations using python-pptx. Supports .pptx format."
+
+  ########################################################
+  # Recursive Text Chunker
+  - id: recursive_text_chunker
+    name: "Recursive Text Chunker"
+    description: "Creates chunks using recursive text splitting with configurable separator hierarchy for optimal RAG retrieval"
+    module_path: contentflow.executors.recursive_text_chunker_executor
+    class_name: RecursiveTextChunkerExecutor
+    tags: [chunking, rag, recursive, semantic-search, splitting, transform]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing extracted text (supports nested paths like 'pdf_output.text')"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field to store chunks"
+        required: false
+        default: "chunks"
+        ui_component: "input"
+
+      chunk_size:
+        type: integer
+        title: "Chunk Size"
+        description: "Target maximum chunk size (in characters, words, or tokens based on length_function)"
+        required: false
+        default: 1000
+        min: 100
+        max: 10000
+        ui_component: "number"
+
+      chunk_overlap:
+        type: integer
+        title: "Chunk Overlap"
+        description: "Overlap between consecutive chunks for context continuity"
+        required: false
+        default: 200
+        min: 0
+        max: 2000
+        ui_component: "number"
+
+      separators:
+        type: string
+        title: "Separator Hierarchy"
+        description: "List of separators to try in order as a comma separated list (e.g., '\\n\\n,\\n,.')"
+        required: false
+        default: "\n\n,\n,."
+        ui_component: "input"
+
+      length_function:
+        type: string
+        title: "Length Measurement"
+        description: "How to measure text length"
+        required: false
+        default: "characters"
+        options: ["characters", "words", "tokens"]
+        ui_component: "select"
+
+      keep_separator:
+        type: boolean
+        title: "Keep Separator"
+        description: "Keep separators in the resulting chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      strip_whitespace:
+        type: boolean
+        title: "Strip Whitespace"
+        description: "Strip leading/trailing whitespace from chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      min_chunk_size:
+        type: integer
+        title: "Minimum Chunk Size"
+        description: "Minimum chunk size (merge smaller chunks)"
+        required: false
+        default: 100
+        min: 0
+        max: 5000
+        ui_component: "number"
+
+      add_metadata:
+        type: boolean
+        title: "Add Metadata"
+        description: "Include detailed chunk metadata (split level, separator used, etc.)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      include_page_numbers:
+        type: boolean
+        title: "Include Page Numbers"
+        description: "Track page numbers for chunks (when available from extractors)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing if an item fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "split"
+      description_short: "Recursive text chunking for RAG"
+      description_long: "Creates chunks using recursive splitting with a hierarchy of separators (paragraphs → sentences → words → characters). Works with any extractor output (PDF, Word, PowerPoint, etc.). Includes page tracking and configurable overlap for optimal RAG retrieval."
+
+  ########################################################
+  # Excel Extractor
+  - id: excel_extractor
+    name: "Excel Extractor"
+    description: "Extracts text, sheets, tables, properties, and images from Excel workbooks using openpyxl"
+    module_path: contentflow.executors.excel_extractor
+    class_name: ExcelExtractorExecutor
+    tags: [extraction, excel, xlsx, xlsm, spreadsheet, tables]
+    category: "extract"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field: 
+        type: string
+        title: "Content field"
+        description: "Field containing Excel bytes"
+        required: false
+        default: "content"
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp file path field"
+        description: "Field containing temp file path"
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output field"
+        description: "Field to store extracted output"
+        required: false
+        default: "excel_output"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Extract full text content from all cells"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_sheets:
+        type: boolean
+        title: "Extract Sheets"
+        description: "Create sheet-level data chunks"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_tables:
+        type: boolean
+        title: "Extract Tables"
+        description: "Extract tables from sheets (defined tables or data ranges)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_properties:
+        type: boolean
+        title: "Extract Properties"
+        description: "Extract workbook properties (author, title, etc.)"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_images:
+        type: boolean
+        title: "Extract Images"
+        description: "Extract embedded images from sheets"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_formulas:
+        type: boolean
+        title: "Extract Formulas"
+        description: "Extract cell formulas in addition to values"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_comments:
+        type: boolean
+        title: "Extract Comments"
+        description: "Extract cell comments"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      image_output_mode:
+        type: string
+        title: "Image Output Mode"
+        description: "How to store extracted images"
+        required: false
+        default: "base64"
+        options: ["base64", "bytes"]
+        ui_component: "select"
+
+      sheet_separator:
+        type: string
+        title: "Sheet Separator"
+        description: "Separator between sheets in full text"
+        required: false
+        default: "\n\n===\n\n"
+        ui_component: "input"
+
+      include_empty_cells:
+        type: boolean
+        title: "Include Empty Cells"
+        description: "Include empty cells in extraction"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      max_rows_per_table:
+        type: integer
+        title: "Max Rows Per Table"
+        description: "Maximum rows to extract per table (0 = unlimited)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      max_columns_per_table:
+        type: integer
+        title: "Max Columns Per Table"
+        description: "Maximum columns to extract per table (0 = unlimited)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      read_only:
+        type: boolean
+        title: "Read Only Mode"
+        description: "Open workbook in read-only mode for better performance"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      data_only:
+        type: boolean
+        title: "Data Only Mode"
+        description: "Read cell values instead of formulas"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "file-spreadsheet"
+      description_short: "Extract Excel content"
+      description_long: "Extracts text, sheets, tables, properties, and images from Excel workbooks using openpyxl. Supports .xlsx and .xlsm formats."
+
+  ########################################################
+  # Table Row Splitter Executor
+  - id: table_row_splitter
+    name: "Table Row Splitter"
+    description: "Splits tabular data into individual content items, one per row, for parallel processing"
+    module_path: contentflow.executors.table_row_splitter_executor
+    class_name: TableRowSplitterExecutor
+    tags: [splitting, table, rows, batch, parallel]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      table_field:
+        type: string
+        title: "Table Field"
+        description: "Field in data containing the table (supports nested paths like 'word_output.tables')"
+        required: false
+        default: "table"
+        ui_component: "input"
+
+      table_format:
+        type: string
+        title: "Table Format"
+        description: "Format of the table data"
+        required: false
+        default: "auto"
+        options: ["auto", "list_of_lists", "list_of_dicts", "csv", "word_tables", "excel_rows"]
+        ui_component: "select"
+
+      has_header:
+        type: boolean
+        title: "Has Header"
+        description: "Whether first row contains column headers"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      header_row_index:
+        type: integer
+        title: "Header Row Index"
+        description: "Index of the header row (for list_of_lists format)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      skip_empty_rows:
+        type: boolean
+        title: "Skip Empty Rows"
+        description: "Skip rows with all empty/null values"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      row_id_field:
+        type: string
+        title: "Row ID Field"
+        description: "Field name to use as unique row identifier (for list_of_dicts)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      row_id_prefix:
+        type: string
+        title: "Row ID Prefix"
+        description: "Prefix for generated row IDs"
+        required: false
+        default: "row"
+        ui_component: "input"
+
+      include_row_index:
+        type: boolean
+        title: "Include Row Index"
+        description: "Include original row index in output"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      include_headers:
+        type: boolean
+        title: "Include Headers"
+        description: "Include header information in each row content"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      preserve_parent_data:
+        type: boolean
+        title: "Preserve Parent Data"
+        description: "Copy parent document's data fields to each row"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      parent_data_fields:
+        type: string
+        title: "Parent Data Fields"
+        description: "Specific parent fields to copy (if preserve_parent_data is true) as a comma separated list"
+        required: false
+        default: null
+        ui_component: "input"
+
+      output_format:
+        type: string
+        title: "Output Format"
+        description: "How to structure row data in Content item"
+        required: false
+        default: "dict"
+        options: ["dict", "list", "both"]
+        ui_component: "select"
+
+      csv_delimiter:
+        type: string
+        title: "CSV Delimiter"
+        description: "Delimiter for CSV parsing"
+        required: false
+        default: ","
+        ui_component: "input"
+
+      csv_quotechar:
+        type: string
+        title: "CSV Quote Character"
+        description: "Quote character for CSV parsing"
+        required: false
+        default: "\""
+        ui_component: "input"
+
+      max_rows:
+        type: integer
+        title: "Max Rows"
+        description: "Maximum number of rows to process"
+        required: false
+        default: null
+        min: 1
+        ui_component: "number"
+
+      start_row:
+        type: integer
+        title: "Start Row"
+        description: "Row index to start from (after header)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+    # UI metadata
+    ui_metadata:
+      icon: "table-rows-split"
+      description_short: "Split table into rows"
+      description_long: "Splits tabular data (from Word, Excel, CSV, or other sources) into individual content items for parallel processing. Supports multiple table formats and preserves row metadata."
+
+  ########################################################
+  # AI Agent Executor using Azure OpenAI
+  - id: azure_openai_agent
+    name: "Azure OpenAI Analysis Agent"
+    description: "Execute AI agent instructions using Azure OpenAI Responses Client from agent-framework"
+    module_path: contentflow.executors.azure_openai_agent_executor
+    class_name: AzureOpenAIAgentExecutor
+    tags: [ai, agent, llm, azure-openai, agent-framework]
+    category: "analyse"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      instructions:
+        type: string
+        title: "Agent Instructions"
+        description: "System instructions for the AI agent"
+        required: true
+        default: "You are a helpful AI assistant."
+        ui_component: "textarea"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing the input text/query for the agent"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for storing the agent response"
+        required: false
+        default: "agent_response"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: null
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 400
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "brain"
+      description_short: "AI Agent Processing"
+      description_long: "Execute AI agent instructions using Azure OpenAI with the agent-framework."
+
+  ########################################################
+  # Azure OpenAI Embeddings
+  - id: azure_openai_embeddings
+    name: "Azure OpenAI Embeddings"
+    description: "Generate vector embeddings using Azure OpenAI embeddings models"
+    module_path: contentflow.executors.azure_openai_embeddings_executor
+    class_name: AzureOpenAIEmbeddingsExecutor
+    tags: [ai, embeddings, vector, azure-openai, semantic-search]
+    category: "analyse"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Embeddings Model Deployment Name"
+        description: "Azure OpenAI embeddings model deployment name (e.g., text-embedding-ada-002)"
+        required: true
+        default: null
+        ui_component: "input"
+
+      api_version:
+        type: string
+        title: "API Version"
+        description: "Azure OpenAI API version"
+        required: false
+        default: "2024-02-01"
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing the text to embed"
+        required: true
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for storing the embedding vector"
+        required: true
+        default: "embedding"
+        ui_component: "input"
+
+      dimensions:
+        type: integer
+        title: "Embedding Dimensions"
+        description: "Number of dimensions for the embedding (only supported by newer models like text-embedding-3-small/large)"
+        required: false
+        default: null
+        min: 1
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if embedding fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "square"
+      description_short: "Generate Embeddings"
+      description_long: "Generate vector embeddings from text using Azure OpenAI embeddings models for semantic search and similarity matching."
+
+  ########################################################
+  # Summarization
+  - id: text_summarizer
+    name: "Text Summarizer"
+    description: "Specialized AI executor for generating text summaries with configurable length and style"
+    module_path: contentflow.executors.summarization_executor
+    class_name: SummarizationExecutor
+    tags: [ai, summarization, nlp, azure-openai, agent-framework]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      summary_length:
+        type: string
+        title: "Summary Length"
+        description: "Desired summary length"
+        required: false
+        default: "short"
+        options: ["brief", "short", "medium", "detailed"]
+        ui_component: "select"
+
+      summary_style:
+        type: string
+        title: "Summary Style"
+        description: "Style of the summary output"
+        required: false
+        default: "paragraph"
+        options: ["bullet_points", "paragraph", "abstract"]
+        ui_component: "select"
+
+      focus_areas:
+        type: string
+        title: "Focus Areas"
+        description: "Specific aspects to focus on in the summary"
+        required: false
+        default: null
+        ui_component: "input"
+
+      preserve_key_facts:
+        type: boolean
+        title: "Preserve Key Facts"
+        description: "Ensure key facts and figures are preserved in summary"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to summarize"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for storing the summary"
+        required: false
+        default: "summary"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.3
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 500
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+      
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "file-text"
+      description_short: "Text Summarization"
+      description_long: "Generate concise summaries of text with configurable length and style using Azure OpenAI."
+
+  ########################################################
+  # Entity Extraction
+  - id: entity_extractor
+    name: "Entity Extraction"
+    description: "Extract named entities (people, organizations, locations, etc.) from text using AI"
+    module_path: contentflow.executors.entity_extraction_executor
+    class_name: EntityExtractionExecutor
+    tags: [ai, ner, entity-extraction, nlp, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      entity_types:
+        type: string
+        title: "Entity Types"
+        description: "Types of entities to extract as a comma separated list"
+        required: false
+        default: "person,organization,location,date,money,email,phone,url,product,event,quantity,skill,ip-address"
+        ui_component: "multiselect"
+
+      output_format:
+        type: string
+        title: "Output Format"
+        description: "Format for extracted entities"
+        required: false
+        default: "structured"
+        options: ["structured", "list", "text"]
+        ui_component: "select"
+
+      include_context:
+        type: boolean
+        title: "Include Context"
+        description: "Include surrounding text context for each entity"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      custom_entities:
+        type: string
+        title: "Custom Entity Types"
+        description: "Additional custom entity types to extract as a comma separated list"
+        required: false
+        default: null
+        ui_component: "input"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to analyze"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for extracted entities"
+        required: false
+        default: "entities"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.1
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "tag"
+      description_short: "Entity Extraction"
+      description_long: "Extract and identify named entities from text using Azure OpenAI."
+
+  ########################################################
+  # Sentiment Analysis
+  - id: sentiment_analyser
+    name: "Sentiment Analyser"
+    description: "Analyze text sentiment (positive, negative, neutral) with confidence scores and emotion detection"
+    module_path: contentflow.executors.sentiment_analysis_executor
+    class_name: SentimentAnalysisExecutor
+    tags: [ai, sentiment, nlp, azure-openai, emotion-detection]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      granularity:
+        type: string
+        title: "Analysis Granularity"
+        description: "Level of sentiment analysis"
+        required: false
+        default: "document"
+        options: ["document", "sentence", "aspect"]
+        ui_component: "select"
+
+      include_confidence:
+        type: boolean
+        title: "Include Confidence Scores"
+        description: "Include confidence scores (0-1) for sentiment"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      include_emotions:
+        type: boolean
+        title: "Detect Emotions"
+        description: "Identify specific emotions (joy, anger, sadness, etc.)"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      aspects:
+        type: array
+        title: "Aspects"
+        description: "Specific aspects to analyze (for aspect-based sentiment)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      scale:
+        type: string
+        title: "Sentiment Scale"
+        description: "Number of sentiment levels"
+        required: false
+        default: "3-point"
+        options: ["3-point", "5-point"]
+        ui_component: "select"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to analyze"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for sentiment results"
+        required: false
+        default: "sentiment"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.2
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "smile"
+      description_short: "Sentiment Analysis"
+      description_long: "Analyze text sentiment and emotions using Azure OpenAI."
+
+  ########################################################
+  # Content Classifier
+  - id: content_classifier
+    name: "Content Classifier"
+    description: "Classify text into predefined categories with confidence scores"
+    module_path: contentflow.executors.content_classifier_executor
+    class_name: ContentClassifierExecutor
+    tags: [ai, classification, categorization, nlp, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      categories:
+        type: array
+        title: "Categories"
+        description: "List of categories to classify into (required)"
+        required: true
+        default: null
+        ui_component: "input"
+
+      multi_label:
+        type: boolean
+        title: "Multi-Label"
+        description: "Allow multiple categories per document"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      include_confidence:
+        type: boolean
+        title: "Include Confidence"
+        description: "Include confidence scores for classifications"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      category_descriptions:
+        type: object
+        title: "Category Descriptions"
+        description: "Optional descriptions for each category"
+        required: false
+        default: null
+        ui_component: "json"
+
+      min_confidence:
+        type: number
+        title: "Minimum Confidence"
+        description: "Minimum confidence threshold (0-1)"
+        required: false
+        default: 0.0
+        min: 0.0
+        max: 1.0
+        ui_component: "number"
+
+      include_explanation:
+        type: boolean
+        title: "Include Explanation"
+        description: "Include explanation for classification"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to classify"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for classification results"
+        required: false
+        default: "classification"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.2
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "folder"
+      description_short: "Content Classification"
+      description_long: "Classify text into predefined categories using Azure OpenAI."
+
+  ########################################################
+  # PII Detector
+  - id: pii_detector
+    name: "PII Detector"
+    description: "Detect and optionally redact Personally Identifiable Information (PII) from text"
+    module_path: contentflow.executors.pii_detector_executor
+    class_name: PIIDetectorExecutor
+    tags: [ai, pii, privacy, security, nlp, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      pii_types:
+        type: string
+        title: "PII Types"
+        description: "Types of PII to detect as a comma separated list"
+        required: false
+        default: "name,email,phone,ssn,credit_card,address"
+        ui_component: "multiselect"
+
+      action:
+        type: string
+        title: "Action"
+        description: "What to do with detected PII"
+        required: false
+        default: "detect"
+        options: ["detect", "redact", "mask", "label"]
+        ui_component: "select"
+
+      include_positions:
+        type: boolean
+        title: "Include Positions"
+        description: "Include character positions of detected PII"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      confidence_threshold:
+        type: number
+        title: "Confidence Threshold"
+        description: "Minimum confidence to report PII (0-1)"
+        required: false
+        default: 0.7
+        min: 0.0
+        max: 1.0
+        ui_component: "number"
+
+      custom_patterns:
+        type: array
+        title: "Custom Patterns"
+        description: "Custom PII patterns to detect"
+        required: false
+        default: null
+        ui_component: "input"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+        
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to analyze"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for PII detection results"
+        required: false
+        default: "pii_detected"
+        ui_component: "input"
+
+      redacted_field:
+        type: string
+        title: "Redacted Field"
+        description: "Field name for redacted text (if action != detect)"
+        required: false
+        default: "text_redacted"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+        
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.2
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 400
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "shield"
+      description_short: "PII Detection"
+      description_long: "Detect and redact Personally Identifiable Information using Azure OpenAI."
+
+  ########################################################
+  # Keyword Extractor Executor
+  - id: keyword_extractor
+    name: "Keyword Extractor"
+    description: "Extract important keywords and key phrases from text with relevance scoring"
+    module_path: contentflow.executors.keyword_extractor_executor
+    class_name: KeywordExtractorExecutor
+    tags: [ai, keywords, nlp, information-extraction, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      max_keywords:
+        type: integer
+        title: "Max Keywords"
+        description: "Maximum number of keywords to extract"
+        required: false
+        default: 10
+        min: 1
+        max: 50
+        ui_component: "number"
+
+      keyword_type:
+        type: string
+        title: "Keyword Type"
+        description: "Type of keywords to extract"
+        required: false
+        default: "both"
+        options: ["single_words", "phrases", "both"]
+        ui_component: "select"
+
+      include_score:
+        type: boolean
+        title: "Include Scores"
+        description: "Include relevance scores for keywords"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      extract_topics:
+        type: boolean
+        title: "Extract Topics"
+        description: "Also extract main topics/themes"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      min_word_length:
+        type: integer
+        title: "Min Word Length"
+        description: "Minimum word length for single-word keywords"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        ui_component: "number"
+
+      ranking_method:
+        type: string
+        title: "Ranking Method"
+        description: "How to rank keywords"
+        required: false
+        default: "relevance"
+        options: ["relevance", "frequency", "importance"]
+        ui_component: "select"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to analyze"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for extracted keywords"
+        required: false
+        default: "keywords"
+        ui_component: "input"
+      
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.2
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "key"
+      description_short: "Keyword Extraction"
+      description_long: "Extract important keywords and phrases from text using Azure OpenAI."
+
+  ########################################################
+  # Language Detector Executor
+  - id: language_detector
+    name: "Language Detector"
+    description: "Detect the language(s) of text with confidence scores and script detection"
+    module_path: contentflow.executors.language_detector_executor
+    class_name: LanguageDetectorExecutor
+    tags: [ai, language-detection, nlp, i18n, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      detect_multiple:
+        type: boolean
+        title: "Detect Multiple Languages"
+        description: "Detect multiple languages if present in text"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      include_confidence:
+        type: boolean
+        title: "Include Confidence"
+        description: "Include confidence scores for detected languages"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      detect_script:
+        type: boolean
+        title: "Detect Script"
+        description: "Identify writing script (Latin, Cyrillic, etc.)"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      detect_dialect:
+        type: boolean
+        title: "Detect Dialect"
+        description: "Detect language dialects/variants"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      min_confidence:
+        type: number
+        title: "Min Confidence"
+        description: "Minimum confidence threshold (0-1)"
+        required: false
+        default: 0.5
+        min: 0.0
+        max: 1.0
+        ui_component: "number"
+
+      iso_format:
+        type: string
+        title: "ISO Format"
+        description: "Language code format"
+        required: false
+        default: "name"
+        options: ["iso-639-1", "iso-639-3", "name"]
+        ui_component: "select"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to analyze"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for language detection results"
+        required: false
+        default: "language"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.1
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "globe"
+      description_short: "Language Detection"
+      description_long: "Detect the language of text using Azure OpenAI."
+
+  ########################################################
+  # Translation Executor
+  - id: content_translator
+    name: "Content Translator"
+    description: "Translate text between languages with configurable style and terminology preservation"
+    module_path: contentflow.executors.translation_executor
+    class_name: TranslationExecutor
+    tags: [ai, translation, i18n, localization, azure-openai]
+    category: "analyse"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      target_language:
+        type: string
+        title: "Target Language"
+        description: "Target language for translation (required)"
+        required: true
+        default: null
+        ui_component: "input"
+
+      source_language:
+        type: string
+        title: "Source Language"
+        description: "Source language (auto-detect if not specified)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      translation_style:
+        type: string
+        title: "Translation Style"
+        description: "Style of translation"
+        required: false
+        default: "natural"
+        options: ["formal", "informal", "technical", "literal", "natural"]
+        ui_component: "select"
+
+      preserve_formatting:
+        type: boolean
+        title: "Preserve Formatting"
+        description: "Preserve original text formatting"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      preserve_terminology:
+        type: array
+        title: "Preserve Terminology"
+        description: "Terms to not translate (keep in original language)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      glossary:
+        type: object
+        title: "Translation Glossary"
+        description: "Custom translation glossary (source_term: target_term)"
+        required: false
+        default: null
+        ui_component: "json"
+
+      include_source:
+        type: boolean
+        title: "Include Source"
+        description: "Include original text in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI service endpoint URL"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Model Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "Azure OpenAI API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      input_field:
+        type: string
+        title: "Input Field"
+        description: "Field containing text to translate"
+        required: false
+        default: "text"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for translated text"
+        required: false
+        default: "translated_text"
+        ui_component: "input"
+
+      include_full_response:
+        type: boolean
+        title: "Include Full Response"
+        description: "Include full agent response object in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.3
+        min: 0.0
+        max: 2.0
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in response"
+        required: false
+        default: 600
+        min: 16
+        ui_component: "number"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if execution fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "languages"
+      description_short: "Text Translation"
+      description_long: "Translate text between languages using Azure OpenAI."
+
+  ########################################################
+  # Pass Through Executor
+  - id: pass_through
+    name: "Pass Through"
+    description: "Passes content through without modification"
+    module_path: contentflow.executors.pass_through
+    class_name: PassThroughExecutor
+    tags: [utility, passthrough, no-op]
+    category: "Utility"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "forward"
+      description_short: "No Operation"
+      description_long: "A utility executor that passes content through without any modifications."
+
+  ##########################################################
+  # AI Search Index Output
+  - id: ai_search_index_output
+    name: "AI Search Index Output"
+    description: "Indexes documents or chunks to Azure AI Search"
+    module_path: contentflow.executors.ai_search_index_output
+    class_name: AISearchIndexOutputExecutor
+    tags: [indexing, search, azure, ai-search, output, rag]
+    category: "output"
+    version: "1.0"
+    
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      ai_search_account:
+        type: string
+        title: "AI Search Account"
+        description: "Azure AI Search account name"
+        required: true
+        default: null
+        ui_component: "input"
+      
+      ai_search_credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      ai_search_api_key:
+        type: string
+        title: "API Key"
+        description: "Azure AI Search API key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      ai_search_api_version:
+        type: string
+        title: "API Version"
+        description: "Azure AI Search API version"
+        required: false
+        default: "2025-11-01-preview"
+        ui_component: "input"
+
+      ai_search_index:
+        type: string
+        title: "AI Search Index"
+        description: "Name of the Azure AI Search index to write to"
+        required: true
+        default: null
+        ui_component: "input"
+
+      index_mode:
+        type: string
+        title: "Index Mode"
+        description: "Index entire document or chunks separately"
+        required: false
+        default: "chunks"
+        options: ["document", "chunks"]
+        ui_component: "select"
+      
+      chunk_iterator_field:
+        type: string
+        title: "Chunk Iterator Field"
+        description: "Field containing list of chunks when indexing in 'chunks' mode"
+        required: false
+        default: "chunks"
+        ui_component: "input"
+      
+      content_to_index_mappings:
+        type: object
+        title: "Field to Index Mappings"
+        description: "JSON configuration for field mappings between source data and search index"
+        required: false
+        default: None
+        ui_component: "textarea"
+      
+      index_action_type:
+        type: string
+        title: "Index Action Type"
+        description: "Azure Search action type for indexing"
+        required: false
+        default: "mergeOrUpload"
+        options: ["upload", "merge", "mergeOrUpload", "delete"]
+        ui_component: "select"
+      
+      batch_size:
+        type: integer
+        title: "Batch Size"
+        description: "Number of documents to index per batch"
+        required: false
+        default: 100
+        min: 1
+        max: 1000
+        ui_component: "number"
+      
+      add_timestamp:
+        type: boolean
+        title: "Add Timestamp"
+        description: "Add indexed_at timestamp to documents"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum retry attempts for failed indexing"
+        required: false
+        default: 3
+        min: 0
+        max: 10
+        ui_component: "number"
+      
+      retry_delay:
+        type: number
+        title: "Retry Delay"
+        description: "Delay between retries in seconds"
+        required: false
+        default: 1.0
+        min: 0.1
+        max: 60.0
+        ui_component: "number"
+      
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: number
+        title: "Timeout Seconds"
+        description: "Timeout for indexing operations in seconds"
+        required: false
+        default: 30.0
+        min: 1.0
+        max: 300.0
+        ui_component: "number"
+      
+      continue_on_error:
+        type: boolean
+        title: "Continue on Error"
+        description: "Continue processing if a document fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "text-search"
+      description_short: "Index to AI Search"
+      description_long: "Indexes documents or chunks to Azure AI Search with support for semantic search, vector fields, batch processing, and retry logic for production RAG applications."
+
+  ########################################################
+  # Azure Blob Output Executor
+  - id: azure_blob_output
+    name: "Azure Blob Output"
+    description: "Write content entries as JSON files to Azure Blob Storage"
+    module_path: contentflow.executors.azure_blob_output_executor
+    class_name: AzureBlobOutputExecutor
+    tags: [output, storage, azure, blob, archive, backup]
+    category: "output"
+    version: "1.0"
+
+    # Settings schema
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      storage_account_name:
+        type: string
+        title: "Storage Account Name"
+        description: "Azure Storage account name"
+        required: true
+        default: null
+        ui_component: "input"
+      
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use for authentication"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+      
+      credential_key:
+        type: string
+        title: "Credential Key"
+        description: "Storage account key (required for azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      container_name:
+        type: string
+        title: "Container Name"
+        description: "Target blob container name"
+        required: true
+        default: null
+        ui_component: "input"
+      
+      path_template:
+        type: string
+        title: "Path Template"
+        description: "Path pattern for organizing blobs (supports content {field}, date variables: {year}, {month}, {day} and special variables {executor_id}, {timestamp})"
+        required: false
+        default: "{executor_id}/{year}/{month}/{day}/"
+        ui_component: "input"
+      
+      filename_template:
+        type: string
+        title: "Filename Template"
+        description: "Filename pattern (supports content {field} placeholders, date variables: {year}, {month}, {day} and special variables {timestamp})"
+        required: false
+        default: "{id.unique_id}_{timestamp}.json"
+        ui_component: "input"
+      
+      content_field:
+        type: string
+        title: "Content Field"
+        description: "Field containing content data to write (null = write entire Content item). Must be a field in the 'content.data' dictionary."
+        required: false
+        default: null
+        ui_component: "input"
+      
+      metadata_fields:
+        type: string
+        title: "Metadata Fields"
+        description: "Content fields to store as blob metadata, comma separated (null = no metadata)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      compression:
+        type: string
+        title: "Compression"
+        description: "Compression type for blob content"
+        required: false
+        default: null
+        options: ["gzip", "zip"]
+        ui_component: "select"
+      
+      overwrite_existing:
+        type: boolean
+        title: "Overwrite Existing"
+        description: "Whether to overwrite existing blobs"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      add_timestamp:
+        type: boolean
+        title: "Add Timestamp"
+        description: "Add written_at timestamp to blob metadata"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      pretty_print:
+        type: boolean
+        title: "Pretty Print JSON"
+        description: "Pretty print JSON output with indentation"
+        required: false
+        default: true
+        ui_component: "checkbox"
+            
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+      
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout per blob write in seconds"
+        required: false
+        default: 60
+        min: 1
+        max: 300
+        ui_component: "number"
+      
+      continue_on_error:
+        type: boolean
+        title: "Continue on Error"
+        description: "Continue processing if a blob write fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "cloud-upload"
+      description_short: "Write to Blob Storage"
+      description_long: "Writes content entries as JSON files to Azure Blob Storage with support for path templating, metadata preservation, compression, and batch processing for enterprise data archival and backup scenarios."
+
+  ########################################################
+  # Fan-In Aggregator Executor
+  - id: fan_in_aggregator
+    name: "Fan-In Aggregator"
+    description: | 
+      "Aggregate results from multiple parallel branches by merging content items based on canonical 
+      IDs. Must always be used as the joining executor after parallel (fan-out) execution branches."
+    module_path: contentflow.executors.fan_in_aggregator
+    class_name: FanInAggregator
+    tags: [transform, merge, aggregate, fan-in]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "combine"
+      description_short: "Fan-In Aggregation"
+      description_long: "Aggregate results from multiple parallel branches by merging content items based on canonical IDs."
+
+  ########################################################
+  # Field Mapper Executor
+  - id: field_mapper
+    name: "Field Mapper"
+    description: "Rename, move, and remap fields within Content items for standardization and compatibility"
+    module_path: contentflow.executors.field_mapper_executor
+    class_name: FieldMapperExecutor
+    tags: [transform, mapping, restructure, fields, normalization]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      mappings:
+        type: string
+        title: "Field Mappings"
+        description: "Dictionary of source → target field mappings in JSON format (use dot notation for nested fields), either this or 'object_mappings' is required."
+        required: false
+        default: null
+        ui_component: "textarea"
+      
+      object_mappings:
+        type: string
+        title: "Object Field Mappings"
+        description: "Dictionary of source → target object field mappings in JSON format for nested structures (use dot notation), either this or 'mappings' is required."
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      copy_mode:
+        type: string
+        title: "Copy Mode"
+        description: "How to handle source fields after mapping, move: Delete source field | copy: Keep source field."
+        required: false
+        default: "copy"
+        options: ["move", "copy"]
+        ui_component: "select"
+      
+      create_nested:
+        type: boolean
+        title: "Create Nested Structures"
+        description: "Automatically create nested dictionary structures when target path includes dots"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      overwrite_existing:
+        type: boolean
+        title: "Overwrite Existing Fields"
+        description: "Overwrite target field if it already exists"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      template_fields:
+        type: boolean
+        title: "Enable Template Fields"
+        description: "Allow using {field_name} placeholders in target paths for dynamic naming. Example: content → {source_type}_content"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      nested_delimiter:
+        type: string
+        title: "Nested Field Delimiter"
+        description: "Delimiter for nested field paths"
+        required: false
+        default: "."
+        ui_component: "input"
+      
+      list_handling: 
+        type: string
+        title: "List Handling Mode"
+        description: "How to handle lists when mapping fields, first: Use first element from source list | merge: Merge source and target lists | concatenate: Concatenate source and target lists | all: Keep all values as nested lists"
+        required: false
+        default: "merge"
+        options: ["first", "merge", "concatenate", "all"]
+        ui_component: "select"
+
+      join_separator: 
+        type: string
+        title: "Join Separator"
+        description: "Separator used when joining list elements into a string"
+        required: false
+        default: "\n"
+        ui_component: "input"
+
+      merge_filter_empty:
+        type: boolean
+        title: "Merge Filter Empty"
+        description: "Exclude empty/null values from source lists during mapping"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      merge_deduplicate:
+        type: boolean
+        title: "Merge Deduplicate"
+        description: "Remove duplicate values from source lists during mapping"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      case_transform:
+        type: string
+        title: "Case Transformation"
+        description: "Transform field name case during mapping, lower: lowercase | upper: UPPERCASE | title: Title Case | camel: camelCase | snake: snake_case"
+        required: false
+        default: null
+        options: ["lower", "upper", "title", "camel", "snake"]
+        ui_component: "select"
+      
+      fail_on_missing_source:
+        type: boolean
+        title: "Fail on Missing Source"
+        description: "Raise error if source field doesn't exist"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      remove_empty_objects:
+        type: boolean
+        title: "Remove Empty Objects"
+        description: "Remove empty nested objects after moving fields"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "map"
+      description_short: "Map and rename fields"
+      description_long: "Transform Content item structure by renaming, moving, and remapping fields. Supports nested field paths, template-based naming, field copying/moving, and automatic structure creation for data standardization and API normalization."
+
+  ########################################################
+  # Field Selector Executor
+  - id: field_selector_executor
+    name: "Field Selector"
+    description: "Select, keep, or remove specific fields from Content items for data privacy, size optimization, or pipeline simplification"
+    module_path: contentflow.executors.field_selector_executor
+    class_name: FieldSelectorExecutor
+    tags: [transform, filter, privacy, fields, selection, optimization]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      mode:
+        type: string
+        title: "Selection Mode"
+        description: "Select mode: include - Keep only specified fields | exclude - Remove specified fields"
+        required: false
+        default: "include"
+        options: ["include", "exclude"]
+        ui_component: "select"
+      
+      fields:
+        type: string
+        title: "Field Patterns"
+        description: "List of field names or patterns to select/exclude. Supports wildcards (temp_*, internal_*) and nested paths (metadata.author.name)"
+        required: true
+        default: '["field1", "field2", "metadata.*"]'
+        ui_component: "textarea"
+      
+      nested_delimiter:
+        type: string
+        title: "Nested Field Delimiter"
+        description: "Delimiter for nested field paths"
+        required: false
+        default: "."
+        ui_component: "input"
+      
+      preserve_structure:
+        type: boolean
+        title: "Preserve Structure"
+        description: "Preserve nested dictionary structures (true) or flatten to top level (false)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      conditional_selection:
+        type: boolean
+        title: "Enable Conditional Selection"
+        description: "Enable conditional field selection based on field values"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      condition_field:
+        type: string
+        title: "Condition Field"
+        description: "Field to evaluate for conditional selection (required when conditional_selection is true)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      condition_operator:
+        type: string
+        title: "Condition Operator"
+        description: "Comparison operator for conditional selection"
+        required: false
+        default: "equals"
+        options: ["equals", "not_equals", "contains", "not_contains", "exists", "not_exists"]
+        ui_component: "select"
+      
+      condition_value:
+        type: string
+        title: "Condition Value"
+        description: "Value to compare against for conditional selection"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      keep_id_fields:
+        type: boolean
+        title: "Keep ID Fields"
+        description: "Always preserve Content ID and core fields regardless of selection"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      bulk_operations:
+        type: boolean
+        title: "Bulk Operations"
+        description: "Enable bulk field operations for optimized processing of large field sets"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      fail_on_missing_field:
+        type: boolean
+        title: "Fail on Missing Field"
+        description: "Raise error if specified field doesn't exist in content"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      add_selection_metadata:
+        type: boolean
+        title: "Add Selection Metadata"
+        description: "Add metadata about field selection to content.summary_data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "filter"
+      description_short: "Select or exclude fields"
+      description_long: "Filter Content item fields by selecting only specific fields or excluding unwanted fields. Supports wildcard patterns, nested field selection, conditional filtering, and privacy-focused data masking for GDPR compliance and payload optimization."
+
+  ########################################################
+  # Web Scraping Executor
+  - id: web_scraper
+    name: "Web Scraper"
+    description: "Scrape and extract content from web pages using Playwright"
+    module_path: contentflow.executors.web_scraping_executor
+    class_name: WebScrapingExecutor
+    tags: [input, scraping, web, playwright]
+    category: "input"
+    version: "1.0"
+    
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      start_urls:
+        type: string
+        title: "Start URLs"
+        description: "Comma separated list of explicit URLs to start scraping from"
+        required: true
+        default: "https://example.com, https://example.org"
+        ui_component: input
+      
+      link_patterns:
+        type: string
+        title: "Link Patterns"
+        description: "Comma separated list of URL patterns that followed links must match (supports wildcards)"
+        required: false
+        default: null
+        ui_component: input
+      
+      selectors:
+        type: string
+        title: "Selectors"
+        description: "Dictionary of field names to CSS/XPath selectors in JSON format for content extraction"
+        required: false
+        default: "{\"title\": \"title\", \"body\": \"body\"}"
+        ui_component: textarea
+      
+      render_js:
+        type: boolean
+        title: "Render JavaScript"
+        description: "Whether to wait for JavaScript rendering (network idle)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      follow_links:
+        type: boolean
+        title: "Follow Links"
+        description: "Whether to follow links matching the pattern"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      max_depth:
+        type: integer
+        title: "Max Depth"
+        description: "Maximum crawl depth"
+        required: false
+        default: 1
+        min: 0
+        max: 10
+        ui_component: "number"
+      
+      rate_limit:
+        type: number
+        title: "Rate Limit"
+        description: "Requests per second (approximate)"
+        required: false
+        default: 1.0
+        min: 0.1
+        max: 10.0
+        ui_component: "number"
+      
+      max_pages:
+        type: integer
+        title: "Max Pages"
+        description: "Maximum number of pages to scrape"
+        required: false
+        default: 100
+        min: 1
+        max: 1000
+        ui_component: "number"
+      
+      wait_for_selector:
+        type: string
+        title: "Wait For Selector"
+        description: "Specific selector to wait for before extracting"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      include_html:
+        type: boolean
+        title: "Include HTML"
+        description: "Include full HTML in output"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      user_agent:
+        type: string
+        title: "User Agent"
+        description: "Custom User-Agent string"
+        required: false
+        default: null
+        ui_component: "input"
+
+      screenshot_enabled:
+        type: boolean
+        title: "Enable Screenshots"
+        description: "Capture a screenshot for each scraped page"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      screenshot_full_page:
+        type: boolean
+        title: "Full Page Screenshot"
+        description: "Capture the full page instead of just the viewport"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      screenshot_selector:
+        type: string
+        title: "Screenshot Selector"
+        description: "Optional selector to capture a specific element instead of the full page"
+        required: false
+        default: null
+        ui_component: "input"
+
+      screenshot_type:
+        type: string
+        title: "Screenshot Type"
+        description: "Image format for screenshots"
+        required: false
+        default: "png"
+        options: ["png", "jpeg"]
+        ui_component: "select"
+
+      screenshot_quality:
+        type: integer
+        title: "Screenshot Quality"
+        description: "Quality (1-100) for JPEG screenshots"
+        required: false
+        default: null
+        min: 1
+        max: 100
+        ui_component: "number"
+
+      screenshot_save_to_file:
+        type: boolean
+        title: "Save Screenshots to File"
+        description: "Save screenshots to local files instead of embedding as base64"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      screenshot_output_dir:
+        type: string
+        title: "Screenshot Output Directory"
+        description: "Directory to save screenshot files"
+        required: false
+        default: "./screenshots"
+        ui_component: "input"
+
+      screenshot_filename_template:
+        type: string
+        title: "Screenshot Filename Template"
+        description: "Template for screenshot filenames (supports {timestamp}, {index}, {ext}, {url})"
+        required: false
+        default: "{timestamp}_{index}.{ext}"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name for extracted data in the output"
+        required: false
+        default: "web_scraping_output"
+        ui_component: "input"
+
+    ui_metadata:
+      icon: "link"
+      description_short: "Scrape web pages"
+      description_long: "Scrape and extract content from web pages using Playwright with support for JavaScript rendering, crawling, and screenshot capture."
+
+  ########################################################
+  # Sub-pipeline Executor
+  - id: subpipeline
+    name: "Sub-pipeline"
+    description: "Execute a nested ContentFlow pipeline as part of the current pipeline"
+    module_path: ""  # Dynamically loaded
+    class_name: ""  # Dynamically loaded
+    tags: [pipeline, sub-pipeline, nested, modular]
+    category: "pipeline"
+    version: "1.0"
+
+    ui_metadata:
+      icon: "workflow"
+      description_short: "Execute a nested ContentFlow pipeline"
+      description_long: "Execute a nested ContentFlow pipeline as part of the current pipeline."

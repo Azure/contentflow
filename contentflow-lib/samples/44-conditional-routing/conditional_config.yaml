@@ -1,0 +1,49 @@
+# Conditional Routing Configuration
+#
+# Demonstrates routing based on document properties
+
+pipelines:
+  - name: conditional_routing
+    executors:
+      - id: get_content
+        type: content_retriever
+        
+      - id: extract
+        type: document_intelligence_extractor
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+      
+      # PDF-specific processing
+      - id: process_pdf
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Process PDF document"
+          user_prompt: "Analyze PDF: {content}"
+      
+      # Image-specific processing  
+      - id: process_image
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Process image document"
+          user_prompt: "Analyze image: {content}"
+      
+      # Text-specific processing
+      - id: process_text
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Process text document"
+          user_prompt: "Analyze text: {content}"
+    
+    # Conditional edges based on document type
+    edges:
+      - from: get_content
+        to: extract
+      
+      - from: extract
+        to:
+          - target: process_pdf
+            condition: "document.metadata.get('file_type') == 'pdf'"
+          - target: process_image
+            condition: "document.metadata.get('file_type') in ['jpg', 'png', 'jpeg']"
+          - target: process_text
+            condition: "document.metadata.get('file_type') == 'txt'"

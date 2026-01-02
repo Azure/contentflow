@@ -1,0 +1,82 @@
+# ContentFlow Azure Deployment Configuration
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: contentflow
+metadata:
+  template: contentflow@0.0.1-beta
+
+# Infrastructure configuration
+infra:
+  provider: bicep
+  path: infra/bicep
+  module: main
+
+# Service definitions
+services:
+  # ContentFlow API - Container App
+  api:
+    project: ./contentflow-api
+    language: python
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: ..
+      target: ""
+      remoteBuild: true
+    hooks:
+      postdeploy:
+        shell: sh
+        run: ../infra/scripts/post-deploy-api.sh
+        continueOnError: false
+
+  # ContentFlow Worker - Container App
+  worker:
+    project: ./contentflow-worker
+    language: python
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: ..
+      target: ""
+      remoteBuild: true
+
+  # ContentFlow Web - Container App
+  web:
+    project: ./contentflow-web
+    language: ts
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: ..
+      target: ""
+      remoteBuild: true
+    
+# Global hooks
+hooks:
+  # Run before provisioning infrastructure
+  preprovision:
+    shell: sh
+    run: ./infra/scripts/pre-provision.sh
+    interactive: false
+    continueOnError: false
+  
+  # Run after infrastructure is provisioned
+  # postprovision:
+  #   shell: sh
+  #   run: ./infra/scripts/post-provision.sh
+  #   interactive: false
+  #   continueOnError: false
+
+  # # Run before deploying all services
+  # predeploy:
+  #   shell: sh
+  #   run: ./infra/scripts/pre-deploy.sh
+  #   interactive: false
+  #   continueOnError: false
+
+  # Run after all services are deployed
+  postdeploy:
+    shell: sh
+    run: ./infra/scripts/post-deploy.sh
+    interactive: true
+    continueOnError: false

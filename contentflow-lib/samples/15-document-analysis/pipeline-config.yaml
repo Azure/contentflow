@@ -1,0 +1,160 @@
+# Article Summarization Pipeline Configuration
+#
+# Automatically summarize long-form articles, research papers, and blog posts using
+# advanced AI models with key point extraction and entity recognition.
+#
+# Pipeline Flow:
+# 1. Content Retriever - Load article content from local files or blob storage
+# 2. Text Preprocessing - Clean and normalize text (using field_mapper_executor)
+# 3. AI Summarization - Generate concise summaries with configurable length/style
+# 4. Entity Extraction - Extract key entities (people, organizations, locations, etc.)
+# 5. Pass Through - Final output with summary and entities
+
+pipelines:
+  - name: document_analysis_pipeline
+    description: Automated document analysis with entity extraction for content analysis
+    executors:
+      # Load articles from Azure Blob Storage
+      - id: discover_blobs
+        type: azure_blob_input_discovery
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          blob_container_name: "input-docs"
+          max_results: 3
+
+      # Load content
+      - id: content_loader
+        type: content_retriever
+        debug_mode: false
+        settings:
+          blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
+          blob_storage_credential_type: "default_azure_credential"
+          include_content_bytes_as_field: false
+          use_temp_file_for_content: true
+          temp_folder: "./tmp/docs"
+          max_concurrent: 2
+          continue_on_error: true
+
+      - id: extract_content
+        type: pdf_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 5
+      
+      # - id: extract_content
+      #   type: azure_content_understanding_extractor # refers to the id in executor_catalog.yaml
+      #   debug_mode: false
+      #   settings:
+      #     temp_file_path_field: "temp_file_path"
+      #     output_field: "content_understanding_result"
+      #     analyzer_id: "prebuilt-documentSearch"  # RAG-optimized analyzer
+      #     max_concurrent: 3
+      #     content_understanding_endpoint: ${AZURE_CONTENT_UNDERSTANDING_ENDPOINT}
+      #     content_understanding_credential_type: "default_azure_credential"
+      #     # For subscription key auth, use:
+      #     # content_understanding_credential_type: "azure_key_credential"
+      #     # content_understanding_subscription_key: ${AZURE_CONTENT_UNDERSTANDING_API_KEY}
+      #     content_understanding_api_version: "2025-11-01"
+      #     content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
+      #     content_understanding_timeout: 360
+      #     content_understanding_polling_interval: 2
+
+      - id: summarizer
+        type: text_summarizer # refers to the id in executor_catalog.yaml
+        debug_mode: false
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          # Summarization-specific settings
+          summary_length: "short"  # Options: brief, short, medium, detailed
+          summary_style: "paragraph"  # Options: bullet_points, paragraph, abstract
+          preserve_key_facts: true
+          # Field configuration
+          input_field: "pdf_output.text"
+          output_field: "summary"
+          include_full_response: false
+          # Model parameters
+          temperature: 0.3  # Lower temperature for more focused summaries
+          max_tokens: 500
+
+      # Extract entities with context
+      - id: entity_extractor
+        type: entity_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: false
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          # Entity extraction-specific settings
+          entity_types: 
+            - "person"
+            - "organization"
+            - "location"
+            - "date"
+            - "money"
+            - "email"
+            - "phone"
+            - "url"
+          output_format: "structured"  # Options: structured, list, text
+          include_context: true        # Include surrounding text context
+          # custom_entities: ["product", "technology"]  # Optional custom entity types
+          # Field configuration
+          input_field: "pdf_output.text"
+          output_field: "entities"
+          include_full_response: true
+          # Model parameters
+          temperature: 0.1  # Lower temperature for more consistent extraction
+          max_tokens: 2000
+
+      - id: pii_detector
+        type: pii_detector # refers to the id in executor_catalog.yaml
+        debug_mode: false
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          pii_types: ["name", "email", "phone", "ssn", "credit_card", "address"]
+          action: "detect"  # Options: "detect", "redact", "mask", "label"
+          include_positions: true
+          confidence_threshold: 0.7
+          max_tokens: 3000
+          input_field: "pdf_output.text"
+          output_field: "pii_detected"
+          redacted_field: "text_redacted"
+          include_full_response: true
+
+      # Output results
+      - id: output
+        type: pass_through
+        debug_mode: false
+    
+    # Explicit edge configuration for fan-out/fan-in
+    edges:
+      # Sequential start
+      - from: discover_blobs
+        to: content_loader
+        type: sequential
+
+      - from: content_loader
+        to: extract_content
+        type: sequential
+
+      - from: extract_content
+        to: [summarizer, entity_extractor, pii_detector]
+        type: parallel  # Fan-out to 3 parallel paths
+        description: "Process document through 3 parallel analysis paths"
+      
+      # Fan-in: All paths join at output
+      - from: [summarizer, entity_extractor, pii_detector]
+        to: output
+        type: join
+        description: "Combine results from all 3 paths"
+      # - from: extract_content
+      #   to: output
+      #   type: sequential
+      

@@ -1,0 +1,65 @@
+name: knowledge_graph_build
+description: Build knowledge graph from content using entity extraction and graph database
+
+executors:
+  # Step 1: Extract entities and relationships from content
+  - id: entity_extractor
+    type: knowledge_graph_entity_extractor
+    settings:
+      ai_endpoint: "${AI_ENDPOINT}"
+      ai_credential_type: azure_key_credential
+      ai_api_key: "${AI_API_KEY}"
+      model_name: "${AI_MODEL_NAME}"
+      entity_types:
+        - Organization
+        - Person
+        - Product
+        - Service
+        - Technology
+        - Location
+        - Event
+        - Concept
+        - Document
+        - Department
+        - Role
+        - Team
+      relationship_types:
+        - works_at
+        - manages
+        - located_in
+        - part_of
+        - provides
+        - uses
+        - related_to
+        - authored_by
+        - mentions
+        - collaborates_with
+      confidence_threshold: 0.6
+      max_entities_per_content: 50
+      include_attributes: true
+      output_field: knowledge_graph_entities
+      temperature: 0.1
+  
+  # Step 2: Write entities and relationships to Cosmos DB Graph
+  - id: graph_writer
+    type: knowledge_graph_writer
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      input_field: knowledge_graph_entities
+      merge_strategy: merge
+      enable_deduplication: true
+      add_timestamps: true
+      batch_size: 20
+      output_field: graph_write_stats
+
+# Workflow execution order
+workflow:
+  steps:
+    - executor: entity_extractor
+      description: "Extract business entities and relationships from content"
+    
+    - executor: graph_writer
+      description: "Persist entities to knowledge graph"

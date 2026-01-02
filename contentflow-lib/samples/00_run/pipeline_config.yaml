@@ -1,0 +1,29 @@
+# Batch Processing Configuration
+#
+# Demonstrates processing multiple documents in batches
+
+pipelines:
+  - name: pipeline1
+    executors:
+      - id: get_content
+        type: content_retriever # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 3
+          continue_on_error: true
+
+      - id: extract
+        type: azure_document_intelligence_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+          extract_tables: true
+          extract_key_value_pairs: true
+          include_full_result: true
+          max_concurrent: 1
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [get_content, extract, pass_through]

@@ -1,0 +1,108 @@
+# Document Batch Processing with Subworkflows
+#
+# Demonstrates nested subworkflows for processing batches of documents
+# Pattern: Batch → Process Each Document (subworkflow) → Aggregate
+
+# Subworkflow: Process a single document
+subworkflows:
+  - name: process_single_document
+    description: Extract and analyze content from one document
+    
+    executors:
+      # Extract content using Document Intelligence
+      - id: extract_content
+        type: azure_document_intelligence_extractor
+        settings:
+          model_id: prebuilt-layout
+          extract_text: true
+          extract_tables: true
+      
+      # Split into chunks for processing
+      - id: split_chunks
+        type: document_splitter
+        settings:
+          split_by: pages
+          chunk_size: 5
+          overlap_pages: 1
+      
+      # Aggregate chunk results
+      - id: aggregate_results
+        type: result_aggregator
+        settings:
+          aggregation_strategy: merge
+          merge_fields: [text_content, tables]
+    
+    execution_sequence: [extract_content, split_chunks, aggregate_results]
+
+# Main workflow: Process batch of documents
+workflows:
+  - name: batch_document_processing
+    description: Process multiple documents in parallel using subworkflow
+    
+    executors:
+      # Load batch of documents
+      - id: load_batch
+        type: azure_blob_input_executor
+        settings:
+          container_name: input-docs
+          file_pattern: "*.pdf"
+          max_files: 10
+      
+      # Split batch into individual documents
+      - id: split_batch
+        type: batch_splitter
+        settings:
+          split_by: documents
+          output_field: documents
+      
+      # Process each document using subworkflow
+      # This will run the process_single_document workflow for each document
+      - id: process_documents
+        type: process_single_document  # References the subworkflow
+        settings:
+          allow_direct_output: false
+          max_iterations: 100
+      
+      # Aggregate all document results
+      - id: aggregate_batch
+        type: batch_aggregator
+        settings:
+          aggregation_strategy: summarize
+          compute_stats:
+            - field: page_count
+              operations: [sum, avg, max]
+            - field: table_count
+              operations: [sum, avg]
+      
+      # Write results to search index
+      - id: index_results
+        type: ai_search_index_writer
+        settings:
+          index_mode: documents
+          batch_size: 100
+    
+    execution_sequence: [
+      load_batch,
+      split_batch,
+      process_documents,
+      aggregate_batch,
+      index_results
+    ]
+
+# Connectors configuration
+connectors:
+  - name: storage
+    type: azure_blob
+    settings:
+      account_name: ${STORAGE_ACCOUNT}
+  
+  - name: doc_intelligence
+    type: document_intelligence
+    settings:
+      endpoint: ${DOCUMENT_INTELLIGENCE_ENDPOINT}
+  
+  - name: search
+    type: ai_search
+    settings:
+      endpoint: ${SEARCH_ENDPOINT}
+      index_name: processed_docs

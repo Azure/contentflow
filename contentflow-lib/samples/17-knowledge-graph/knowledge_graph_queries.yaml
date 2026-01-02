@@ -1,0 +1,73 @@
+name: knowledge_graph_queries
+description: Various knowledge graph query examples for entity retrieval and graph analysis
+
+executors:
+  # Query 1: Find all people
+  - id: find_people
+    type: knowledge_graph_query
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      query_type: find_entity
+      query_parameters:
+        label: Person
+      max_results: 100
+      output_field: people_results
+  
+  # Query 2: Find all products
+  - id: find_products
+    type: knowledge_graph_query
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      query_type: find_entity
+      query_parameters:
+        label: Product
+      max_results: 100
+      output_field: product_results
+  
+  # Query 3: Aggregate statistics
+  - id: graph_statistics
+    type: knowledge_graph_query
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      query_type: aggregate
+      query_parameters:
+        aggregation_type: distribution
+      output_field: graph_stats
+  
+  # Query 4: Custom query - Most connected entities
+  - id: most_connected
+    type: knowledge_graph_query
+    settings:
+      gremlin_endpoint: "${COSMOS_GREMLIN_ENDPOINT}"
+      gremlin_database: "${COSMOS_GREMLIN_DATABASE}"
+      gremlin_collection: "${COSMOS_GREMLIN_COLLECTION}"
+      gremlin_password: "${COSMOS_GREMLIN_KEY}"
+      query_type: custom
+      query_parameters:
+        query: "g.V().project('id', 'name', 'label', 'degree').by(id).by('name').by(label).by(bothE().count()).order().by('degree', desc).limit(10)"
+      max_results: 10
+      output_field: top_entities
+
+# Workflow execution order
+workflow:
+  steps:
+    - executor: find_people
+      description: "Find all Person entities"
+    
+    - executor: find_products
+      description: "Find all Product entities"
+    
+    - executor: graph_statistics
+      description: "Get graph statistics"
+    
+    - executor: most_connected
+      description: "Find most connected entities"

@@ -1,0 +1,228 @@
+# Conditional Routing with Subworkflows
+#
+# Route documents to different processing subworkflows based on classification.
+# Pattern: Classify → Route to type-specific subworkflow → Aggregate
+
+connectors:
+  - name: storage
+    type: blob_storage
+    settings:
+      account_name: ${STORAGE_ACCOUNT}
+  
+  - name: doc_intelligence
+    type: document_intelligence
+    settings:
+      endpoint: ${DOCUMENT_INTELLIGENCE_ENDPOINT}
+  
+  - name: ai_model
+    type: ai_inference
+    settings:
+      endpoint: ${AI_ENDPOINT}
+  
+  - name: search
+    type: ai_search
+    settings:
+      endpoint: ${SEARCH_ENDPOINT}
+      index_name: documents
+
+# Subworkflow for PDF documents
+subworkflows:
+  - name: process_pdf
+    description: PDF-specific processing with layout analysis
+    
+    executors:
+      - id: extract_layout
+        type: document_intelligence_extractor
+        settings:
+          model_id: prebuilt-layout
+          extract_text: true
+          extract_tables: true
+          extract_key_value_pairs: true
+        connectors: [doc_intelligence]
+      
+      - id: analyze_structure
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Analyze PDF structure: sections, tables, figures."
+          user_prompt: "Analyze structure of: {content}"
+        connectors: [ai_model]
+    
+    execution_sequence: [extract_layout, analyze_structure]
+
+# Subworkflow for image documents
+subworkflows:
+  - name: process_image
+    description: Image-specific OCR and description
+    
+    executors:
+      - id: ocr_image
+        type: document_intelligence_extractor
+        settings:
+          model_id: prebuilt-read
+          extract_text: true
+        connectors: [doc_intelligence]
+      
+      - id: describe_image
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Describe image content, objects, text, and context."
+          user_prompt: "Describe this image: {content}"
+        connectors: [ai_model]
+      
+      - id: extract_text_meaning
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract meaning from OCR text in image."
+          user_prompt: "Interpret: {extracted_text}"
+        connectors: [ai_model]
+    
+    execution_sequence: [ocr_image, describe_image, extract_text_meaning]
+
+# Subworkflow for text documents
+subworkflows:
+  - name: process_text
+    description: Text-specific NLP processing
+    
+    executors:
+      - id: analyze_text
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Analyze text document:
+            - Summarize main points
+            - Extract key entities
+            - Identify sentiment
+            - Classify topics
+          user_prompt: "Analyze: {content}"
+          max_completion_tokens: 800
+        connectors: [ai_model]
+      
+      - id: extract_keywords
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract top 10 keywords and phrases."
+          user_prompt: "Text: {content}"
+        connectors: [ai_model]
+    
+    execution_sequence: [analyze_text, extract_keywords]
+
+# Subworkflow for invoice documents
+subworkflows:
+  - name: process_invoice
+    description: Invoice-specific extraction
+    
+    executors:
+      - id: extract_invoice
+        type: document_intelligence_extractor
+        settings:
+          model_id: prebuilt-invoice
+          extract_key_value_pairs: true
+        connectors: [doc_intelligence]
+      
+      - id: validate_invoice
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Validate invoice data:
+            - Check for required fields (number, date, amount, vendor)
+            - Verify calculations
+            - Flag anomalies
+          user_prompt: "Validate: {extracted_data}"
+        connectors: [ai_model]
+    
+    execution_sequence: [extract_invoice, validate_invoice]
+
+# Main workflow with conditional routing
+workflows:
+  - name: conditional_routing
+    description: Route documents to type-specific subworkflows
+    
+    executors:
+      # Load document
+      - id: retrieve
+        type: content_retriever
+        connectors: [storage]
+      
+      # Classify document type
+      - id: classify
+        type: custom_ai_prompt
+        settings:
+          system_prompt: |
+            Classify document into one of:
+            - pdf: PDF with complex layout
+            - image: Image or scan
+            - text: Plain text or simple document
+            - invoice: Invoice or billing document
+            Return JSON: {"type": "...", "confidence": 0.0-1.0}
+          user_prompt: |
+            File: {filename}
+            Content preview: {content_preview}
+          max_completion_tokens: 100
+          temperature: 0.1
+        connectors: [ai_model]
+      
+      # Route based on classification
+      - id: route
+        type: conditional_router
+        settings:
+          classification_field: document_type
+          routes:
+            - condition: "document_type == 'pdf'"
+              subworkflow: process_pdf
+              description: "Complex PDF processing"
+            
+            - condition: "document_type == 'image'"
+              subworkflow: process_image
+              description: "Image OCR and analysis"
+            
+            - condition: "document_type == 'text'"
+              subworkflow: process_text
+              description: "Text NLP processing"
+            
+            - condition: "document_type == 'invoice'"
+              subworkflow: process_invoice
+              description: "Invoice extraction"
+            
+            - condition: "default"
+              subworkflow: process_text
+              description: "Fallback to text processing"
+        connectors: []
+      
+      # Post-process all types
+      - id: post_process
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Create final summary and tags."
+          user_prompt: "Summarize processed data: {processed_data}"
+        connectors: [ai_model]
+      
+      # Index result
+      - id: index
+        type: ai_search_index_writer
+        settings:
+          metadata_fields:
+            - document_type
+            - processed_data
+            - summary
+        connectors: [search]
+    
+    execution_sequence: [retrieve, classify, route, post_process, index]
+    
+    # Conditional edges
+    edges:
+      - from: retrieve
+        to: classify
+        type: sequential
+      
+      - from: classify
+        to: route
+        type: conditional
+        description: "Route to type-specific subworkflow"
+      
+      - from: route
+        to: post_process
+        type: sequential
+      
+      - from: post_process
+        to: index
+        type: sequential

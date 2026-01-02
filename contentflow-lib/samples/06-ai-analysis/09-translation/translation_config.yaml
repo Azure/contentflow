@@ -1,0 +1,44 @@
+# Translation Executor Configuration
+#
+# Demonstrates using TranslationExecutor for translating text between languages
+# with configurable styles and formatting preservation
+
+pipelines:
+  - name: translation_pipeline
+    description: Pipeline to translate text using TranslationExecutor with Azure OpenAI.
+    executors:
+      # Translation with natural style (default)
+      - id: translator
+        type: content_translator # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          
+          # Translation-specific settings
+          target_language: "Telugu"  # Required: Target language
+          source_language: "English"  # Optional: Auto-detect if not specified
+          translation_style: "natural"  # Options: formal, informal, technical, literal, natural
+          preserve_formatting: true  # Preserve original text formatting
+          # preserve_terminology: ["AI", "API", "Cloud"]  # Terms to not translate
+          # glossary:  # Custom translation glossary
+          #   "machine learning": "aprendizaje automático"
+          #   "neural network": "red neuronal"
+          include_source: false  # Include original text in output
+          
+          # Field configuration
+          input_field: "text"
+          output_field: "translated_text"
+          include_full_response: false
+          
+          # Model parameters
+          temperature: 0.3  # Lower temperature for more consistent translations
+          max_tokens: 1000
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [translator, pass_through]

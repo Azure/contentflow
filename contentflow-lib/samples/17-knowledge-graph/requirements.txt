@@ -1,0 +1,8 @@
+# Knowledge Graph Sample Requirements
+
+# Azure Cosmos DB Gremlin API
+gremlinpython>=3.7.0
+
+# Already included in main project
+# azure-identity
+# azure-ai-inference

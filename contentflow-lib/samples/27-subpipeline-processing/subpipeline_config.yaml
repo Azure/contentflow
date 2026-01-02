@@ -1,0 +1,90 @@
+# Sub-Pipeline Processing Configuration
+#
+# Demonstrates nested pipelines using subworkflow executor
+
+pipelines:
+  # Main pipeline
+  - name: main_pipeline
+    executors:
+      - id: get_content
+        type: content_retriever
+        
+      - id: extract
+        type: document_intelligence_extractor
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+      
+      # Process pages with sub-pipeline
+      - id: process_pages
+        type: subworkflow
+        settings:
+          subworkflow_name: page_processing
+          split_by: pages
+      
+      # Aggregate results
+      - id: aggregate
+        type: batch_aggregator
+        settings:
+          merge_strategy: concatenate
+    
+    execution_sequence: [get_content, extract, process_pages, aggregate]
+  
+  # Sub-pipeline for page processing
+  - name: page_processing
+    executors:
+      - id: analyze_page
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Analyze document page"
+          user_prompt: "Analyze this page: {content}"
+      
+      - id: extract_page_metadata
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract page metadata"
+          user_prompt: "Extract metadata from page: {content}"
+    
+    execution_sequence: [analyze_page, extract_page_metadata]
+  
+  # Alternative: Process chunks with sub-pipeline
+  - name: chunk_pipeline
+    executors:
+      - id: get_content
+        type: content_retriever
+        
+      - id: extract
+        type: document_intelligence_extractor
+        settings:
+          doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+      
+      # Process chunks with sub-pipeline
+      - id: process_chunks
+        type: subworkflow
+        settings:
+          subworkflow_name: chunk_processing
+          split_by: chunks
+          chunk_size: 1000
+      
+      - id: aggregate
+        type: batch_aggregator
+        settings:
+          merge_strategy: combine
+    
+    execution_sequence: [get_content, extract, process_chunks, aggregate]
+  
+  # Sub-pipeline for chunk processing
+  - name: chunk_processing
+    executors:
+      - id: analyze_chunk
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Analyze document chunk"
+          user_prompt: "Analyze: {content}"
+      
+      - id: extract_entities
+        type: custom_ai_prompt
+        settings:
+          system_prompt: "Extract entities"
+          user_prompt: "Find entities in: {content}"
+    
+    execution_sequence: [analyze_chunk, extract_entities]

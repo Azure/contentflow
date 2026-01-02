@@ -1,0 +1,47 @@
+# Entity Extraction Executor Configuration
+#
+# Demonstrates using EntityExtractionExecutor for extracting named entities
+# from text (people, organizations, locations, dates, etc.)
+
+pipelines:
+  - name: entity_extraction_pipeline
+    description: Pipeline to extract named entities using EntityExtractionExecutor with Azure OpenAI.
+    executors:
+      # Extract entities with context
+      - id: entity_extractor
+        type: entity_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          
+          # Entity extraction-specific settings
+          entity_types: 
+            - "person"
+            - "organization"
+            - "location"
+            - "date"
+            - "money"
+            - "email"
+            - "phone"
+            - "url"
+          output_format: "structured"  # Options: structured, list, text
+          include_context: true        # Include surrounding text context
+          # custom_entities: ["product", "technology"]  # Optional custom entity types
+          
+          # Field configuration
+          input_field: "text"
+          output_field: "entities"
+          include_full_response: false
+          
+          # Model parameters
+          temperature: 0.1  # Lower temperature for more consistent extraction
+          max_tokens: 1000
+
+      - id: pass_through
+        type: pass_through
+        debug_mode: true
+    
+    execution_sequence: [entity_extractor, pass_through]

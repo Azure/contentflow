@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "deploymentMode": {
+      "value": "${DEPLOYMENT_MODE}"
+    },
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "foundryLocation": {
+      "value": "${AZURE_AI_FOUNDRY_LOCATION}"
+    },
+    "principalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "existingVnetResourceId": {
+      "value": "${EXISTING_VNET_RESOURCE_ID=}"
+    },
+    "privateEndpointSubnetName": {
+      "value": "${PRIVATE_ENDPOINT_SUBNET_NAME=pe-subnet}"
+    },
+    "containerAppsSubnetName": {
+      "value": "${CONTAINER_APPS_SUBNET_NAME=aca-env-subnet}"
+    },
+    "existingCognitiveServicesPrivateDnsZoneId": {
+      "value": "${EXISTING_COGNITIVE_SERVICES_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingBlobPrivateDnsZoneId": {
+      "value": "${EXISTING_BLOB_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingCosmosPrivateDnsZoneId": {
+      "value": "${EXISTING_COSMOS_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingAppConfigPrivateDnsZoneId": {
+      "value": "${EXISTING_APP_CONFIG_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingAcrPrivateDnsZoneId": {
+      "value": "${EXISTING_ACR_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingContainerAppsEnvPrivateDnsZoneId": {
+      "value": "${EXISTING_CONTAINER_APPS_ENV_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingKeyVaultPrivateDnsZoneId": {
+      "value": "${EXISTING_KEY_VAULT_PRIVATE_DNS_ZONE_ID=}"
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${EXISTING_LOG_ANALYTICS_WORKSPACE_ID=}"
+    },
+    "existingAppInsightsId": {
+      "value": "${EXISTING_APP_INSIGHTS_ID=}"
+    }
+  }
+}

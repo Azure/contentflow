@@ -1,0 +1,19 @@
+# Simple Pipeline Configuration
+#
+# Minimal configuration for common document processing scenarios.
+
+# Pipeline - Simplified with minimal required settings
+pipeline:
+  # Basic: Retrieve → Extract → Index
+  name: basic
+  executors:
+    - id: get_content
+      type: content_retriever
+      
+    - id: extract
+      type: azure_document_intelligence_extractor
+      settings:
+        doc_intelligence_endpoint: "${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}"
+      
+  execution_sequence: [get_content, extract]
+  

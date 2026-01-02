@@ -1,0 +1,32 @@
+# Keyword Extractor Configuration
+#
+# Demonstrates using keyword extractor for identifying important terms and phrases
+
+pipelines:
+  - name: keyword_extractor_pipeline
+    description: Pipeline to extract keywords and key phrases using Azure OpenAI.
+    executors:
+      - id: keyword_extractor
+        type: keyword_extractor # refers to the id in executor_catalog.yaml
+        debug_mode: true
+        settings:
+          max_concurrent: 2
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "gpt-4.1-mini"
+          credential_type: "default_azure_credential"
+          max_keywords: 15
+          keyword_type: "both"  # Options: "single_words", "phrases", "both"
+          include_score: true
+          extract_topics: true
+          min_word_length: 3
+          context_aware: true
+          ranking_method: "relevance"  # Options: "relevance", "frequency", "importance"
+          input_field: "text"
+          output_field: "keywords"
+          include_full_response: false
+
+      - id: pass_through
+        type: pass_through # refers to the id in executor_catalog.yaml
+        debug_mode: true
+    
+    execution_sequence: [keyword_extractor, pass_through]

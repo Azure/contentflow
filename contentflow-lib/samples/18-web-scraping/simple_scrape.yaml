@@ -1,0 +1,34 @@
+executors:
+  - id: web_scraper
+    type: web_scraper
+    settings:
+      # URL to scrape
+      url_pattern: "https://www.cnn.com/*"
+      
+      # CSS selectors for data extraction
+      selectors:
+        heading: "h1"
+        description: "p"
+        main_content: "div.main"
+      
+      # JavaScript rendering
+      render_js: true
+      
+      # Screenshot settings
+      screenshot_enabled: true
+      screenshot_full_page: true
+      screenshot_save_to_file: true
+      screenshot_output_dir: "./screenshots"
+      screenshot_filename_template: "example_{timestamp}.{ext}"
+      screenshot_type: "png"
+      
+      # Crawling settings (disabled for simple example)
+      follow_links: false
+      max_depth: 1
+      max_pages: 1
+      
+      # Rate limiting
+      rate_limit: 1.0
+      
+      # Output field name
+      output_field: "web_scraping_output"
