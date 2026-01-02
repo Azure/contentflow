@@ -60,6 +60,7 @@ const executorUIIconMap: Record<string, React.ReactNode> = {
   "map": <Map className="w-5 h-5" />,
   "filter": <Filter className="w-5 h-5" />,
   "link": <Link className="w-5 h-5" />,
+  "combine": <Combine className="w-5 h-5" />,
 };
 
 /**

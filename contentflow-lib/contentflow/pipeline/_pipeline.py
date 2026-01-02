@@ -27,7 +27,7 @@ class PipelineResult(BaseModel):
     """Pipeline execution result."""
     pipeline_name: str
     status: PipelineStatus
-    documents: Optional[Union[Content, List[Content]]] = None
+    content: Optional[Union[Content, List[Content]]] = None
     events: List[PipelineEvent] = Field(default_factory=list)
     start_time: datetime = None
     end_time: Optional[datetime] = None

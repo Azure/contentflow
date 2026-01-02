@@ -1,137 +1,14 @@
-# executor_catalog.yaml - Catalog of available workflow executors
+# executor_catalog.yaml - Catalog of available pipeline executors
 
 executor_catalog:
-
-  ########################################################
-  # Content Retriever Executor
-  - id: content_retriever
-    name: "Content Retriever"
-    description: "Retrieves document content from various sources (Azure Blob, local files)"
-    module_path: contentflow.executors.content_retriever
-    class_name: ContentRetrieverExecutor
-    tags: [input, retrieval, azure, blob, storage]
-    category: "input"
-    version: "1.0"
-    
-    # Settings schema for validation and UI generation
-    settings_schema:
-      # common settings
-      enabled:
-        type: boolean
-        title: "Enabled"
-        description: "Enable or disable this executor"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      fail_pipeline_on_error:
-        type: boolean
-        title: "Fail Pipeline On Error"
-        description: "Fail the entire pipeline if content retrieval fails"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
-      debug_mode:
-        type: boolean
-        title: "Debug Mode"
-        description: "Enable debug mode for detailed logging"
-        required: false
-        default: false
-        ui_component: "checkbox"
-
-      # executor-specific settings
-      include_content_bytes_as_field:
-        type: boolean
-        title: "Include Content Bytes"
-        description: "Include retrieved content as bytes in document data"
-        required: false
-        default: false
-        ui_component: "checkbox"
-      
-      use_temp_file_for_content:
-        type: boolean
-        title: "Use Temporary File"
-        description: "Save content to temporary file and provide file path"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
-      temp_folder:
-        type: string
-        title: "Temporary Folder"
-        description: "Path to temporary folder for downloaded content"
-        required: false
-        default: "./tmp/contentflow"
-        ui_component: "input"
-
-      max_concurrent:
-        type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
-        required: false
-        default: 1
-        min: 1
-        max: 10
-        increment: 1
-        ui_component: "number"
-
-      continue_on_error:
-        type: boolean
-        title: "Continue On Error"
-        description: "Continue processing other content items if retrieval fails for one"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
-      blob_storage_account:
-        type: string
-        title: "Blob Storage Account"
-        description: "Azure Blob Storage account name"
-        placeholder: "<enter storage account name>"
-        required: false
-        default: null
-        ui_component: "input"
-
-      blob_storage_account_credential_type:
-        type: string
-        title: "Blob Storage Account Credential Type"
-        description: "Credential type for accessing Azure Blob Storage"
-        required: false
-        default: "default_azure_credential"
-        options: ["default_azure_credential", "azure_key_credential"]
-        ui_component: "select"
-
-      blob_storage_account_key:
-        type: string
-        title: "Blob Storage Account Key"
-        description: "Azure Blob Storage account key (if using azure_key_credential credential type)"
-        required: false
-        default: null
-        ui_component: "input"
-
-      blob_container_name:
-        type: string
-        title: "Container Name"
-        description: "Azure Blob Storage container name"
-        placeholder: "<enter container name>"
-        required: false
-        default: null
-        ui_component: "input"
-
-    # UI metadata
-    ui_metadata:
-      icon: "download"
-      description_short: "Retrieve content from storage"
-      description_long: "Retrieves document content from Azure Blob Storage or local file system. Essential first step for processing documents."
-
+  
   ########################################################
   # Azure Blob Input Executor
-  - id: azure_blob_input
-    name: "Azure Blob Input"
-    description: "Discovers and lists content files from Azure Blob Storage containers"
-    module_path: contentflow.executors.azure_blob_input_executor
-    class_name: AzureBlobInputExecutor
+  - id: azure_blob_input_discovery
+    name: "Azure Blob Input Discovery"
+    description: "Discovers and lists content files from Azure Blob Storage containers. Must be used with an Azure Blob Content Retriever executor to fetch the actual content."
+    module_path: contentflow.executors.azure_blob_input_discovery
+    class_name: AzureBlobInputDiscoveryExecutor
     tags: [input, discovery, azure, blob, storage, source]
     category: "input"
     version: "1.0"
@@ -322,6 +199,217 @@ executor_catalog:
       description_long: "Scans Azure Blob Storage containers to discover content files. Supports filtering by prefix, file extensions, depth, size, and dates. Perfect for batch processing pipelines."
 
   ########################################################
+  # Azure Blob Content Retriever
+  - id: azure_blob_content_retriever
+    name: "Azure Blob Content Retriever"
+    description: "Retrieves document content from azure blob sources. Must be used after an Azure Blob Input Discovery executor."
+    module_path: contentflow.executors.azure_blob_content_retriever
+    class_name: AzureBlobContentRetrieverExecutor
+    tags: [input, retrieval, azure, blob, storage]
+    category: "input"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      include_content_bytes_as_field:
+        type: boolean
+        title: "Include Content Bytes"
+        description: "Include retrieved content as bytes in document data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      use_temp_file_for_content:
+        type: boolean
+        title: "Use Temporary File"
+        description: "Save content to temporary file and provide file path"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      temp_folder:
+        type: string
+        title: "Temporary Folder"
+        description: "Path to temporary folder for downloaded content"
+        required: false
+        default: "./tmp/contentflow"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    # UI metadata
+    ui_metadata:
+      icon: "download"
+      description_short: "Retrieve content from storage"
+      description_long: "Retrieves document content from Azure Blob Storage or local file system. Essential first step for processing documents."
+
+  ########################################################
+  # Content Retriever Executor
+  - id: content_retriever
+    name: "Content Retriever"
+    description: "Retrieves document content from various sources (Azure Blob, local files)"
+    module_path: contentflow.executors.content_retriever
+    class_name: ContentRetrieverExecutor
+    tags: [input, retrieval, azure, blob, storage]
+    category: "input"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      include_content_bytes_as_field:
+        type: boolean
+        title: "Include Content Bytes"
+        description: "Include retrieved content as bytes in document data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      use_temp_file_for_content:
+        type: boolean
+        title: "Use Temporary File"
+        description: "Save content to temporary file and provide file path"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      temp_folder:
+        type: string
+        title: "Temporary Folder"
+        description: "Path to temporary folder for downloaded content"
+        required: false
+        default: "./tmp/contentflow"
+        ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      blob_storage_account:
+        type: string
+        title: "Blob Storage Account"
+        description: "Azure Blob Storage account name"
+        placeholder: "<enter storage account name>"
+        required: false
+        default: null
+        ui_component: "input"
+
+      blob_storage_account_credential_type:
+        type: string
+        title: "Blob Storage Account Credential Type"
+        description: "Credential type for accessing Azure Blob Storage"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      blob_storage_account_key:
+        type: string
+        title: "Blob Storage Account Key"
+        description: "Azure Blob Storage account key (if using azure_key_credential credential type)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      blob_container_name:
+        type: string
+        title: "Container Name"
+        description: "Azure Blob Storage container name"
+        placeholder: "<enter container name>"
+        required: false
+        default: null
+        ui_component: "input"
+
+    # UI metadata
+    ui_metadata:
+      icon: "download"
+      description_short: "Retrieve content from storage"
+      description_long: "Retrieves document content from Azure Blob Storage or local file system. Essential first step for processing documents."
+
+  ########################################################
   # Azure Document Intelligence Extractor
   - id: azure_document_intelligence_extractor
     name: "Azure Document Intelligence Extractor"
@@ -386,11 +474,14 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
-        default: 5
-        ui_component: "input"
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
 
       continue_on_error:
         type: boolean
@@ -662,11 +753,14 @@ executor_catalog:
       
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
-        ui_component: "input"
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
 
       continue_on_error:
         type: boolean
@@ -747,12 +841,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -893,12 +988,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -1045,12 +1141,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -1276,12 +1373,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -1363,12 +1461,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max parallel runs"
-        description: "Maximum number of parallel processing runs"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -1797,18 +1896,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: null
-        min: 1
+        default: 400
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent agent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -1932,12 +2032,13 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent embedding operations"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -2099,17 +2200,18 @@ executor_catalog:
         description: "Maximum tokens in response"
         required: false
         default: 500
-        min: 1
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
       
       continue_on_error:
@@ -2268,18 +2370,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: 1000
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -2447,18 +2550,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: 500
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -2634,18 +2738,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: 500
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -2822,18 +2927,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: null
-        min: 1
+        default: 400
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -3013,18 +3119,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: null
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -3201,18 +3308,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: 200
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -3395,18 +3503,19 @@ executor_catalog:
         title: "Max Tokens"
         description: "Maximum tokens in response"
         required: false
-        default: 1000
-        min: 1
+        default: 600
+        min: 16
         ui_component: "number"
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum number of concurrent executions"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
         max: 10
+        increment: 1
         ui_component: "number"
 
       continue_on_error:
@@ -3618,12 +3727,13 @@ executor_catalog:
       
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum concurrent document processing"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
-        max: 20
+        max: 10
+        increment: 1
         ui_component: "number"
 
       timeout_secs:
@@ -3789,12 +3899,13 @@ executor_catalog:
             
       max_concurrent:
         type: integer
-        title: "Max Concurrent"
-        description: "Maximum concurrent blob uploads"
+        title: "Max Concurrent Parallel Retrievals"
+        description: "Maximum number of concurrent content retrievals"
         required: false
         default: 3
         min: 1
-        max: 20
+        max: 10
+        increment: 1
         ui_component: "number"
       
       timeout_secs:
@@ -3820,6 +3931,52 @@ executor_catalog:
       icon: "cloud-upload"
       description_short: "Write to Blob Storage"
       description_long: "Writes content entries as JSON files to Azure Blob Storage with support for path templating, metadata preservation, compression, and batch processing for enterprise data archival and backup scenarios."
+
+  ########################################################
+  # Fan-In Aggregator Executor
+  - id: fan_in_aggregator
+    name: "Fan-In Aggregator"
+    description: | 
+      "Aggregate results from multiple parallel branches by merging content items based on canonical 
+      IDs. Must always be used as the joining executor after parallel (fan-out) execution branches."
+    module_path: contentflow.executors.fan_in_aggregator
+    class_name: FanInAggregator
+    tags: [transform, merge, aggregate, fan-in]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if content retrieval fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "combine"
+      description_short: "Fan-In Aggregation"
+      description_long: "Aggregate results from multiple parallel branches by merging content items based on canonical IDs."
 
   ########################################################
   # Field Mapper Executor

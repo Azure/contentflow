@@ -13,7 +13,7 @@ import asyncio
 
 from .base import ConnectorBase
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.cosmos_gremlin")
 
 
 class CosmosGremlinConnector(ConnectorBase):

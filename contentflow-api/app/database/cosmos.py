@@ -33,7 +33,7 @@ class CosmosDBClient:
                 credential=self.credential
             )
             
-            logger.info("Attempting to create or get database...")
+            logger.info(f"Attempting to create or get database '{self.database}...")
             # Create database if it doesn't exist
             self.database_proxy = await self._ensure_database(self.database)
             logger.info(f"Database '{self.database}' is ready.")
@@ -41,7 +41,7 @@ class CosmosDBClient:
             logger.info("Initializing containers...")
             if self.initial_containers:
                 self.containers = {
-                        container_name: await self._ensure_container(container_name, partition_key) for container_name, partition_key in self.initial_containers.items()
+                        container_name: self._ensure_container(container_name, partition_key) for container_name, partition_key in self.initial_containers.items()
                     }
             logger.info(f"Initialized {len(self.containers)} containers.")
 
@@ -73,9 +73,10 @@ class CosmosDBClient:
         
     def _ensure_container(self, container_name: str, partition_key: str = "/id"):
         try:
-            return self.database_proxy.create_container_if_not_exists(id=container_name, partition_key=PartitionKey(path=partition_key))
-        except exceptions.CosmosResourceExistsError:
+            # return self.database_proxy.create_container_if_not_exists(id=container_name, partition_key=PartitionKey(path=partition_key))
             return self.database_proxy.get_container_client(container_name)
+        except exceptions.CosmosResourceExistsError:
+            raise Exception(f"Container '{container_name}' could not be accessed. Ensure container exists in the database '{self.database}'.")
             
     def get_container(self, container_name: str) -> ContainerProxy:
         """Get container by name"""

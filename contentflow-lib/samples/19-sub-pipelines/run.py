@@ -80,8 +80,8 @@ async def test_nested_subpipeline():
         print(f"  Wrote output to {output_file}")
     
         # Analyze results
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else result.documents.get_status() == "completed"
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else result.documents.get_status() == "failed"
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else result.content.get_status() == "completed"
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else result.content.get_status() == "failed"
         total_duration = result.duration_seconds
         
         print(f"\n✓ Processed {len(documents)} documents:")

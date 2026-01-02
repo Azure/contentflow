@@ -21,7 +21,7 @@ from agent_framework import WorkflowContext
 from .base import BaseExecutor
 from ..models import Content, ContentIdentifier
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.web_scraping_executor")
 
 
 class WebScrapingExecutor(BaseExecutor):

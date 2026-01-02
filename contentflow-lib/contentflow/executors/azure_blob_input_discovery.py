@@ -11,10 +11,10 @@ from .input_executor import InputExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
 from ..connectors import AzureBlobConnector
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.azure_blob_input_discovery")
 
 
-class AzureBlobInputExecutor(InputExecutor):
+class AzureBlobInputDiscoveryExecutor(InputExecutor):
     """
     Discover and list content files from Azure Blob Storage.
     
@@ -433,8 +433,8 @@ class AzureBlobInputExecutor(InputExecutor):
             filename=filename
         )
         
-        # Build content data
-        content_data = {
+        # Build content metadata
+        metadata = {
             'size': blob.get('size', 0),
             'last_modified': blob.get('last_modified'),
             'content_type': blob.get('content_type'),
@@ -442,12 +442,15 @@ class AzureBlobInputExecutor(InputExecutor):
         
         # Include metadata if requested
         if self.include_metadata and blob.get('metadata'):
-            content_data['metadata'] = blob['metadata']
+            metadata['blob_metadata'] = blob['metadata']
+        
+        # add as metadata to the identifier
+        identifier.metadata = metadata
         
         # Create Content object
         content = Content(
             id=identifier,
-            data=content_data
+            data={}
         )
         
         # Add executor log entry

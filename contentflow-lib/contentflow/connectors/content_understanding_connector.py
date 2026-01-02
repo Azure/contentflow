@@ -16,7 +16,7 @@ import aiohttp
 from .base import ConnectorBase
 from ..utils.credential_provider import get_azure_credential
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.content_understanding")
 
 
 class ContentUnderstandingConnector(ConnectorBase):

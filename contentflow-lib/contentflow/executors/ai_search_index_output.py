@@ -9,7 +9,7 @@ from . import ParallelExecutor
 from ..models import Content
 from ..connectors import AISearchConnector
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.ai_search_index_output")
 
 
 class AISearchIndexOutputExecutor(ParallelExecutor):

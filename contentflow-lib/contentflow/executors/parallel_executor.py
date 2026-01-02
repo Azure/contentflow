@@ -16,7 +16,7 @@ from agent_framework import WorkflowContext
 from .base import BaseExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
     
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.parallel_executor")
 
 
 class ParallelExecutor(BaseExecutor, ABC):

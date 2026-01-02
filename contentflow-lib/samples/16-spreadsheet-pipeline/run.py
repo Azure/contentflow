@@ -114,9 +114,9 @@ async def run_pipeline():
         print(f"\n✓ Wrote detailed results to {output_file}")
         
         # Analyze results
-        total_docs = len(result.documents) if isinstance(result.documents, list) else 1
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else (1 if result.documents.get_status() == "completed" else 0)
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else (1 if result.documents.get_status() == "failed" else 0)
+        total_docs = len(result.content) if isinstance(result.content, list) else 1
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else (1 if result.content.get_status() == "completed" else 0)
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else (1 if result.content.get_status() == "failed" else 0)
         total_duration = result.duration_seconds
         
         print(f"\n" + "=" * 80)
@@ -130,20 +130,20 @@ async def run_pipeline():
             print(f"  Avg per document: {total_duration/total_docs:.2f}s")
         
         # Show sample results
-        if isinstance(result.documents, list) and len(result.documents) > 0:
+        if isinstance(result.content, list) and len(result.content) > 0:
             print(f"\n" + "=" * 80)
             print(f"📊 Processing Results")
             print(f"=" * 80)
             
             # Count total rows processed
-            total_rows = len([d for d in result.documents if 'row_number' in d.data])
+            total_rows = len([d for d in result.content if 'row_number' in d.data])
             print(f"\n✓ Total rows extracted and processed: {total_rows}")
             
             # Show first few records
             print(f"\n📄 Sample Records (First 5):")
-            sample_count = min(5, len(result.documents))
+            sample_count = min(5, len(result.content))
             
-            for idx, doc in enumerate(result.documents[:sample_count], 1):
+            for idx, doc in enumerate(result.content[:sample_count], 1):
                 print(f"\n{'─' * 80}")
                 print(f"Record {idx}:")
                 
@@ -173,7 +173,7 @@ async def run_pipeline():
                 amount_total = 0
                 amount_count = 0
                 
-                for doc in result.documents:
+                for doc in result.content:
                     if 'status' in doc.data:
                         status = doc.data['status']
                         status_counts[status] = status_counts.get(status, 0) + 1

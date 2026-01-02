@@ -16,7 +16,7 @@ from azure.core.exceptions import ResourceNotFoundError
 
 from contentflow.utils.credential_provider import get_azure_credential_with_details
 
-logger = logging.getLogger("contentflow-api.services.health_service")
+logger = logging.getLogger("contentflow.api.services.health_service")
 
 class ServiceHealth(BaseModel):
     """Model for individual service health status"""
@@ -431,6 +431,8 @@ class HealthService:
         start_time = datetime.now(timezone.utc)
         endpoint = self.worker_engine_api_endpoint
         url = endpoint.rstrip("/") + "/status"
+        
+        logger.debug(f"Checking worker health with URL: {url}")
         
         try:
             async with aiohttp.ClientSession() as session:

@@ -15,7 +15,7 @@ from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 from ..utils.credential_provider import get_azure_credential_async
 from .base import ConnectorBase
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.azure_blob")
 
 
 class AzureBlobConnector(ConnectorBase):
@@ -241,7 +241,7 @@ class AzureBlobConnector(ConnectorBase):
                 "metadata": blob.metadata
             })
             
-            if max_results and len(blobs) >= max_results:
+            if max_results and max_results > 0 and len(blobs) >= max_results:
                 break
         
         logger.debug(f"Listed {len(blobs)} blobs from {container_name} (prefix: {prefix})")

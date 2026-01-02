@@ -174,7 +174,7 @@ export const Footer = () => {
   useEffect(() => {
 
     checkHealth();
-    const interval = setInterval(checkHealth, 300000); // Check every 5 minutes
+    const interval = setInterval(checkHealth, 600000); // Check every 10 minutes
 
     return () => clearInterval(interval);
   }, []);

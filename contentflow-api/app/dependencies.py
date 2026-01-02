@@ -6,11 +6,9 @@ import logging
 from anyio import Path
 
 from contentflow.utils import ttl_cache
-from contentflow.utils import ConfigurationProvider
-
+from contentflow.utils import ConfigurationProvider, get_azure_credential, get_azure_credential_async
 from contentflow import pipeline
 
-from app.utils.credential import get_azure_credential, get_azure_credential_async
 from app.database.cosmos import CosmosDBClient
 
 logger = logging.getLogger("contentflow-api.dependencies")
@@ -84,12 +82,6 @@ async def get_pipeline_execution_service():
     """Dependency to get PipelineExecutionService"""
     from app.services.pipeline_execution_service import PipelineExecutionService
     return PipelineExecutionService(await get_cosmos_client())
-
-# async def get_analysis_service():
-#     """Dependency to get AnalysisService"""
-#     from app.services.analysis_service import AnalysisService
-#     global cosmos_client
-#     return AnalysisService(cosmos_client)
 
 async def initialize_executor_catalog():
     """Initialize executor catalog"""

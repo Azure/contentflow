@@ -34,8 +34,8 @@ from azure.cosmos.exceptions import CosmosResourceNotFoundError, CosmosResourceE
 from contentflow.executors import BaseExecutor, InputExecutor
 from contentflow.executors.executor_config import ExecutorInstanceConfig
 from contentflow.models import Content
-from contentflow.executors import AzureBlobInputExecutor, ExecutorRegistry
-from contentflow.utils import get_azure_credential
+from contentflow.executors import ExecutorRegistry
+from contentflow.utils import get_azure_credential, make_safe_json
 
 from app.models import ContentProcessingTask, TaskPriority
 from app.queue_client import TaskQueueClient
@@ -453,7 +453,8 @@ class InputSourceWorker:
                     tasks_created += 1
                 except Exception as e:
                     logger.error(f"{self.name}: failed to create processing task: {e}")
-
+                    logger.exception(e)
+                    
                 # Create processing tasks for each content item
                 if self.stop_event.is_set():
                     break
@@ -574,7 +575,7 @@ class InputSourceWorker:
             pipeline_id=pipeline['id'],
             pipeline_name=pipeline['name'],
             execution_id=execution_id,
-            content_id_list=[c.id.canonical_id for c in content],
+            content=content,
             executed_input_executor=executed_input_executor,  # Mark which executor was already run
             max_retries=self.settings.MAX_TASK_RETRIES
         )
@@ -604,8 +605,8 @@ class InputSourceWorker:
                 "pipeline_id": task.pipeline_id,
                 "pipeline_name": task.pipeline_name,
                 "status": "pending",
-                "inputs": {},
-                "configuration": {},
+                "task_id": task.task_id,
+                "content": [make_safe_json(c) for c in task.content],
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": self.name,
                 "executor_outputs": {},

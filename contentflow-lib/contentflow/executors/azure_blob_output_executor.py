@@ -13,7 +13,7 @@ from ..models import Content
 from ..connectors import AzureBlobConnector
 from ..utils import make_safe_json
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.azure_blob_output_executor")
 
 class AzureBlobOutputExecutor(ParallelExecutor):
     """

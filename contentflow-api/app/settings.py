@@ -17,14 +17,14 @@ class AppSettings(BaseModel):
     # Application settings with defaults
     TITLE: str = "ContentFlow API"
     VERSION: str = "0.1.0"
-    DESCRIPTION: str | None = "ContentFlow API for managing content processing pipelines."
+    DESCRIPTION: str = "ContentFlow API for managing content processing pipelines."
     DOCS_URL: str = "/docs"
     OPENAPI_URL: str = "/openapi.json"
     REDOC_URL: str = "/redoc"
 
     API_SERVER_HOST: str = "0.0.0.0"
     API_SERVER_PORT: int = 8090
-    API_SERVER_WORKERS: int = 4
+    API_SERVER_WORKERS: int = 1
 
     DEBUG: bool = True
     LOG_LEVEL: str = "DEBUG"
@@ -94,8 +94,6 @@ class AppSettings(BaseModel):
                 "DEBUG",
                 "ALLOW_CREDENTIALS",
                 "ALLOW_ORIGINS",
-                "ALLOW_METHODS",
-                "ALLOW_HEADERS"
             ]
             
             # Load configuration values

@@ -14,7 +14,7 @@ from app.models import (
     VaultUpdateRequest
 )
 
-logger = logging.getLogger("contentflow-api.services.vault_service")
+logger = logging.getLogger("contentflow.api.services.vault_service")
 
 class VaultService(BaseService):
     """Service for managing document vaults"""

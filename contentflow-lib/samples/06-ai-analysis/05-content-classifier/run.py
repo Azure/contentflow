@@ -216,19 +216,19 @@ async def run_pipeline():
         print(f"  Wrote output to {output_file}")
         
         # Analyze results
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else result.documents.get_status() == "completed"
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else result.documents.get_status() == "failed"
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else result.content.get_status() == "completed"
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else result.content.get_status() == "failed"
         total_duration = result.duration_seconds
         
         print(f"\n✓ Content classification processing completed")
-        print(f"  Total documents: {len(result.documents) if isinstance(result.documents, list) else 1}")
+        print(f"  Total documents: {len(result.content) if isinstance(result.content, list) else 1}")
         print(f"  Successful: {successful}")
         print(f"  Failed: {failed}")
         print(f"  Total duration: {total_duration:.2f}s")
-        print(f"  Avg per document: {total_duration/(len(result.documents) if isinstance(result.documents, list) else 1):.2f}s")
+        print(f"  Avg per document: {total_duration/(len(result.content) if isinstance(result.content, list) else 1):.2f}s")
         
         # Show classification results with visual indicators
-        if isinstance(result.documents, list) and len(result.documents) > 0:
+        if isinstance(result.content, list) and len(result.content) > 0:
             print(f"\n{'=' * 70}")
             print("CLASSIFICATION RESULTS")
             print(f"{'=' * 70}")
@@ -248,7 +248,7 @@ async def run_pipeline():
             # Count classifications by category
             category_counts = {}
             
-            for i, doc in enumerate(result.documents):
+            for i, doc in enumerate(result.content):
                 if 'classification' in doc.data:
                     print(f"\n📄 Document {i+1}: {doc.id.canonical_id}")
                     print(f"\n{'─' * 70}")

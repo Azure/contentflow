@@ -22,7 +22,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
           <h1 className="font-display text-6xl md:text-7xl font-bold mb-6 text-foreground leading-tight">
             Transform Content Into
             <span className="block bg-gradient-secondary bg-clip-text text-transparent">
-              <img src="/01038-icon-service-Collaborative-Service.svg" alt="Connected Knowledge" className="inline-block w-16 h-16 ml-1" /> Connected Knowledge
+              <img src="/contentflow.svg" alt="Connected Knowledge" className="inline-block w-16 h-16 ml-1" /> Connected Knowledge
             </span>
           </h1>
           

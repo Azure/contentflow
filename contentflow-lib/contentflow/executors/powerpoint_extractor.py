@@ -18,7 +18,7 @@ except ImportError:
 from . import ParallelExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.powerpoint_extractor")
 
 
 class PowerPointExtractorExecutor(ParallelExecutor):

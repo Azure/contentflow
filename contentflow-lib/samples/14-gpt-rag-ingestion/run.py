@@ -100,9 +100,9 @@ async def run_pipeline():
         print(f"\n✓ Wrote detailed results to {output_file}")
         
         # Analyze results
-        total_docs = len(result.documents) if isinstance(result.documents, list) else 1
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else (1 if result.documents.get_status() == "completed" else 0)
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else (1 if result.documents.get_status() == "failed" else 0)
+        total_docs = len(result.content) if isinstance(result.content, list) else 1
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else (1 if result.content.get_status() == "completed" else 0)
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else (1 if result.content.get_status() == "failed" else 0)
         total_duration = result.duration_seconds
         
         print(f"\n" + "=" * 80)
@@ -116,8 +116,8 @@ async def run_pipeline():
             print(f"  Avg per document: {total_duration/total_docs:.2f}s")
         
         # Show sample results
-        if isinstance(result.documents, list) and len(result.documents) > 0:
-            first_doc = result.documents[0]
+        if isinstance(result.content, list) and len(result.content) > 0:
+            first_doc = result.content[0]
             print(f"\n📄 Sample Results (First Document):")
             print(f"  Document ID: {first_doc.id}")
             

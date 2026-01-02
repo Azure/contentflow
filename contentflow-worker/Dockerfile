@@ -1,5 +1,5 @@
 # ContentFlow Worker - Multi-processing Content Processing Engine
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
@@ -7,19 +7,30 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
+# Copy contentflow-lib first (shared dependency)
+COPY contentflow-lib /app/contentflow-lib
+
+# Install contentflow-lib
+WORKDIR /app/contentflow-lib
+RUN pip install --no-cache-dir -e .
+
+# Switch to Worker directory
+WORKDIR /app/contentflow-worker
+
+# Copy Worker requirements
+COPY contentflow-worker/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy worker code
-COPY . .
+COPY contentflow-worker/ .
 
-# Set Python path to include contentflow-lib
-ENV PYTHONPATH="/app:/app/../contentflow-lib:${PYTHONPATH}"
+# # Set Python path to include contentflow-lib
+# ENV PYTHONPATH="/app:/app/contentflow-lib:${PYTHONPATH}"
 
 # Environment variables (can be overridden)
 ENV WORKER_NAME=contentflow-worker

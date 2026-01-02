@@ -43,16 +43,11 @@ def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
                 return f"({func_name}, {str(args)}, {str(sorted(kwargs.items())) if kwargs else ''})"
         
         async def async_inner(*args, **kwargs):
-            print(f"ttl_cache: Called async function '{func_name}' with args={args}, kwargs={kwargs}")
-            
             cache_key = get_cache_key(*args, **kwargs)
-            print(f"ttl_cache: Generated cache key: {cache_key}")
-            
             current_time = time.time()
             
             # Check if we have cached data and if it's still valid
             if cache_key in cache_data:
-                print(f"Cache hit for key: {cache_key}")
                 result, timestamp = cache_data[cache_key]
                 if current_time - timestamp <= ttl:
                     return result
@@ -60,7 +55,6 @@ def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
                     # Cache expired, remove the entry
                     del cache_data[cache_key]
             
-            print(f"Cache miss for key: {cache_key}")
             # Execute function and cache the result
             result = await func(*args, **kwargs)
             cache_data[cache_key] = (result, current_time)
@@ -74,16 +68,13 @@ def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
             return result
         
         def inner(*args, **kwargs):
-            print(f"ttl_cache: Called function '{func_name}' with args={args}, kwargs={kwargs}")
             
             cache_key = get_cache_key(*args, **kwargs)
-            print(f"ttl_cache: Generated cache key: {cache_key}")
             
             current_time = time.time()
             
             # Check if we have cached data and if it's still valid
             if cache_key in cache_data:
-                print(f"Cache hit for key: {cache_key}")
                 result, timestamp = cache_data[cache_key]
                 if current_time - timestamp <= ttl:
                     return result
@@ -91,7 +82,6 @@ def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
                     # Cache expired, remove the entry
                     del cache_data[cache_key]
             
-            print(f"Cache miss for key: {cache_key}")
             # Execute function and cache the result
             result = func(*args, **kwargs)
             cache_data[cache_key] = (result, current_time)

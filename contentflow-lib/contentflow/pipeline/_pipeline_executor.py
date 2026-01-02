@@ -332,7 +332,7 @@ class PipelineExecutor:
         result = PipelineResult(
             pipeline_name=self.pipeline_name,
             status=status,
-            documents=result,
+            content=result,
             events=events,
             start_time=start_time,
             end_time=end_time,

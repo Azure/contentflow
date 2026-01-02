@@ -29,7 +29,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
               {/* <Workflow className="w-5 h-5 text-white" /> */}
-              <img src="/01038-icon-service-Collaborative-Service.svg" alt="ContentFlow" className="inline-block w-5 h-5" />
+              <img src="/contentflow.svg" alt="ContentFlow" className="inline-block w-5 h-5" />
             </div>
             <span className="font-display text-xl font-bold text-foreground">ContentFlow</span>
             </div>

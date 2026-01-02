@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.summarization_executor")
 
 
 class SummarizationExecutor(AzureOpenAIAgentExecutor):

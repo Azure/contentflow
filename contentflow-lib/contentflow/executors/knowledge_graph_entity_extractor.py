@@ -15,7 +15,7 @@ from .parallel_executor import ParallelExecutor
 from ..connectors.ai_inference_connector import AIInferenceConnector
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.knowledge_graph_entity_extractor")
 
 
 class KnowledgeGraphEntityExtractorExecutor(ParallelExecutor):

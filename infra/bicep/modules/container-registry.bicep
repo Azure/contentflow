@@ -4,16 +4,32 @@ param containerRegistryName string
 @description('Optional: Location for all resources. Default is the resource group location')
 param location string = resourceGroup().location
 
-@description('Optional: Container Registry SKU. Default is Basic')
-param sku string = 'Basic'
+@description('Optional: Container Registry SKU. Default is Standard, Premium required for private endpoints')
+@allowed([
+  'Basic'
+  'Premium'
+  'Standard'
+])
+param sku string = 'Standard'
 
-@description('Optional: Admin user enabled. Default is true')
-param adminUserEnabled bool = true
+@description('Optional: Admin user enabled. Default is false')
+param adminUserEnabled bool = false
+
+@description('Enable private endpoint for AILZ integrated mode')
+param enablePrivateEndpoint bool = false
+
+@description('Subnet ID for private endpoint (required when enablePrivateEndpoint is true)')
+param privateEndpointSubnetId string = ''
+
+@description('Azure Container Registry Private DNS Zone ID for private endpoint (required when enablePrivateEndpoint is true)')
+param acrPrivateDnsZoneId string = ''
 
 @description('Public network access setting for the Azure Container Registry')
+@allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 
 @description('Zone redundancy setting for the Azure Container Registry')
+@allowed(['Enabled', 'Disabled'])
 param zoneRedundancy string = 'Disabled'
 
 @description('Managed Identity that will be given access to the Container Registry')
@@ -52,11 +68,31 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
     name: containerRegistryName
     location: location
     tags: tags
-    acrSku: sku
+    acrSku: enablePrivateEndpoint ? 'Premium' : sku
     acrAdminUserEnabled: adminUserEnabled
     publicNetworkAccess: publicNetworkAccess
     zoneRedundancy: zoneRedundancy
     roleAssignments: concat(roleAssignmentsAcrPull, roleAssignmentsAcrPush, roleAssignmentsAcrDelete)
+    privateEndpoints: enablePrivateEndpoint ? [
+      {
+        name: '${containerRegistryName}-pe'
+        resourceGroupResourceId: resourceGroup().id
+        subnetResourceId: privateEndpointSubnetId
+        service: 'registry'
+        privateLinkServiceConnectionName: '${containerRegistryName}-acr-plsc'
+        privateDnsZoneGroups: [
+          {
+            name: 'acr-dns-zone-group'
+            privateDnsZoneGroupConfigs: !empty(acrPrivateDnsZoneId) ? [
+              {
+                name: 'acr-config'
+                privateDnsZoneResourceId: acrPrivateDnsZoneId
+              }
+            ] : []
+          }
+        ]
+      }
+    ] : []
   }
 }
 

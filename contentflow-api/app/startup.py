@@ -3,10 +3,11 @@ Startup and initialization logic for the application.
 """
 import asyncio
 import logging
+from opentelemetry import trace
 
 from app.dependencies import initialize_cosmos, initialize_blob_storage, initialize_executor_catalog
 
-logger = logging.getLogger("contentflow-api.startup")
+logger = logging.getLogger("contentflow.api.startup")
 
 async def startup_tasks():
     """Run all startup tasks"""
@@ -40,8 +41,10 @@ async def startup_tasks():
 
 
 async def startup():
-    logger.info("Application is starting up...")
-    await startup_tasks()
+    tracer = trace.get_tracer("contentflow-api.startup")
+    with tracer.start_as_current_span("startup"):
+        logger.info("Application is starting up...")
+        await startup_tasks()
     
     
 async def shutdown():

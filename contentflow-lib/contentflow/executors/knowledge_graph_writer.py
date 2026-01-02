@@ -15,7 +15,7 @@ from .parallel_executor import ParallelExecutor
 from ..connectors.cosmos_gremlin_connector import CosmosGremlinConnector
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.knowledge_graph_writer")
 
 
 class KnowledgeGraphWriterExecutor(ParallelExecutor):

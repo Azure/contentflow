@@ -8,8 +8,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import uvicorn
 
+from contentflow.utils import setup_logging
+
 from app.settings import get_settings
-from app.utils.logging import setup_logger
 from app.startup import startup, shutdown
 from app.routers import health_router, pipelines_router, executors_router, vaults_router
 
@@ -66,7 +67,7 @@ def initialize_api_application() -> FastAPI:
 
 app_settings = get_settings()
 
-setup_logger(app_settings.LOG_LEVEL)
+setup_logging(app_settings.LOG_LEVEL)
 
 app: FastAPI = initialize_api_application()
 

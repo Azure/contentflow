@@ -9,7 +9,7 @@ from agent_framework import WorkflowContext
 from .parallel_executor import ParallelExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.field_mapper_executor")
 
 
 class FieldMapperExecutor(ParallelExecutor):
@@ -246,7 +246,7 @@ class FieldMapperExecutor(ParallelExecutor):
             logger.warning(f"No contents provided to {self.id}")
             return content
         
-        logger.info(
+        logger.debug(
             f"Mapping fields for content item "
             f"with {len(self.mappings)} field mappings"
         )
@@ -266,7 +266,7 @@ class FieldMapperExecutor(ParallelExecutor):
             # Raise error to be handled by ParallelExecutor
             raise
         
-        logger.info(
+        logger.debug(
             f"Successfully mapped fields for content item"
         )
         

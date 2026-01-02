@@ -13,7 +13,7 @@ import aiohttp
 from .base import ConnectorBase
 from ..utils.credential_provider import get_azure_credential_async
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.ai_search")
 
 
 class AISearchConnector(ConnectorBase):

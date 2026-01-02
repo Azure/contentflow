@@ -31,7 +31,6 @@ class WorkerSettings(BaseModel):
     QUEUE_POLL_INTERVAL_SECONDS: int = Field(default=5, description="Interval between queue polls")
     QUEUE_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=300, description="Message visibility timeout (5 minutes)")
     QUEUE_MAX_MESSAGES: int = Field(default=32, description="Maximum messages to retrieve per poll")
-    SOURCE_WORKER_POLL_INTERVAL_SECONDS: int = Field(default=60, description="Deprecated: use per-executor polling_interval_seconds")
     DEFAULT_POLLING_INTERVAL_SECONDS: int = Field(default=300, description="Default polling interval if not specified in executor (5 minutes)")
     SCHEDULER_SLEEP_INTERVAL_SECONDS: int = Field(default=5, description="How often scheduler checks for ready pipelines")
     LOCK_TTL_SECONDS: int = Field(default=300, description="Lock time-to-live (5 minutes)")
@@ -94,7 +93,6 @@ class WorkerSettings(BaseModel):
             "COSMOS_DB_CONTAINER_VAULT_EXECUTIONS": os.getenv("COSMOS_DB_CONTAINER_VAULT_EXECUTIONS", "vault_executions"),
             "COSMOS_DB_CONTAINER_LOCKS": os.getenv("COSMOS_DB_CONTAINER_LOCKS", "vault_exec_locks"),
             "COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS": os.getenv("COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS", "vault_crawl_checkpoints"),
-            "SOURCE_WORKER_POLL_INTERVAL_SECONDS": int(os.getenv("SOURCE_WORKER_POLL_INTERVAL_SECONDS", "60")),
             "DEFAULT_POLLING_INTERVAL_SECONDS": int(os.getenv("DEFAULT_POLLING_INTERVAL_SECONDS", "300")),
             "SCHEDULER_SLEEP_INTERVAL_SECONDS": int(os.getenv("SCHEDULER_SLEEP_INTERVAL_SECONDS", "5")),
             "LOCK_TTL_SECONDS": int(os.getenv("LOCK_TTL_SECONDS", "300")),
@@ -103,7 +101,7 @@ class WorkerSettings(BaseModel):
             "API_ENABLED": os.getenv("API_ENABLED", "True").lower() in ("true", "1", "yes"),
             "API_HOST": os.getenv("API_HOST", "0.0.0.0"),
             "API_PORT": int(os.getenv("API_PORT", "8099")),
-            "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO"),
+            "LOG_LEVEL": os.getenv("LOG_LEVEL", "DBEUG"),
             "DEBUG": os.getenv("DEBUG", "False").lower() in ("true", "1", "yes"),
         }
     
@@ -128,14 +126,29 @@ class WorkerSettings(BaseModel):
                 "NUM_PROCESSING_WORKERS",
                 "NUM_SOURCE_WORKERS",
                 "LOG_LEVEL",
+                "DEBUG",
+                "API_ENABLED",
+                "API_HOST",
+                "API_PORT",
+                "QUEUE_POLL_INTERVAL_SECONDS",
+                "QUEUE_VISIBILITY_TIMEOUT_SECONDS",
+                "QUEUE_MAX_MESSAGES",
+                "MAX_TASK_RETRIES",
+                "TASK_TIMEOUT_SECONDS",
+                "DEFAULT_POLLING_INTERVAL_SECONDS",
+                "SCHEDULER_SLEEP_INTERVAL_SECONDS",
+                "LOCK_TTL_SECONDS"
             ]
             
             for key in config_keys:
                 value = config_provider.get_config_value(key)
                 if value is not None:
                     # Convert to appropriate type
-                    if key in ["NUM_PROCESSING_WORKERS", "NUM_SOURCE_WORKERS"]:
+                    if key in ["NUM_PROCESSING_WORKERS", "NUM_SOURCE_WORKERS", "API_PORT", "QUEUE_POLL_INTERVAL_SECONDS", "QUEUE_VISIBILITY_TIMEOUT_SECONDS", "QUEUE_MAX_MESSAGES", "MAX_TASK_RETRIES", "TASK_TIMEOUT_SECONDS", "SOURCE_WORKER_POLL_INTERVAL_SECONDS", "DEFAULT_POLLING_INTERVAL_SECONDS", "SCHEDULER_SLEEP_INTERVAL_SECONDS", "LOCK_TTL_SECONDS"]:
                         value = int(value)
+                    elif key in ["API_ENABLED", "DEBUG"]:
+                        value = value.lower() in ("true", "1", "yes")
+                    
                     setattr(self, key, value)
                     
         except ImportError:

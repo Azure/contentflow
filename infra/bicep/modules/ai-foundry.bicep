@@ -1,14 +1,17 @@
 @description('Optional: Location for all resources. Default is the resource group location')
 param location string = resourceGroup().location
 
-@description('Required: Name of the Container Registry')
+@description('Required: The AI Foundry base name (max 12 characters)')
 param aiFoundryBaseName string
 
 @description('Managed Identity that will be given access to the AI Foundry Resource')
-param roleAssignedManagedIdentityPrincipalIds string[]
+param roleAssignedManagedIdentityPrincipalIds string[] = []
 
 @description('Tags for resources')
 param tags object = {}
+
+// Ensure unique role assignments
+var uniqueRoleAssignmentManagedIdentities = union(roleAssignedManagedIdentityPrincipalIds, roleAssignedManagedIdentityPrincipalIds)
 
 module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
   params: {
@@ -29,12 +32,12 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
         name: 'contentflow-project'
       }
       roleAssignments: [
-        for principalId in roleAssignedManagedIdentityPrincipalIds: {
-          principalId: principalId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // 'Azure AI User'       
-        }
-      ]
+          for principalId in uniqueRoleAssignmentManagedIdentities: {
+            principalId: principalId
+            principalType: 'ServicePrincipal'
+            roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // 'Azure AI User'
+          }
+        ]
       sku: 'S0'
     }
     aiModelDeployments: [
@@ -92,3 +95,4 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
 
 output aiProjectName string = aiFoundry.outputs.aiProjectName
 output aiServicesName string = aiFoundry.outputs.aiServicesName
+output location string = location

@@ -8,7 +8,7 @@ pipelines:
   - name: blob_discovery_basic
     executors:
       - id: discover_blobs
-        type: azure_blob_input
+        type: azure_blob_input_discovery
         settings:
           blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
           blob_storage_credential_type: "default_azure_credential"
@@ -20,7 +20,7 @@ pipelines:
   - name: blob_discovery_filtered
     executors:
       - id: discover_blobs
-        type: azure_blob_input
+        type: azure_blob_input_discovery
         settings:
           blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
           blob_storage_credential_type: "default_azure_credential"
@@ -39,7 +39,7 @@ pipelines:
   - name: blob_to_extraction
     executors:
       - id: discover_blobs
-        type: azure_blob_input
+        type: azure_blob_input_discovery
         settings:
           blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
           blob_storage_credential_type: "default_azure_credential"

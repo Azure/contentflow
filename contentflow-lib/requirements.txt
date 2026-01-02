@@ -8,16 +8,18 @@ aiohttp>=3.13.2
 agent-framework
 
 # Azure dependencies (if using Azure services)
-azure-core==1.36.0
+azure-core==1.37.0
 azure-identity==1.25.1
 azure-storage-blob==12.27.1
 azure-ai-documentintelligence==1.0.2
 azure.appconfiguration.provider==2.3.1
+azure-monitor-opentelemetry==1.8.3
 
-pymupdf==1.26.6
+pymupdf==1.26.7
 python-docx==1.2.0
 python-pptx==1.0.2
 openpyxl==3.1.5
 
+colorlog>=6.7.0
 colorama==0.4.6
-playwright>=1.40.0
+playwright>=1.57.0

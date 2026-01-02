@@ -16,6 +16,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Plus, Play, ChevronDown, ChevronRight,
   Film, Wand2, Network, FolderInput, Save, Brain, GitBranch, FileText, Search,
@@ -37,6 +47,7 @@ import { nodesToYaml, yamlToNodes } from "@/lib/pipelineYamlConverter";
 import { getPipelines, savePipeline as savePipelineApi, deletePipeline as deletePipelineApi, executePipeline, getExecutionHistory } from "@/lib/api/pipelinesApi";
 import { getExecutors } from "@/lib/api/executorsApi";
 import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
+import { load } from "js-yaml";
 
 const nodeTypes = {
   executor: ExecutorNode,
@@ -74,47 +85,90 @@ export const PipelineBuilder = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionsDialogOpen, setExecutionsDialogOpen] = useState(false);
   const [hasExecutions, setHasExecutions] = useState(false);
+  
+  // Confirmation dialog state
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ title: "", description: "", onConfirm: () => {} });
 
   // Load executors from API
   useEffect(() => {
-    const loadExecutors = async () => {
+    const loadingToastId = toast.loading("Loading executors and pipelines...");
+    
+    const loadData = async () => {
       try {
         setIsLoadingExecutors(true);
-        const executors = await getExecutors();
+        
+        // Load both executors and pipelines in parallel
+        const [executors] = await Promise.all([
+          getExecutors(),
+          loadSavedPipelines()
+        ]);
+        
         const enrichedExecutors = enrichExecutorsWithUI(executors);
         setExecutorTypes(enrichedExecutors);
+        
+        toast.dismiss(loadingToastId);
+        toast.success("Loaded successfully");
       } catch (error) {
-        console.error("Failed to load executors:", error);
-        toast.error("Failed to load executors");
+        console.error("Failed to load data:", error);
+        toast.dismiss(loadingToastId);
+        toast.error("Failed to load executors and pipelines");
       } finally {
         setIsLoadingExecutors(false);
       }
     };
 
-    loadExecutors();
+    loadData();
   }, []);
 
-  // Load template from localStorage if available
+  // Load template from localStorage if available, or pipeline from URL
   useEffect(() => {
     // Only load template after executors are loaded
     if (isLoadingExecutors || executorTypes.length === 0) {
       return;
     }
     
-    const templateData = localStorage.getItem("selectedTemplate");
-    if (templateData) {
-      try {
-        const template: PipelineTemplate = JSON.parse(templateData);
-        loadTemplate(template);
-        localStorage.removeItem("selectedTemplate");
-        toast.success(`Loaded template: ${template.name}`);
-      } catch (error) {
-        console.error("Failed to load template:", error);
+    const initializePipeline = async () => {
+      // First load all saved pipelines
+      const pipelines = loadedPipelines.length > 0 ? loadedPipelines : await loadSavedPipelines();
+      
+      // Check for template in localStorage first
+      const templateData = localStorage.getItem("selectedTemplate");
+      if (templateData) {
+        try {
+          const template: PipelineTemplate = JSON.parse(templateData);
+          loadTemplate(template);
+          localStorage.removeItem("selectedTemplate");
+          toast.success(`Loaded template: ${template.name}`);
+          return;
+        } catch (error) {
+          console.error("Failed to load template:", error);
+        }
       }
-    }
+      
+      // Check for pipeline ID in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const pipelineId = urlParams.get('pipeline');
+      
+      if (pipelineId && pipelines.length > 0) {
+        const pipeline = pipelines.find(p => p.id === pipelineId);
+        if (pipeline) {
+          loadPipeline(pipeline);
+        } else {
+          console.warn(`Pipeline with ID ${pipelineId} not found`);
+          // Clear invalid pipeline ID from URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('pipeline');
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+      }
+    };
     
-    // Load saved pipelines
-    loadSavedPipelines();
+    initializePipeline();
   }, [executorTypes, isLoadingExecutors]);
 
   // Load saved pipelines from API
@@ -122,9 +176,11 @@ export const PipelineBuilder = () => {
     try {
       const pipelines = await getPipelines();
       setLoadedPipelines(pipelines);
+      return pipelines;
     } catch (error) {
       console.error("Failed to load saved pipelines:", error);
       toast.error("Failed to load pipelines");
+      return [];
     }
   };
 
@@ -403,16 +459,30 @@ export const PipelineBuilder = () => {
 
   // Pipeline management functions
   const createNewPipeline = () => {
+    const clearPipeline = () => {
+      setNodes([]);
+      setEdges([]);
+      setCurrentPipeline(null);
+      setHasUnsavedChanges(false);
+      
+      // Clear pipeline ID from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('pipeline');
+      window.history.pushState({}, '', newUrl.toString());
+      
+      toast.success("New pipeline created");
+    };
+    
     if (hasUnsavedChanges && nodes.length > 0) {
-      if (!confirm("You have unsaved changes. Create a new pipeline anyway?")) {
-        return;
-      }
+      setConfirmDialogConfig({
+        title: "Unsaved Changes",
+        description: "You have unsaved changes. Create a new pipeline anyway?",
+        onConfirm: clearPipeline,
+      });
+      setConfirmDialogOpen(true);
+      return;
     }
-    setNodes([]);
-    setEdges([]);
-    setCurrentPipeline(null);
-    setHasUnsavedChanges(false);
-    toast.success("New pipeline created");
+    clearPipeline();
   };
 
   const savePipeline = async (data: PipelineSaveDialogDataProps) => {
@@ -463,6 +533,13 @@ export const PipelineBuilder = () => {
       setCurrentPipeline(savedPipeline);
       setHasUnsavedChanges(false);
       
+      // Update URL with pipeline ID if it's a new save
+      if (!currentPipeline?.id) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('pipeline', savedPipeline.id);
+        window.history.pushState({}, '', newUrl.toString());
+      }
+      
       toast.success(currentPipeline?.id ? "Pipeline updated" : "Pipeline saved");
     } catch (error) {
       console.error("Failed to save pipeline:", error);
@@ -486,17 +563,31 @@ export const PipelineBuilder = () => {
       return;
     }
 
-    try {
-      setIsExecuting(true);
-      const result = await executePipeline(currentPipeline.id, {}, {});
-      setExecutionId(result.execution_id);
-      setHasExecutions(true);
-      toast.success("Pipeline execution started");
-    } catch (error) {
-      console.error("Failed to execute pipeline:", error);
-      toast.error("Failed to execute pipeline");
-      setIsExecuting(false);
+    const executePipelineAction = async () => {
+      try {
+        setIsExecuting(true);
+        const result = await executePipeline(currentPipeline.id, {}, {});
+        setExecutionId(result.execution_id);
+        setHasExecutions(true);
+        toast.success("Pipeline execution started");
+      } catch (error) {
+        console.error("Failed to execute pipeline:", error);
+        toast.error("Failed to execute pipeline");
+        setIsExecuting(false);
+      }
+    };
+
+    if (hasUnsavedChanges) {
+      setConfirmDialogConfig({
+        title: "Unsaved Changes",
+        description: "You have unsaved changes. Execute the pipeline anyway?",
+        onConfirm: executePipelineAction,
+      });
+      setConfirmDialogOpen(true);
+      return;
     }
+
+    await executePipelineAction();
   };
 
   const checkPipelineExecutions = async () => {
@@ -536,6 +627,12 @@ export const PipelineBuilder = () => {
     setSelectedEdges([]);
     setCurrentPipeline(pipeline);
     setHasUnsavedChanges(false);
+    
+    // Update URL with pipeline ID
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('pipeline', pipeline.id);
+    window.history.pushState({}, '', newUrl.toString());
+    
     toast.success(`Loaded: ${pipeline.name}`);
     // Check if this pipeline has executions
     checkPipelineExecutions();
@@ -911,6 +1008,28 @@ export const PipelineBuilder = () => {
           onOpenChange={setExecutionsDialogOpen}
         />
       )}
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialogConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialogConfig.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                confirmDialogConfig.onConfirm();
+                setConfirmDialogOpen(false);
+              }}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

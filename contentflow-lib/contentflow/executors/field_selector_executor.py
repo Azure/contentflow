@@ -9,7 +9,7 @@ from agent_framework import WorkflowContext
 from .parallel_executor import ParallelExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.field_selector_executor")
 
 
 class FieldSelectorExecutor(ParallelExecutor):

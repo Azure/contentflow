@@ -15,7 +15,7 @@ from ..utils.credential_provider import get_azure_credential
 from . import ParallelExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.azure_openai_embeddings_executor")
 
 
 class AzureOpenAIEmbeddingsExecutor(ParallelExecutor):

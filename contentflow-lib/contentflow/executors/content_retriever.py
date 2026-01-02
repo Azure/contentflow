@@ -11,7 +11,7 @@ from . import ParallelExecutor
 from ..models import Content, ContentIdentifier, ExecutorLogEntry
 from ..connectors import AzureBlobConnector
     
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.content_retriever")
 
 
 class ContentRetrieverExecutor(ParallelExecutor):

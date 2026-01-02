@@ -11,7 +11,7 @@ from azure.storage.queue import QueueClient, QueueMessage
 from azure.identity import ChainedTokenCredential
 from azure.core.exceptions import ResourceNotFoundError
 
-from contentflow.utils import get_azure_credential
+from contentflow.utils import get_azure_credential, make_safe_json
 
 from app.models import TaskMessage, ContentProcessingTask, InputSourceTask, TaskType
 
@@ -84,7 +84,7 @@ class TaskQueueClient:
         """
         message = TaskMessage(
             task_type=TaskType.CONTENT_PROCESSING,
-            payload=task.model_dump()
+            payload=make_safe_json(task.model_dump())
         )
         return self._send_message(message, visibility_timeout)
     

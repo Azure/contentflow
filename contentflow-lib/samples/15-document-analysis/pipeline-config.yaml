@@ -16,7 +16,7 @@ pipelines:
     executors:
       # Load articles from Azure Blob Storage
       - id: discover_blobs
-        type: azure_blob_input
+        type: azure_blob_input_discovery
         settings:
           blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
           blob_storage_credential_type: "default_azure_credential"

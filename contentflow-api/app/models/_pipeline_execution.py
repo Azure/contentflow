@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from ._base import CosmosBaseModel
 
-
 class ExecutionStatus(str, Enum):
     """Status of pipeline execution"""
     PENDING = "pending"

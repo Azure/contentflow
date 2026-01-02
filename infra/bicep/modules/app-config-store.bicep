@@ -7,8 +7,18 @@ param appConfigStoreName string
 @description('Managed Identity that will be given access to the App Configuration Store')
 param roleAssignedManagedIdentityPrincipalIds string[]
 
-@description('Key-Value pairs to initialize in the App Configuration Store')
-param configurationKeyValues array = []
+@description('Enable private endpoint for AILZ mode')
+param enablePrivateEndpoint bool = false
+
+@description('Subnet ID for private endpoint (required when enablePrivateEndpoint is true)')
+param privateEndpointSubnetId string = ''
+
+@description('App Configuration Private DNS Zone ID for private endpoint (required when enablePrivateEndpoint is true)')
+param appConfigPrivateDnsZoneId string = ''
+
+@description('Public network access setting')
+@allowed(['Enabled', 'Disabled'])
+param publicNetworkAccess string = 'Disabled'
 
 @description('Tags for resources')
 param tags object = {}
@@ -31,29 +41,46 @@ var deployerRoleAssignments = [
   ]
 
 // Use Azure Verified Module for Config Store
-module configurationStore 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
+module appConfigStore 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
+  name: '${deployment().name}-appConfigStore'
   params: {
-    // Required parameters
     name: appConfigStoreName
-    // Non-required parameters
     location: location
     tags: tags
     sku: 'Standard'
     createMode: 'Default'
     disableLocalAuth: false
+    dataPlaneProxy: {
+      authenticationMode: 'Pass-through'
+      privateLinkDelegation: 'Disabled'
+    }
     enablePurgeProtection: false
-    keyValues: [
-      for config in configurationKeyValues: {
-        contentType: config.contentType
-        name: config.name
-        value: config.value
-      }
-    ]
     softDeleteRetentionInDays: 1
     roleAssignments: concat(roleAssignments, deployerRoleAssignments)
+    publicNetworkAccess: publicNetworkAccess
+    privateEndpoints: enablePrivateEndpoint ? [
+      {
+        name: '${appConfigStoreName}-pe'
+        resourceGroupResourceId: resourceGroup().id
+        subnetResourceId: privateEndpointSubnetId
+        privateLinkServiceConnectionName: '${appConfigStoreName}-app-config-plsc'
+        privateDnsZoneGroups: [
+          {
+            name: 'app-config-dns-zone-group'
+            privateDnsZoneGroupConfigs: !empty(appConfigPrivateDnsZoneId) ? [
+              {
+                name: 'app-config'
+                privateDnsZoneResourceId: appConfigPrivateDnsZoneId
+              }
+            ] : []
+          }
+        ]
+      }
+    ] : []
   }
 }
 
-output endpoint string = configurationStore.outputs.endpoint
-output resourceId string = configurationStore.outputs.resourceId
-output name string = configurationStore.outputs.name
+output endpoint string = appConfigStore.outputs.endpoint
+output resourceId string = appConfigStore.outputs.resourceId
+output name string = appConfigStore.outputs.name
+output privateEndpointIds array = appConfigStore.outputs.privateEndpoints

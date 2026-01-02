@@ -9,7 +9,7 @@ from app.database.cosmos import CosmosDBClient
 
 from app.models import ExecutorCatalogDefinition
 
-logger = logging.getLogger("contentflow-api.services.executor_catalog")
+logger = logging.getLogger("contentflow.api.services.executor_catalog")
 
 class ExecutorCatalogService(BaseService):
     """Service for managing executor catalog operations"""

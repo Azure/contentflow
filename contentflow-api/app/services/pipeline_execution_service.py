@@ -29,7 +29,7 @@ from contentflow.pipeline import PipelineExecutor as ContentFlowPipelineExecutor
 from contentflow.models import Content
 from contentflow.utils import make_safe_json
 
-logger = logging.getLogger("contentflow-api.services.pipeline_execution_service")
+logger = logging.getLogger("contentflow.api.services.pipeline_execution_service")
 
 
 class PipelineExecutionService(BaseService):
@@ -166,7 +166,9 @@ class PipelineExecutionService(BaseService):
                             error=make_safe_json(event.error) if event.error is not None else None
                         )
                         
-                        logger.debug(f"Execution {execution_id} event: {event.event_type} from executor: {event.executor_id}")
+                        logger.debug("-" * 80)
+                        logger.debug(f"Execution {execution_id} event: \033[1;34m{event.event_type}\033[0m from executor: \033[1;34m{event.executor_id}\033[0m")
+                        logger.debug("-" * 80)
                         
                         # Save event
                         if event.event_type != "Error":
@@ -174,12 +176,13 @@ class PipelineExecutionService(BaseService):
                             try:
                                 await self.add_event(execution_id, exec_event)
                             except cosmos_exceptions.CosmosHttpResponseError as ce:
-                                logger.error(f"Failed to add event to execution {execution_id}: {ce}", exc_info=False)
                                 # check if it's due to request entity too large
                                 if ce.status_code == 413:
-                                    logger.error(f"Event too large to store for execution {execution_id}, skipping event data storage.")
-                                    exec_event.data = {"error": "Event data too large to store."}
+                                    logger.warning(f"Event too large to store for execution {execution_id}, skipping event data storage.")
+                                    exec_event.data = {"error": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
                                     await self.add_event(execution_id, exec_event)
+                                else:
+                                    logger.error(f"Failed to add event to execution {execution_id}: {ce}", exc_info=False)
                                     
                         # Track executor status
                         if event.executor_id:
@@ -203,12 +206,13 @@ class PipelineExecutionService(BaseService):
                             try:
                                 await self.add_executor_output(execution_id, executor_output)
                             except cosmos_exceptions.CosmosHttpResponseError as ce:
-                                logger.error(f"Failed to add event to execution {execution_id}: {ce}", exc_info=False)
                                 # check if it's due to request entity too large
                                 if ce.status_code == 413:
-                                    logger.error(f"Output too large to store for execution {execution_id}, skipping event data storage.")
-                                    executor_output.data = {"error": "Event data too large to store in Cosmos DB. View output saved by output executor(s)."}
+                                    logger.warning(f"Output too large to store for execution {execution_id}, skipping event data storage.")
+                                    executor_output.data = {"error": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
                                     await self.add_executor_output(execution_id, executor_output)
+                                else:
+                                    logger.error(f"Failed to add event to execution {execution_id}: {ce}", exc_info=False)
 
                         if event.event_type == "WorkflowFailedEvent":
                             # Update execution status to failed

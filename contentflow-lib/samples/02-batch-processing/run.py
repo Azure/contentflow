@@ -88,16 +88,16 @@ async def batch_processing_example():
         print(f"  Wrote output to {output_file}")
         
         # Analyze results
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else result.documents.get_status() == "completed"
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else result.documents.get_status() == "failed"
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else result.content.get_status() == "completed"
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else result.content.get_status() == "failed"
         total_duration = result.duration_seconds
         
         print(f"\n✓ Batch processing completed")
-        print(f"  Total documents: {len(result.documents) if isinstance(result.documents, list) else 1}")
+        print(f"  Total documents: {len(result.content) if isinstance(result.content, list) else 1}")
         print(f"  Successful: {successful}")
         print(f"  Failed: {failed}")
         print(f"  Total duration (seconds): {total_duration:.2f}s")
-        print(f"  Avg per document: {total_duration/(len(result.documents) if isinstance(result.documents, list) else 1):.2f}s")
+        print(f"  Avg per document: {total_duration/(len(result.content) if isinstance(result.content, list) else 1):.2f}s")
         
         # Show batch event details
         print(f"\n📊 Processing Events:")

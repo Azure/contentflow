@@ -84,8 +84,8 @@ async def basic_blob_discovery():
                 f.write(result.model_dump_json(indent=2))
         print(f"  Wrote output to {output_file}")
         
-        if result.documents:
-            blobs = result.documents if isinstance(result.documents, list) else [result.documents]
+        if result.content:
+            blobs = result.content if isinstance(result.content, list) else [result.content]
             print(f"\n📁 Discovered {len(blobs)} files:")
             
             for i, blob in enumerate(blobs[:10], 1):  # Show first 10
@@ -160,8 +160,8 @@ async def filtered_blob_discovery():
                 f.write(result.model_dump_json(indent=2))
         print(f"  Wrote output to {output_file}")
         
-        if result.documents:
-            blobs = result.documents if isinstance(result.documents, list) else [result.documents]
+        if result.content:
+            blobs = result.content if isinstance(result.content, list) else [result.content]
             print(f"\n📁 Discovered {len(blobs)} matching files:")
             
             # Show statistics

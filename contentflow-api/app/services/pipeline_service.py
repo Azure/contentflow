@@ -7,7 +7,7 @@ from .base_service import BaseService
 from app.models import Pipeline
 from app.database.cosmos import CosmosDBClient
 
-logger = logging.getLogger("contentflow-api.services.pipeline_service")
+logger = logging.getLogger("contentflow.api.services.pipeline_service")
 
 class PipelineService(BaseService):
     """Service for managing pipeline operations"""
@@ -75,7 +75,7 @@ class PipelineService(BaseService):
     async def create_or_save_pipeline(self, pipeline_data: Dict[str, Any]) -> Pipeline:
         """Create a pipeline instance based on configuration"""
         
-        logger.debug(f"Creating or saving pipeline with data: {pipeline_data}")
+        logger.debug(f"Creating or saving pipeline {pipeline_data.get('name', '')}...")
         
         try:
             # check is a pipeline with the same name already exists
@@ -90,7 +90,7 @@ class PipelineService(BaseService):
                 existing = await self.get_by_id(pipeline_id)
                 return Pipeline(**existing)
             else:
-                logger.debug("Creating new pipeline")
+                logger.debug(f"Creating new pipeline with name: {pipeline_data.get('name', '')}")
                 return await self.create_pipeline(pipeline_data)
         except Exception as e:
             logger.error(f"Error in create_or_save_pipeline: {str(e)}")

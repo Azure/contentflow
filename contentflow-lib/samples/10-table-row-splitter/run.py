@@ -111,8 +111,8 @@ async def csv_to_rows_basic():
         print(f"  Output: {output_file}")
         
         # Display results
-        if result.documents:
-            rows = result.documents if isinstance(result.documents, list) else [result.documents]
+        if result.content:
+            rows = result.content if isinstance(result.content, list) else [result.content]
             print(f"\n📊 Created {len(rows)} row content items:")
             
             for i, row in enumerate(rows[:10], 1):
@@ -278,8 +278,8 @@ async def csv_to_rows_with_filters():
             f.write(result.model_dump_json(indent=2))
         
         # Display results
-        if result.documents:
-            rows = result.documents if isinstance(result.documents, list) else [result.documents]
+        if result.content:
+            rows = result.content if isinstance(result.content, list) else [result.content]
             print(f"\n📊 Created {len(rows)} row content items (with filters):")
             
             for i, row in enumerate(rows, 1):
@@ -355,8 +355,8 @@ Desk Lamp,Furniture,39.99,67"""
         print(f"\n✓ Pipeline completed")
         
         # Display results
-        if result.documents:
-            rows = result.documents if isinstance(result.documents, list) else [result.documents]
+        if result.content:
+            rows = result.content if isinstance(result.content, list) else [result.content]
             print(f"\n📊 Created {len(rows)} product row items:")
             
             # Calculate statistics

@@ -5,9 +5,9 @@ from datetime import datetime, timedelta, timezone
 from azure.storage.blob import BlobServiceClient, BlobClient, ContentSettings, generate_blob_sas, BlobSasPermissions
 from azure.core.exceptions import ResourceNotFoundError, AzureError
 
-from app.utils.credential import get_azure_credential
+from contentflow.utils import get_azure_credential
 
-logger = logging.getLogger("contentflow-api.utils.blob_storage")
+logger = logging.getLogger("contentflow.api.utils.blob_storage")
 
 
 class BlobStorageService:

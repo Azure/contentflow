@@ -10,7 +10,7 @@ from . import ParallelExecutor
 from ..models import Content, ExecutorLogEntry
 from ..connectors import ContentUnderstandingConnector
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.azure_content_understanding_extractor")
 
 
 class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):

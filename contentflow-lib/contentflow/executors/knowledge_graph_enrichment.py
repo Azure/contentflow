@@ -17,7 +17,7 @@ from ..connectors.cosmos_gremlin_connector import CosmosGremlinConnector
 from ..connectors.ai_inference_connector import AIInferenceConnector
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.knowledge_graph_enrichment")
 
 
 class KnowledgeGraphEnrichmentExecutor(ParallelExecutor):

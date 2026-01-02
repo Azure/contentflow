@@ -16,7 +16,7 @@ from ..utils import get_azure_credential_async
 
 from .base import ConnectorBase
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.document_intelligence")
 
 
 class DocumentIntelligenceConnector(ConnectorBase):

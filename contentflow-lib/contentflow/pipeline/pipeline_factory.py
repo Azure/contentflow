@@ -201,7 +201,7 @@ class PipelineFactory:
             logger.info(
                 f"Loaded {len(factory._pipeline_configs)} pipeline configurations"
             )
-            
+
         # Handle when yaml only include a single pipeline definition
         if 'pipeline' in config_data:
             pipeline_def = config_data['pipeline']
@@ -245,26 +245,28 @@ class PipelineFactory:
         
         logger.info(f"Creating pipeline: {pipeline_name}")
         
-        # Create executors (now async to support subworkflows)
-        executors = await self._create_executors(pipeline_config)
+        # Create executor factories (lambdas)
+        executor_factories = await self._create_executors(pipeline_config)
         
         # Build pipeline graph using edges if provided, otherwise use execution_sequence
         if 'edges' in pipeline_config:
             pipeline = self._build_pipeline_from_edges(
-                executors=executors,
+                pipeline_name=pipeline_name,
+                executor_factories=executor_factories,
                 edges=pipeline_config['edges'],
                 execution_sequence=pipeline_config.get('execution_sequence'),
                 max_iterations=max_iterations
             )
         else:
             pipeline = self._build_pipeline_graph(
-                executors=executors,
+                pipeline_name=pipeline_name,
+                executor_factories=executor_factories,
                 execution_sequence=pipeline_config.get('execution_sequence', []),
                 max_iterations=max_iterations
             )
         
         logger.info(
-            f"Created pipeline '{pipeline_name}' with {len(executors)} executors"
+            f"Created pipeline '{pipeline_name}' with {len(executor_factories)} executors"
         )
         
         return pipeline
@@ -301,26 +303,28 @@ class PipelineFactory:
         
         logger.info(f"Creating subworkflow: {subworkflow_name}")
         
-        # Create executors for subworkflow (recursively handles nested subworkflows)
-        executors = await self._create_executors(subworkflow_config)
+        # Create executor factories for subworkflow (recursively handles nested subworkflows)
+        executor_factories = await self._create_executors(subworkflow_config)
         
         # Build subworkflow graph
         if 'edges' in subworkflow_config:
             subworkflow = self._build_pipeline_from_edges(
-                executors=executors,
+                pipeline_name=subworkflow_name,
+                executor_factories=executor_factories,
                 edges=subworkflow_config['edges'],
                 execution_sequence=subworkflow_config.get('execution_sequence', []),
                 max_iterations=max_iterations
             )
         else:
             subworkflow = self._build_pipeline_graph(
-                executors=executors,
+                pipeline_name=subworkflow_name,
+                executor_factories=executor_factories,
                 execution_sequence=subworkflow_config.get('execution_sequence', []),
                 max_iterations=max_iterations
             )
         
         logger.info(
-            f"Created subworkflow '{subworkflow_name}' with {len(executors)} executors"
+            f"Created subworkflow '{subworkflow_name}' with {len(executor_factories)} executors"
         )
         
         return subworkflow
@@ -330,7 +334,10 @@ class PipelineFactory:
         pipeline_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Create executor instances from pipeline configuration.
+        Create executor factory functions (lambdas) from pipeline configuration.
+        
+        Returns lambda expressions that create executor instances when called,
+        following the agent-framework pattern for WorkflowBuilder.register_executor().
         
         Supports dynamic (ExecutorRegistry) loading.
         Also handles subworkflow executors by wrapping them in WorkflowExecutor.
@@ -339,10 +346,10 @@ class PipelineFactory:
             pipeline_config: Pipeline configuration dict
             
         Returns:
-            Dict mapping executor IDs to executor instances
+            Dict mapping executor IDs to lambda functions that create executor instances
         """
-        executors = {}
-        
+        executor_factories = {}
+                
         for exec_def in pipeline_config.get('executors', []):
             executor_id = exec_def['id']
             executor_type = exec_def['type']
@@ -358,26 +365,25 @@ class PipelineFactory:
             # If this is a subworkflow executor, create and wrap it
             if subworkflow_name:
                 try:
-                    # Create the subworkflow (async call)
+                    # Pre-create the subworkflow
                     subworkflow = await self._create_subworkflow(
                         subworkflow_name,
                         max_iterations=exec_def.get('settings', {}).get('max_iterations', 100)
                     )
                     
-                    # Wrap the subworkflow in a WorkflowExecutor
-                    # Get allow_direct_output setting (default True)
+                    # Get allow_direct_output setting (default False)
                     allow_direct_output = exec_def.get('settings', {}).get('allow_direct_output', False)
                     
-                    executor = WorkflowExecutor(
-                        subworkflow,
-                        id=executor_id,
-                        allow_direct_output=allow_direct_output
+                    # Create lambda that returns a WorkflowExecutor wrapping the subworkflow
+                    # Use default arguments to capture variables properly in closure
+                    executor_factories[executor_id] = lambda sw=subworkflow, eid=executor_id, ado=allow_direct_output: WorkflowExecutor(
+                        sw,
+                        id=eid,
+                        allow_direct_output=ado
                     )
                     
-                    executors[executor_id] = executor
-                    
                     logger.info(
-                        f"Created subworkflow executor '{executor_id}' "
+                        f"Created subworkflow executor factory '{executor_id}' "
                         f"(subworkflow: {subworkflow_name}, allow_direct_output: {allow_direct_output})"
                     )
                     
@@ -385,7 +391,7 @@ class PipelineFactory:
                     
                 except Exception as e:
                     logger.error(
-                        f"Failed to create subworkflow executor '{executor_id}' "
+                        f"Failed to create subworkflow executor factory '{executor_id}' "
                         f"for subworkflow '{subworkflow_name}': {e}"
                     )
                     raise
@@ -393,30 +399,39 @@ class PipelineFactory:
             # Use dynamic loading if enabled and executor registry has the type
             if executor_type in self.executor_registry:
                 try:
-                    # Create instance config
-                    instance_config = ExecutorInstanceConfig(
-                        id=executor_id,
-                        type=executor_type,
-                        settings=exec_def.get('settings', {})
-                    )
+                    # Capture settings in closure using default arguments
+                    settings = exec_def.get('settings', {})
                     
-                    # Create executor using registry (dynamic loading)
-                    executor = self.executor_registry.create_executor_instance(
-                        executor_id=executor_type,
-                        instance_config=instance_config
-                    )
+                    executor_enabled = settings.get('enabled', True)
+                    if not executor_enabled:
+                        logger.info(
+                            f"Executor '{executor_id}' is disabled, skipping creation."
+                        )
+                        continue
                     
-                    executors[executor_id] = executor
+                    # Create lambda that instantiates the executor with config
+                    def create_executor_factory(i, t, s, r: ExecutorRegistry):
+                        return lambda: r.create_executor_instance(
+                            executor_id=t,
+                            instance_config=ExecutorInstanceConfig(
+                                id=i,
+                                type=t,
+                                settings=s
+                            )
+                        )
+                    
+                    executor_factories[executor_id] = create_executor_factory(
+                        executor_id, executor_type, settings, self.executor_registry
+                    )
                     
                     logger.debug(
-                        f"Created executor '{executor_id}' via dynamic loading "
+                        f"Created executor factory '{executor_id}' "
                         f"(type: {executor_type})"
                     )
                     
                 except Exception as e:
                     logger.error(
-                        f"Failed to create executor '{executor_id}' "
-                        f"via dynamic loading: {e}"
+                        f"Failed to create executor factory '{executor_id}': {e}"
                     )
                     raise
             
@@ -424,25 +439,25 @@ class PipelineFactory:
                 logger.error(
                     f"Unknown executor type '{executor_type}' for '{executor_id}'. "
                     f"Available in registry: {list(self.executor_registry.list_executor_ids())}. "
-                    f"Skipping executor."
                 )
                 raise ValueError(
                     f"Executor '{executor_id}': type '{executor_type}' not found in registry"
                 )
         
-        return executors
+        return executor_factories
     
     def _build_pipeline_graph(
         self,
-        executors: Dict[str, Any],
+        pipeline_name: str,
+        executor_factories: Dict[str, Any],
         execution_sequence: List[str],
         max_iterations: int = 100
     ) -> Workflow:
         """
-        Build a workflow graph from execution sequence.
+        Build a workflow graph from execution sequence using executor factories.
         
         Args:
-            executors: Dict of executor instances
+            executor_factories: Dict of executor factory functions (lambdas)
             execution_sequence: Ordered list of executor IDs
             max_iterations: Maximum pipeline iterations
             
@@ -452,31 +467,32 @@ class PipelineFactory:
         if not execution_sequence:
             raise ValueError("Execution sequence cannot be empty")
         
-        builder = WorkflowBuilder(max_iterations=max_iterations)
+        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name)
         
-        # Set the first executor as start
+        # Register all executor factories with the builder
+        for executor_id, factory in executor_factories.items():
+            builder.register_executor(factory, name=executor_id)
+            logger.debug(f"Registered executor factory: {executor_id}")
+        
+        # Set the first executor as start (by name)
         first_executor_id = execution_sequence[0]
-        if first_executor_id not in executors:
+        if first_executor_id not in executor_factories:
             raise ValueError(f"Executor '{first_executor_id}' not found")
         
-        first_executor = executors[first_executor_id]
-        builder.set_start_executor(first_executor)
+        builder.set_start_executor(first_executor_id)
         
-        # Add sequential edges
+        # Add sequential edges using executor names
         for i in range(len(execution_sequence) - 1):
             current_id = execution_sequence[i]
             next_id = execution_sequence[i + 1]
             
-            if current_id not in executors or next_id not in executors:
+            if current_id not in executor_factories or next_id not in executor_factories:
                 logger.warning(
                     f"Skipping edge {current_id} -> {next_id}, executor not found"
                 )
                 continue
             
-            current_executor = executors[current_id]
-            next_executor = executors[next_id]
-            
-            builder.add_edge(current_executor, next_executor)
+            builder.add_edge(current_id, next_id)
             
             logger.debug(f"Added edge: {current_id} -> {next_id}")
         
@@ -486,13 +502,14 @@ class PipelineFactory:
     
     def _build_pipeline_from_edges(
         self,
-        executors: Dict[str, Any],
+        pipeline_name: str,
+        executor_factories: Dict[str, Any],
         edges: List[Dict[str, Any]],
         execution_sequence: Optional[List[str]] = None,
         max_iterations: int = 100
     ) -> Workflow:
         """
-        Build a workflow graph from edge configuration.
+        Build a workflow graph from edge configuration using executor factories.
         
         Supports advanced patterns:
         - Sequential edges: from: step1, to: step2
@@ -501,7 +518,7 @@ class PipelineFactory:
         - Conditional routing: from: step1, to: [{target: step2, condition: "..."}]
         
         Args:
-            executors: Dict of executor instances
+            executor_factories: Dict of executor factory functions (lambdas)
             edges: List of edge definitions
             execution_sequence: Optional fallback sequence for start executor
             max_iterations: Maximum pipeline iterations
@@ -509,50 +526,65 @@ class PipelineFactory:
         Returns:
             Configured Pipeline (Workflow)
         """
-        builder = WorkflowBuilder(max_iterations=max_iterations)
+        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name)
         
-        # Determine start executor
-        start_executor = self._determine_start_executor(executors, edges, execution_sequence)
-        builder.set_start_executor(start_executor)
-        
-        logger.debug(f"Start executor: {start_executor}")
+        # Register all executor factories with the builder
+        for executor_id, factory in executor_factories.items():
+            builder.register_executor(factory, name=executor_id)
+            logger.debug(f"Registered executor factory: {executor_id}")
         
         # Process each edge
         for edge_def in edges:
             edge_type = edge_def.get('type', 'sequential')
             
             if edge_type == 'sequential':
-                self._add_sequential_edge(builder, executors, edge_def)
+                self._add_sequential_edge(builder, executor_factories, edge_def)
             elif edge_type == 'parallel':
-                self._add_parallel_edges(builder, executors, edge_def)
+                self._add_parallel_edges(builder, executor_factories, edge_def)
             elif edge_type == 'join':
-                self._add_join_edges(builder, executors, edge_def)
+                self._add_join_edges(builder, executor_factories, edge_def)
             elif edge_type == 'conditional':
-                self._add_conditional_edges(builder, executors, edge_def)
+                self._add_conditional_edges(builder, executor_factories, edge_def)
             else:
                 logger.warning(f"Unknown edge type '{edge_type}', treating as sequential")
-                self._add_sequential_edge(builder, executors, edge_def)
+                self._add_sequential_edge(builder, executor_factories, edge_def)
+        
+        # Determine start executor (returns string ID)
+        start_executor_id = self._determine_start_executor(executor_factories, edges, execution_sequence)
+        builder.set_start_executor(start_executor_id)
+        
+        logger.debug(f"Start executor: {start_executor_id}")
         
         # Build and return pipeline
         pipeline = builder.build()
+        
+        logger.info(f"Pipeline {pipeline.name} built successfully.")
+        logger.debug(f'-' * 80)
+        logger.debug(f"Built pipeline with following details:")
+        logger.debug(f"\tName: {pipeline.name}\n\tExecutors: {pipeline.get_executors_list()}")
+        logger.debug(f'\tEdges: {pipeline.edge_groups}')
+        logger.debug(f'\tMax Iterations: {pipeline.max_iterations}')
+        logger.debug(f'{pipeline.to_json()}')
+        logger.debug(f'-' * 80)
+        
         return pipeline
     
     def _determine_start_executor(
         self,
-        executors: Dict[str, Any],
+        executor_factories: Dict[str, Any],
         edges: List[Dict[str, Any]],
         execution_sequence: Optional[List[str]] = None
-    ) -> Any:
+    ) -> str:
         """
-        Determine the start executor from edges or execution sequence.
+        Determine the start executor ID from edges or execution sequence.
         
         Args:
-            executors: Dict of executor instances
+            executor_factories: Dict of executor factory functions
             edges: List of edge definitions
             execution_sequence: Optional execution sequence
             
         Returns:
-            Start executor instance
+            Start executor ID (string)
         """
         # Try to find executor that is only a source (never a target)
         sources = set()
@@ -585,21 +617,21 @@ class PipelineFactory:
         if start_candidates:
             start_id = next(iter(start_candidates))
             logger.debug(f"Determined start executor from edges: {start_id}")
-            return executors[start_id]
+            return start_id
         elif execution_sequence:
             start_id = execution_sequence[0]
             logger.debug(f"Using first executor from execution_sequence: {start_id}")
-            return executors[start_id]
+            return start_id
         else:
             # Fallback to first executor in dict
-            start_id = next(iter(executors.keys()))
+            start_id = next(iter(executor_factories.keys()))
             logger.warning(f"Could not determine start executor, using first: {start_id}")
-            return executors[start_id]
+            return start_id
     
     def _add_sequential_edge(
         self,
         builder: WorkflowBuilder,
-        executors: Dict[str, Any],
+        executor_factories: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add a sequential edge: from -> to."""
@@ -610,20 +642,17 @@ class PipelineFactory:
             logger.warning(f"Sequential edge missing from or to: {edge_def}")
             return
         
-        if from_id not in executors or to_id not in executors:
-            logger.warning(f"Sequential edge references unknown executor: {from_id} -> {to_id}")
+        if from_id not in executor_factories or to_id not in executor_factories:
+            logger.warning(f"Sequential edge references executor not found in factories, might be a disabled executor: {from_id} -> {to_id}")
             return
         
-        from_executor = executors[from_id]
-        to_executor = executors[to_id]
-        
-        builder.add_edge(from_executor, to_executor)
+        builder.add_edge(from_id, to_id)
         logger.debug(f"Added sequential edge: {from_id} -> {to_id}")
     
     def _add_parallel_edges(
         self,
         builder: WorkflowBuilder,
-        executors: Dict[str, Any],
+        executor_factories: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add parallel edges: from -> [to1, to2, to3] (fan-out)."""
@@ -637,32 +666,30 @@ class PipelineFactory:
         if not isinstance(to_ids, list):
             to_ids = [to_ids]
         
-        if from_id not in executors:
-            logger.warning(f"Parallel edge references unknown source executor: {from_id}")
+        if from_id not in executor_factories:
+            logger.warning(f"Parallel edge references unknown source executor, might be a disabled executor: {from_id}")
             return
         
-        from_executor = executors[from_id]
-        
+        to_ids_found = []
         # Add edge to each target (parallel fan-out)
         for to_id in to_ids:
-            if to_id not in executors:
-                logger.warning(f"Parallel edge references unknown target executor: {to_id}")
+            if to_id not in executor_factories:
+                logger.warning(f"Parallel edge references unknown target executor, might be a disabled executor: {to_id}")
                 continue
+            to_ids_found.append(to_id)
             
-            to_executor = executors[to_id]
-            builder.add_edge(from_executor, to_executor)
-            logger.debug(f"Added parallel edge: {from_id} -> {to_id}")
+        builder.add_fan_out_edges(from_id, to_ids_found)
+        logger.debug(f"Added fan-out edges: {from_id} -> {to_ids_found}")
     
     def _add_join_edges(
         self,
         builder: WorkflowBuilder,
-        executors: Dict[str, Any],
+        executor_factories: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add join edges: [from1, from2, from3] -> to (fan-in)."""
         from_ids = edge_def.get('from', [])
         to_id = edge_def.get('to')
-        wait_strategy = edge_def.get('wait_strategy', 'all')
         
         if not isinstance(from_ids, list):
             from_ids = [from_ids]
@@ -671,21 +698,20 @@ class PipelineFactory:
             logger.warning(f"Join edge missing to: {edge_def}")
             return
         
-        if to_id not in executors:
-            logger.warning(f"Join edge references unknown target executor: {to_id}")
+        if to_id not in executor_factories:
+            logger.warning(f"Join edge references unknown target executor, might be a disabled executor: {to_id}")
             return
         
-        to_executor = executors[to_id]
-        
         # Add edge from each source to target (fan-in)
+        from_ids_found = []
         for from_id in from_ids:
-            if from_id not in executors:
-                logger.warning(f"Join edge references unknown source executor: {from_id}")
+            if from_id not in executor_factories:
+                logger.warning(f"Join edge references unknown source executor, might be a disabled executor: {from_id}")
                 continue
+            from_ids_found.append(from_id)
             
-            from_executor = executors[from_id]
-            builder.add_edge(from_executor, to_executor)
-            logger.debug(f"Added join edge: {from_id} -> {to_id} (wait: {wait_strategy})")
+        builder.add_fan_in_edges(from_ids_found, to_id)
+        logger.debug(f"Added join edge: {from_ids_found} -> {to_id}")
         
         # Note: Agent Framework handles fan-in naturally when multiple edges point to same target
         # The wait_strategy is informational for now, could be used with custom executors
@@ -693,7 +719,7 @@ class PipelineFactory:
     def _add_conditional_edges(
         self,
         builder: WorkflowBuilder,
-        executors: Dict[str, Any],
+        executor_factories: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """
@@ -713,11 +739,9 @@ class PipelineFactory:
             logger.warning(f"Conditional edge 'to' must be a list: {edge_def}")
             return
         
-        if from_id not in executors:
+        if from_id not in executor_factories:
             logger.warning(f"Conditional edge references unknown source executor: {from_id}")
             return
-        
-        from_executor = executors[from_id]
         
         # Add edge to each conditional target
         for condition_def in to_conditions:
@@ -728,12 +752,11 @@ class PipelineFactory:
                 to_id = condition_def
                 condition = 'default'
             
-            if not to_id or to_id not in executors:
+            if not to_id or to_id not in executor_factories:
                 logger.warning(f"Conditional edge references unknown target: {to_id}")
                 continue
             
-            to_executor = executors[to_id]
-            builder.add_edge(from_executor, to_executor)
+            builder.add_edge(from_id, to_id)
             logger.debug(f"Added conditional edge: {from_id} -> {to_id} (condition: {condition})")
         
         # Note: The from_executor needs to implement routing logic based on conditions

@@ -17,7 +17,7 @@ pipelines:
     executors:
       # Step 1: Discover documents in Azure Blob Storage
       - id: blob_scanner
-        type: azure_blob_input
+        type: azure_blob_input_discovery
         debug_mode: true
         settings:
           blob_storage_account: ${AZURE_STORAGE_ACCOUNT}

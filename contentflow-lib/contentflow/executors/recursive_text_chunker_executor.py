@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from . import ParallelExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.recursive_text_chunker")
 
 
 @dataclass

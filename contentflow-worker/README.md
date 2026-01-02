@@ -2,6 +2,23 @@
 
 Multi-processing based worker engine for processing content through ContentFlow pipelines.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Components](#components)
+- [Configuration](#configuration)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Task Types](#task-types)
+- [Workflow](#workflow)
+- [Sending Tasks to the Queue](#sending-tasks-to-the-queue)
+- [Monitoring](#monitoring)
+- [Features](#features)
+- [Error Handling](#error-handling)
+- [Performance Tuning](#performance-tuning)
+- [Requirements](#requirements)
+
 ## Overview
 
 The ContentFlow Worker is a distributed, multi-processing engine designed to:
@@ -31,14 +48,25 @@ The worker engine consists of two types of worker processes:
 
 ```
 contentflow-worker/
-├── engine.py              # Main worker engine (manages processes)
-├── processing_worker.py   # Content processing worker
-├── source_worker.py       # Input source loading worker
-├── queue_client.py        # Azure Storage Queue wrapper
-├── models.py              # Task models (Pydantic)
-├── settings.py            # Configuration and settings
+├── app/
+│   ├── __init__.py
+│   ├── api.py             # FastAPI health and status monitoring
+│   ├── engine.py          # Main worker engine (manages processes)
+│   ├── models.py          # Task models (Pydantic)
+│   ├── queue_client.py    # Azure Storage Queue wrapper
+│   ├── settings.py        # Configuration and settings
+│   ├── startup.py         # Application startup
+│   ├── utils.py           # Utility functions
+│   └── worker/
+│       ├── __init__.py
+│       ├── processing_worker.py   # Content processing worker
+│       └── source_worker.py       # Input source loading worker
 ├── main.py                # Entry point
-└── requirements.txt       # Dependencies
+├── Dockerfile             # Docker container configuration
+├── requirements.txt       # Python dependencies
+├── .env                   # Environment variables (local)
+├── .env.example           # Environment variables template
+└── README.md              # This file
 ```
 
 ## Configuration
@@ -50,30 +78,54 @@ Configuration is loaded from:
 ### Environment Variables
 
 ```bash
+# Azure App Configuration
+AZURE_APP_CONFIG_ENDPOINT=https://your-app-config-resource.azconfig.io
+APP_CONFIG_KEY_FILTERS=contentflow.worker.*
+
 # Worker Settings
 WORKER_NAME=contentflow-worker
-NUM_PROCESSING_WORKERS=4
+NUM_PROCESSING_WORKERS=2
 NUM_SOURCE_WORKERS=2
 
 # Azure Storage Queue
-STORAGE_ACCOUNT_WORKER_QUEUE_URL=https://your-storage.queue.core.windows.net
+STORAGE_ACCOUNT_WORKER_QUEUE_URL=https://your-storage-account.queue.core.windows.net
 STORAGE_WORKER_QUEUE_NAME=contentflow-execution-requests
+
+# Queue Polling Settings
+QUEUE_POLL_INTERVAL_SECONDS=5
+QUEUE_VISIBILITY_TIMEOUT_SECONDS=300
+QUEUE_MAX_MESSAGES=32
+
+# Processing Settings
+MAX_TASK_RETRIES=3
+TASK_TIMEOUT_SECONDS=600
 
 # Cosmos DB
 COSMOS_DB_ENDPOINT=https://your-cosmos.documents.azure.com:443/
 COSMOS_DB_NAME=contentflow
 COSMOS_DB_CONTAINER_PIPELINES=pipelines
-COSMOS_DB_CONTAINER_PIPELINE_EXECUTIONS=pipeline_executions
+COSMOS_DB_CONTAINER_VAULT_EXECUTIONS=vault_executions
 COSMOS_DB_CONTAINER_VAULTS=vaults
-COSMOS_DB_CONTAINER_LOCKS=locks
+COSMOS_DB_CONTAINER_LOCKS=vault_exec_locks
+COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS=vault_crawl_checkpoints
 
-# Source Workers (Continuous Scheduling)
-DEFAULT_POLLING_INTERVAL_SECONDS=300    # Default 5 min if executor doesn't specify
-SCHEDULER_SLEEP_INTERVAL_SECONDS=5      # How often to check schedule
+# Azure Blob Storage
+BLOB_STORAGE_ACCOUNT_NAME=your-storage-account
+BLOB_STORAGE_CONTAINER_NAME=content
+
+# Source Worker Settings
+DEFAULT_POLLING_INTERVAL_SECONDS=300    # Default 5 minutes if executor doesn't specify
+SCHEDULER_SLEEP_INTERVAL_SECONDS=5      # How often scheduler checks for ready pipelines
 LOCK_TTL_SECONDS=300                    # Distributed lock TTL (5 minutes)
 
+# API Settings
+API_ENABLED=true
+API_HOST=0.0.0.0
+API_PORT=8099
+
 # Logging
-LOG_LEVEL=INFO
+LOG_LEVEL=DEBUG
+DEBUG=true
 ```
 
 **Per-Executor Polling Intervals**: Configure polling intervals directly in executor settings:
@@ -117,10 +169,33 @@ python main.py
 
 The worker will:
 1. Start configured number of processing and source workers
-2. Connect to Azure Storage Queue
-3. Begin processing tasks
-4. Monitor worker health and restart failed workers
-5. Handle graceful shutdown on SIGINT/SIGTERM
+2. Start the FastAPI health and status monitoring service
+3. Connect to Azure Storage Queue
+4. Begin processing tasks
+5. Monitor worker health and restart failed workers
+6. Handle graceful shutdown on SIGINT/SIGTERM
+
+### API Endpoints
+
+When `API_ENABLED=true`, the following health and status endpoints are available:
+
+- **Health Check**: `GET /health` - Returns worker health status
+- **Worker Status**: `GET /status` - Returns detailed worker process status
+- **Metrics**: `GET /metrics` - Returns worker performance metrics
+
+Example health check:
+```bash
+curl http://localhost:8099/health
+```
+
+Response:
+```json
+{
+    "status": "healthy",
+    "timestamp": "2026-01-02T10:30:00Z",
+    "worker_name": "contentflow-worker"
+}
+```
 
 ### Graceful Shutdown
 
@@ -227,7 +302,19 @@ queue_client.send_content_processing_task(task)
 
 ## Monitoring
 
-### Worker Status
+### Worker Status via API
+
+When the API is enabled, you can monitor worker status via HTTP:
+
+```bash
+# Check health
+curl http://localhost:8099/health
+
+# Get detailed status
+curl http://localhost:8099/status
+```
+
+### Worker Status Programmatically
 
 The engine provides status information:
 ```python
@@ -243,18 +330,20 @@ Output:
 {
     "running": true,
     "processing_workers": {
-        "configured": 4,
-        "active": 4,
+        "configured": 2,
+        "active": 2,
         "workers": [
             {"id": 0, "pid": 12345, "alive": true},
-            {"id": 1, "pid": 12346, "alive": true},
-            ...
+            {"id": 1, "pid": 12346, "alive": true}
         ]
     },
     "source_workers": {
         "configured": 2,
         "active": 2,
-        "workers": [...]
+        "workers": [
+            {"id": 0, "pid": 12347, "alive": true},
+            {"id": 1, "pid": 12348, "alive": true}
+        ]
     }
 }
 ```
@@ -263,7 +352,7 @@ Output:
 
 Workers log to:
 - Console (stdout)
-- `worker.log` file
+- File (configured via LOG_LEVEL)
 
 ## Features
 
@@ -290,8 +379,8 @@ Adjust these settings for your workload:
 
 ```bash
 # More workers = higher throughput
-NUM_PROCESSING_WORKERS=8
-NUM_SOURCE_WORKERS=4
+NUM_PROCESSING_WORKERS=4
+NUM_SOURCE_WORKERS=2
 
 # Faster polling = lower latency
 QUEUE_POLL_INTERVAL_SECONDS=2
@@ -301,7 +390,17 @@ QUEUE_MAX_MESSAGES=32
 
 # Longer timeout = support longer-running pipelines
 TASK_TIMEOUT_SECONDS=1200
+
+# Queue visibility timeout for retries
+QUEUE_VISIBILITY_TIMEOUT_SECONDS=300
 ```
+
+### Tuning Guidelines
+
+- **Throughput**: Increase `NUM_PROCESSING_WORKERS` and `QUEUE_MAX_MESSAGES`
+- **Latency**: Decrease `QUEUE_POLL_INTERVAL_SECONDS` and `SCHEDULER_SLEEP_INTERVAL_SECONDS`
+- **Memory**: Reduce worker counts to limit concurrent task processing
+- **Reliability**: Increase `MAX_TASK_RETRIES` and `TASK_TIMEOUT_SECONDS` for complex pipelines
 
 ## Requirements
 

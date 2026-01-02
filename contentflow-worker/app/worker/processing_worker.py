@@ -19,10 +19,12 @@ from typing import List, Optional
 
 from azure.identity import ChainedTokenCredential
 from azure.cosmos import CosmosClient
+from azure.cosmos import exceptions as cosmos_exceptions
 
 from contentflow.pipeline import PipelineExecutor
 from contentflow.models import Content, ContentIdentifier
-from contentflow.utils import get_azure_credential
+from contentflow.pipeline import PipelineResult
+from contentflow.utils import get_azure_credential, make_safe_json
 
 from app.models import ContentProcessingTask
 from app.queue_client import TaskQueueClient
@@ -222,20 +224,40 @@ class ContentProcessingWorker:
                 self._update_execution_status(task.execution_id, "failed", error="Pipeline not found")
                 return False
             
-            # Create content object
-            content = [Content(
-                id=ContentIdentifier(
-                    canonical_id=content_id,
-                    unique_id=content_id
-                ),
-                data={}
-            ) for content_id in task.content_id_list]
+            # verify input content
+            content = task.content
+            if not content or len(content) == 0:
+                logger.error(f"{self.name} no input content for task {task.task_id}")
+                self._update_execution_status(task.execution_id, "failed", error="No input content")
+                return False
             
             # Execute pipeline synchronously (using asyncio.run)
             result = self._run_pipeline(pipeline_config, content, task)
             
-            if result:
+            if result and result.status == "completed":
                 self._update_execution_status(task.execution_id, "completed")
+                
+                try:
+                    self._save_execution_output(task.execution_id, result)
+                except cosmos_exceptions.CosmosHttpResponseError as ce:
+                    # check if it's due to request entity too large
+                    if ce.status_code == 413:
+                        
+                        logger.warning(f"Result too large to store for execution {task.execution_id}, skipping event data storage.")
+                        
+                        # update the data field in each content item to indicate data too large
+                        if isinstance(result.content, list):
+                            for c in result.content:
+                                c.data = {"data": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
+                            self._save_execution_output(task.execution_id, result)
+                        else:
+                            result.content.data = {"data": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
+                            self._save_execution_output(task.execution_id, result)
+                    
+                    else:
+                        logger.error(f"Failed to add save result to execution {task.execution_id}: {ce}", exc_info=True)
+                        raise ce
+                
                 logger.debug(f"{self.name} task {task.task_id} completed successfully")
                 return True
             else:
@@ -244,11 +266,11 @@ class ContentProcessingWorker:
                 
         except Exception as e:
             logger.error(f"{self.name} error executing task {task.task_id}: {e}")
-            logger.error(traceback.format_exc())
+            logger.exception(e)
             self._update_execution_status(task.execution_id, "failed", error=str(e))
             return False
     
-    def _run_pipeline(self, pipeline_config: dict, content: List[Content], task: ContentProcessingTask) -> bool:
+    def _run_pipeline(self, pipeline_config: dict, content: List[Content], task: ContentProcessingTask) -> PipelineResult:
         """Run pipeline execution"""
         try:
             # Load pipeline executor
@@ -278,12 +300,12 @@ class ContentProcessingWorker:
             result = asyncio.run(execute())
             
             logger.debug(f"{self.name} pipeline execution result: {result.status}")
-            return result.status == "completed"
+            return result
                 
         except Exception as e:
             logger.error(f"{self.name} pipeline execution error: {e}")
-            logger.error(traceback.format_exc())
-            return False
+            logger.exception(e)
+            raise e
     
     def _exclude_executor(self, config: dict, executor_id: str) -> dict:
         """
@@ -368,6 +390,31 @@ class ContentProcessingWorker:
             
         except Exception as e:
             logger.error(f"{self.name} error updating execution status: {e}")
+    
+    def _save_execution_output(self, execution_id: str, result: PipelineResult):
+        """Save execution output to Cosmos DB"""
+        try:
+            database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS)
+            
+            # Read current execution
+            execution = container.read_item(item=execution_id, partition_key=execution_id)
+            
+            # Save output
+            if result.content is not None:
+                if isinstance(result.content, list):
+                    execution["content"] = [make_safe_json(c) for c in result.content]
+                else:
+                    execution["content"] = make_safe_json(result.content)
+            
+            # Update in Cosmos DB
+            container.upsert_item(execution)
+            
+            logger.debug(f"{self.name} saved output for execution {execution_id}")
+        
+        except Exception as e:
+            logger.error(f"{self.name} error saving execution output: {e}")
+            raise e
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""

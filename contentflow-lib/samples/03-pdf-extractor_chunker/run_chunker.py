@@ -83,24 +83,24 @@ async def run_pipeline():
         print(f"  Wrote output to {output_file}")
         
         # Analyze results
-        successful = sum(1 for d in result.documents if d.get_status() == "completed") if isinstance(result.documents, list) else result.documents.get_status() == "completed"
-        failed = sum(1 for d in result.documents if d.get_status() == "failed") if isinstance(result.documents, list) else result.documents.get_status() == "failed"
+        successful = sum(1 for d in result.content if d.get_status() == "completed") if isinstance(result.content, list) else result.content.get_status() == "completed"
+        failed = sum(1 for d in result.content if d.get_status() == "failed") if isinstance(result.content, list) else result.content.get_status() == "failed"
         total_duration = result.duration_seconds
         
         print(f"\n✓ PDF extraction and chunking completed")
-        print(f"  Total documents: {len(result.documents) if isinstance(result.documents, list) else 1}")
+        print(f"  Total documents: {len(result.content) if isinstance(result.content, list) else 1}")
         print(f"  Successful: {successful}")
         print(f"  Failed: {failed}")
         print(f"  Total duration (seconds): {total_duration:.2f}s")
-        print(f"  Avg per document: {total_duration/(len(result.documents) if isinstance(result.documents, list) else 1):.2f}s")
+        print(f"  Avg per document: {total_duration/(len(result.content) if isinstance(result.content, list) else 1):.2f}s")
     
         # Show chunking statistics
         print(f"\n📊 Chunking Statistics:")
         total_chunks = 0
         total_pages = 0
         
-        if isinstance(result.documents, list):
-            for doc in result.documents:
+        if isinstance(result.content, list):
+            for doc in result.content:
                 doc_name = doc.id.canonical_id
                 chunks_created = doc.summary_data.get('chunks_created', 0)
                 avg_chunk_size = doc.summary_data.get('avg_chunk_size', 0)
@@ -118,12 +118,12 @@ async def run_pipeline():
     
             print(f"\n  Total Pages Processed: {total_pages}")
             print(f"  Total Chunks Created: {total_chunks}")
-            if total_chunks > 0 and len(result.documents) > 0:
-                print(f"  Average Chunks per Document: {total_chunks / len(result.documents):.1f}")
+            if total_chunks > 0 and len(result.content) > 0:
+                print(f"  Average Chunks per Document: {total_chunks / len(result.content):.1f}")
     
         # Show sample chunk data for first document
-        if isinstance(result.documents, list) and len(result.documents) > 0:
-            first_doc = result.documents[0]
+        if isinstance(result.content, list) and len(result.content) > 0:
+            first_doc = result.content[0]
             if 'chunks' in first_doc.data:
                 chunks = first_doc.data['chunks']
                 print(f"\n📄 Sample Chunks (First Document - {first_doc.id.canonical_id}):")

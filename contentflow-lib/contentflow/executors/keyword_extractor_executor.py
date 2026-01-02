@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.keyword_extractor_executor")
 
 
 class KeywordExtractorExecutor(AzureOpenAIAgentExecutor):

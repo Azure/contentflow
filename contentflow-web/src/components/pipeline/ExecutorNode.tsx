@@ -2,15 +2,16 @@ import { memo } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, BanIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const ExecutorNode = memo(({ data }: NodeProps) => {
   const { label, executor, config, onDelete } = data;
   const description = config?.description || executor.description;
-  
+  const disabled = config?.settings?.enabled === false;
+
   return (
-    <Card className="w-[220px] shadow-lg hover:shadow-xl transition-all duration-300 group relative">
+    <Card className={`w-[220px] shadow-lg hover:shadow-xl transition-all duration-300 group relative ${disabled ? 'bg-gray-100 opacity-70' : ''}`}>
       <Handle 
         type="target" 
         position={Position.Top}
@@ -43,7 +44,12 @@ export const ExecutorNode = memo(({ data }: NodeProps) => {
             {executor.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-foreground text-sm truncate">{label}</h4>
+            <div className="flex items-center gap-1">
+              <h4 className="font-semibold text-foreground text-sm truncate">{label}</h4>
+              {disabled && (
+                <BanIcon className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+              )}
+            </div>
             <Badge variant="outline" className="text-xs mt-1 capitalize">
               {executor.category}
             </Badge>

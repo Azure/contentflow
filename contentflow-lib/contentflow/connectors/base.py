@@ -12,7 +12,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.lib.connectors.base")
 
 
 class ConnectorBase(ABC):

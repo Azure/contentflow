@@ -9,12 +9,12 @@ import logging
 import sys
 import threading
 from pathlib import Path
-
 import uvicorn
+
+from contentflow.utils import setup_logging
 
 from app.engine import WorkerEngine
 from app.settings import get_settings, WorkerSettings
-from app.logging import setup_logging
 from app.startup import run_startup_checks
 from app.api import create_app
 
@@ -74,7 +74,7 @@ def main(settings: WorkerSettings):
             target=uvicorn.run,
             kwargs={
                 "app": app,
-                "reload": settings.DEBUG,
+                "reload": False,
                 "host": settings.API_HOST,
                 "port": settings.API_PORT,
                 "log_level": settings.LOG_LEVEL.lower(),

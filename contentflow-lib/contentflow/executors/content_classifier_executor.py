@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 from ..models import Content
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.content_classifier_executor")
 
 
 class ContentClassifierExecutor(AzureOpenAIAgentExecutor):

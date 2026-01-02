@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 from enum import Enum
 from pydantic import BaseModel, Field
 
+from contentflow.models import Content
+
 
 class TaskType(str, Enum):
     """Type of task to be processed"""
@@ -49,8 +51,8 @@ class ContentProcessingTask(BaseModel):
     pipeline_name: str = Field(description="Name of the pipeline")
     execution_id: str = Field(description="ID of the pipeline execution")
     
-    # Content details
-    content_id_list: List[str] = Field(description="List of canonical IDs of the content to process")
+    # Input content details
+    content: List[Content] = Field(description="List of content items to process")
         
     # Executor tracking
     executed_input_executor: Optional[str] = Field(default=None, description="ID of input executor already executed")

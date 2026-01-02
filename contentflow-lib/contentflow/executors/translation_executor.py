@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.translation_executor")
 
 
 class TranslationExecutor(AzureOpenAIAgentExecutor):

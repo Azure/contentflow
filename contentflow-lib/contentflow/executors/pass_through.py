@@ -12,7 +12,7 @@ from agent_framework import WorkflowContext
 from .base import BaseExecutor
 from ..models import Content, ExecutorLogEntry
     
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.pass_through")
 
 
 class PassThroughExecutor(BaseExecutor):

@@ -20,7 +20,7 @@ from agent_framework import WorkflowContext
 from .base import BaseExecutor
 from ..models import Content, ContentIdentifier
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.input_executor")
 
 class InputExecutor(BaseExecutor, ABC):
     """
@@ -77,12 +77,8 @@ class InputExecutor(BaseExecutor, ABC):
             settings: Configuration dict for the executor
             **kwargs: Additional executor configuration
         """
-        super().__init__(id=id)
+        super().__init__(id=id, settings=settings, **kwargs)
         
-        self.settings = settings or {}
-        self.enabled = self.settings.get("enabled", True)
-        self.fail_pipeline_on_error = self.settings.get("fail_pipeline_on_error", False)
-        self.debug_mode = self.settings.get("debug_mode", False)
         self.polling_interval_seconds = self.settings.get("polling_interval_seconds", 300)
         self.max_results = self.settings.get("max_results", 1000)
         self.batch_size = self.settings.get("batch_size", 100)
@@ -195,7 +191,7 @@ class InputExecutor(BaseExecutor, ABC):
         
         while True:
             # Check if we've reached max_results limit
-            if self.max_results is not None and total_fetched >= self.max_results:
+            if self.max_results is not None and self.max_results > 0 and total_fetched >= self.max_results:
                 if self.debug_mode:
                     logger.debug(f"Reached max results limit: {self.max_results}")
                 break
@@ -207,7 +203,7 @@ class InputExecutor(BaseExecutor, ABC):
             )
             
             # Apply max_results limit to current batch if needed
-            if self.max_results is not None:
+            if self.max_results is not None and self.max_results > 0:
                 remaining = self.max_results - total_fetched
                 if len(content_batch) > remaining:
                     content_batch = content_batch[:remaining]

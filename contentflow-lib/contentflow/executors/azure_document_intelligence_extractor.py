@@ -10,7 +10,7 @@ from . import ParallelExecutor
 from ..models import Content, ExecutorLogEntry
 from ..connectors import DocumentIntelligenceConnector
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("contentflow.executors.azure_document_intelligence_extractor")
 
 
 class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
