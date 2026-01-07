@@ -1,6 +1,13 @@
-# 🚀 ContentFlow
+<p align="center">
+    <h1 align="left" style="font-size:3em;">
+    <picture>
+    <img src="./contentflow-web/public/contentflow.svg" alt="ContentFlow Logo" style="width:34px;" />
+    </picture>
+    ContentFlow
+    </h1>
+</p>
 
-> **Intelligent, scalable content processing pipelines powered by AI and orchestrated by Microsoft Agent Framework**
+> **Intelligent, scalable content processing pipelines powered by Azure AI and orchestrated by Microsoft Agent Framework**
 
 [![Azure](https://img.shields.io/badge/Azure-Powered-0078D4?logo=microsoft-azure)](https://azure.microsoft.com)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python)](https://www.python.org)
@@ -26,7 +33,8 @@
 ## ✨ Key Features
 
 ### 🎯 Powerful Content Processing
-- **Multi-Format Support**: PDF, Word, Excel, PowerPoint, plain text, web content
+- **Multi-Format Support**: PDF, Word, Excel, PowerPoint, plain text, web content, audio, video
+- **OCR & Layout Analysis**: Extract text from scanned documents with layout preservation
 - **Intelligent Extraction**: Tables, images, metadata, document structure
 - **Content Understanding**: Chunking, embedding generation, semantic analysis
 - **Knowledge Graphs**: Extract and build relationships between entities
@@ -45,7 +53,7 @@
 - **Web Scraping**: Dynamic content extraction with Playwright
 
 ### 🔐 Enterprise Ready
-- **Azure Key Vault Integration**: Secure credential management
+- **Azure AI Landing Zone Integration**: Secure deployment within enterprise environments
 - **RBAC & Identity**: Managed identities and role-based access control
 - **Audit & Monitoring**: Comprehensive logging and Application Insights
 - **Data Isolation**: Blob storage and Cosmos DB for persistent data management
@@ -64,9 +72,9 @@
 ### Deploy to Azure
 Supports two modes:
  - Basic mode for quick setup for development and testing
- - Azure AI Landing Zone integrated mode for an Enterprise level deployment.
+ - Azure AI Landing Zone integrated mode for an Enterprise level deployment
 
-**[View deployment docs for more details](./infra/README.md)**
+ ➡️ **[View deployment docs for more details](./infra/README.md)**
 
 ```shell
 git clone https://github.com/Azure/contentflow
@@ -110,8 +118,7 @@ npm run dev
 **Scenario**: Enterprise needs to digitize and catalog thousands of historical documents
 
 ```
-Input Documents → PDF Extraction → OCR & Layout Analysis → 
-Metadata Extraction → Full-Text Indexing → Archive Storage
+Input Documents → PDF Extraction → OCR & Layout Analysis → Metadata Extraction → Full-Text Indexing → Archive Storage
 ```
 
 **Benefits**: Searchable digital archives, compliance automation, instant retrieval
@@ -122,8 +129,7 @@ Metadata Extraction → Full-Text Indexing → Archive Storage
 **Scenario**: Build a knowledge base from company documents for AI-powered Q&A
 
 ```
-Documents → Chunking → Embedding Generation → 
-Vector Search Indexing → LLM Query Augmentation
+Documents → Chunking → Embedding Generation → Vector Search Indexing → LLM Query Augmentation
 ```
 
 **ContentFlow Powers**: Batch processing thousands of documents, generating embeddings, storing in vector DB
@@ -134,8 +140,7 @@ Vector Search Indexing → LLM Query Augmentation
 **Scenario**: Extract financial data from quarterly reports, earnings calls, and regulatory filings
 
 ```
-Financial Documents → Extract Tables → Parse Key Metrics → 
-Classify Document Type → Store in Data Warehouse
+Financial Documents → Extract Tables → Parse Key Metrics → Classify Document Type → Store in Data Warehouse
 ```
 
 **Smart Features**: 
@@ -149,8 +154,7 @@ Classify Document Type → Store in Data Warehouse
 **Scenario**: Process product descriptions, images, and specifications across multiple formats
 
 ```
-Product Files (PDF, DOC, XLSX) → Content Extraction → 
-Image Processing → Standardization → Catalog Upload
+Product Files (PDF, DOC, XLSX) → Content Extraction → Image Processing → Standardization → Catalog Upload
 ```
 
 **Powered By**: Batch operations, format-specific extractors, validation logic
@@ -161,8 +165,7 @@ Image Processing → Standardization → Catalog Upload
 **Scenario**: Convert paper records and scanned documents into structured patient data
 
 ```
-Scanned Records → OCR → Medical Entity Extraction → 
-HIPAA Compliance Validation → EHR Integration
+Scanned Records → OCR → Medical Entity Extraction → HIPAA Compliance Validation → EHR Integration
 ```
 
 **Enterprise Features**: Audit logging, encryption, RBAC, data isolation
@@ -173,8 +176,7 @@ HIPAA Compliance Validation → EHR Integration
 **Scenario**: Crawl websites and aggregate news articles with AI analysis
 
 ```
-Web URLs → Web Scraping → Content Extraction → 
-Sentiment Analysis → Topic Classification → Distribution
+Web URLs → Web Scraping → Content Extraction → Sentiment Analysis → Topic Classification → Distribution
 ```
 
 **Automation**: Parallel scraping, conditional routing, scheduled execution
@@ -260,7 +262,7 @@ Sentiment Analysis → Topic Classification → Distribution
 - Results viewer with syntax highlighting
 - Responsive Tailwind CSS design
 
-**A[PI Service (`contentflow-api`)](./contentflow-api/README.md)**
+**[API Service (`contentflow-api`)](./contentflow-api/README.md)**
 - FastAPI REST endpoints for pipeline operations
 - AsyncIO-based for high concurrency
 - WebSocket support for real-time events
@@ -514,7 +516,6 @@ python run.py
 - **[Infrastructure Guide](infra/README.md)** - Deploy to Azure
 - **[API Documentation](contentflow-api/README.md)** - REST endpoints
 - **[Sample Pipelines](contentflow-lib/samples/README.md)** - Learn by example
-- **[Architecture](contentflow-lib/contentflow/pipeline/README.md)** - Deep dive into engine
 - **[Web UI Guide](contentflow-web/README.md)** - Dashboard features
 
 ---

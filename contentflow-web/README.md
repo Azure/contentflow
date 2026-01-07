@@ -2,6 +2,18 @@
 
 A modern, React-based web interface for building and managing intelligent document processing pipelines using ContentFlow. This application provides a visual pipeline builder, pre-built templates, and document vault management for enterprise content processing workflows.
 
+
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Application Structure](#application-structure)
+- [Page Flow & Navigation](#page-flow--navigation)
+- [Building a Pipeline](#building-a-pipeline)
+- [Pipeline Templates](#pipeline-templates)
+- [Advanced Features](#advanced-features)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [API Integration](#api-integration)
+
 ## Overview
 
 ContentFlow Web is a comprehensive platform for creating, managing, and executing data processing pipelines. It features:
@@ -380,32 +392,3 @@ ContentFlow Web communicates with the ContentFlow API for:
 - `GET /api/vaults`: List vaults
 - `POST /api/vaults`: Create vault
 - `POST /api/vaults/{id}/upload`: Upload content
-
-## Contributing
-
-When contributing to ContentFlow Web:
-
-1. Follow existing code style and patterns
-2. Use TypeScript for type safety
-3. Document complex logic with comments
-4. Test changes locally before submitting
-5. Update README if adding new features
-
-## License
-
-See the main ContentFlow repository for license information.
-
-## Support & Documentation
-
-- **Main Repository**: See [parent contentflow repository](../README.md)
-- **API Documentation**: Check [contentflow-api README](../contentflow-api/README.md)
-- **Architecture**: See [infra/README.md](../infra/README.md) for deployment details
-
-## Next Steps
-
-1. **Try a Template**: Start with a pre-built template matching your use case
-2. **Build Custom Pipeline**: Create a pipeline from scratch using the builder
-3. **Explore Vaults**: Create a document repository and manage content
-4. **Integrate with API**: Connect to ContentFlow API for execution
-5. **Scale for Production**: Deploy with proper configuration and monitoring
-
