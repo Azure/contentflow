@@ -72,6 +72,12 @@ async def get_vault_service():
     return VaultService(await get_cosmos_client())
 
 @ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
+async def get_vault_execution_service():
+    """Dependency to get VaultExecutionService"""
+    from app.services import VaultExecutionService
+    return VaultExecutionService(await get_cosmos_client())
+
+@ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
 async def get_executor_catalog_service():
     """Dependency to get ExecutorCatalogService"""
     from app.services import ExecutorCatalogService

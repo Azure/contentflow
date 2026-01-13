@@ -8,14 +8,15 @@ from app.models import (
     Vault,
     VaultCreateRequest,
     VaultUpdateRequest,
+    VaultExecution,
+    VaultCrawlCheckpoint,
 )
-from app.services.vault_service import VaultService
-from app.services.pipeline_service import PipelineService
-from app.dependencies import get_vault_service, get_pipeline_service
+from app.services import VaultService, PipelineService, VaultExecutionService
+from app.dependencies import get_vault_service, get_pipeline_service, get_vault_execution_service
 
 router = APIRouter(prefix="/vaults", tags=["vaults"])
 
-# Vault management endpoints
+#region Vault management endpoints
 
 @router.get("/", response_model=List[Vault])
 async def list_vaults(
@@ -90,12 +91,6 @@ async def update_vault(
     """Update a vault"""
     
     try:
-        # If pipeline_id is being updated, verify it exists
-        if request.pipeline_id:
-            pipeline = await pipeline_service.get_by_id(request.pipeline_id)
-            if not pipeline:
-                raise HTTPException(status_code=404, detail=f"Pipeline {request.pipeline_id} not found")
-        
         vault = await vault_service.update_vault(vault_id, request)
         
         if not vault:
@@ -113,7 +108,7 @@ async def update_vault(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{vault_id}", status_code=204)
+@router.delete("/{vault_id}")
 async def delete_vault(
     vault_id: str,
     vault_service: VaultService = Depends(get_vault_service)
@@ -125,172 +120,54 @@ async def delete_vault(
         
         if not result:
             raise HTTPException(status_code=404, detail=f"Vault {vault_id} not found")
-        
-        return None
     
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"message": "Vault deleted successfully"}
+
+#endregion Vault management endpoints
+
+#region Vault execution endpoints
+
+# Get Vault Executions
+@router.get("/executions/{vault_id}", response_model=List[VaultExecution])
+async def get_vault_executions(
+    vault_id: str,
+    start_date: Optional[str] = Query(None, description="Filter executions starting from this date (ISO format)"),
+    end_date: Optional[str] = Query(None, description="Filter executions up to this date (ISO format)"),
+    vault_exec_service: VaultExecutionService = Depends(get_vault_execution_service)
+):
+    """Get a specific vault by ID"""
+    try:
+        vault_executions = await vault_exec_service.get_vault_executions(vault_id, start_date=start_date, end_date=end_date)
+        
+        return vault_executions
+    
+    except HTTPException:
+        raise
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Get Vault Crawl Checkpoints
+@router.get("/crawl-checkpoints/{vault_id}", response_model=List[VaultCrawlCheckpoint])
+async def get_vault_crawl_checkpoints(
+    vault_id: str,
+    vault_exec_service: VaultExecutionService = Depends(get_vault_execution_service)
+):
+    """Get crawl checkpoints for a specific vault by ID"""
+    try:
+        vault_checkpoints = await vault_exec_service.get_vault_crawl_checkpoints(vault_id)
+        
+        return vault_checkpoints
+    
+    except HTTPException:
+        raise
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # Content management endpoints
-
-# @router.get("/{vault_id}/content", response_model=List[VaultContentResponse])
-# async def list_vault_content(
-#     vault_id: str,
-#     status: Optional[str] = Query(None, description="Filter by status (pending, processing, ready, error)"),
-#     search: Optional[str] = Query(None, description="Search by file name"),
-#     vault_service: VaultService = Depends(get_vault_service)
-# ):
-#     """List content in a vault"""
-#     logger.info(f"Listing content for vault: {vault_id}")
-    
-#     try:
-#         # Verify vault exists
-#         vault = await vault_service.get_vault(vault_id)
-#         if not vault:
-#             raise HTTPException(status_code=404, detail=f"Vault {vault_id} not found")
-        
-#         content_items = await vault_service.list_vault_content(vault_id, status=status, search=search)
-        
-#         return [_content_to_response(content) for content in content_items]
-    
-#     except HTTPException:
-#         raise
-    
-#     except Exception as e:
-#         logger.error(f"Error listing vault content: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @router.post("/{vault_id}/content/upload", response_model=VaultContentResponse, status_code=201)
-# async def upload_content(
-#     vault_id: str,
-#     file: UploadFile = File(...),
-#     vault_service: VaultService = Depends(get_vault_service)
-# ):
-#     """Upload content to a vault"""
-#     logger.info(f"Uploading content to vault: {vault_id}")
-    
-#     try:
-#         # Verify vault exists
-#         vault = await vault_service.get_vault(vault_id)
-#         if not vault:
-#             raise HTTPException(status_code=404, detail=f"Vault {vault_id} not found")
-        
-#         # Read file
-#         file_content = await file.read()
-#         file_size = len(file_content)
-        
-#         # TODO: Upload to blob storage and get URL
-#         # For now, we'll just record the metadata
-#         blob_path = f"vaults/{vault_id}/{file.filename}"
-#         blob_url = None  # Would be set after blob upload
-        
-#         content = await vault_service.upload_content(
-#             vault_id=vault_id,
-#             file_name=file.filename,
-#             content_type=file.content_type or "application/octet-stream",
-#             size_bytes=file_size,
-#             blob_path=blob_path,
-#             blob_url=blob_url
-#         )
-        
-#         return _content_to_response(content)
-    
-#     except HTTPException:
-#         raise
-    
-#     except Exception as e:
-#         logger.error(f"Error uploading content: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @router.get("/{vault_id}/content/{content_id}", response_model=VaultContentResponse)
-# async def get_content(
-#     vault_id: str,
-#     content_id: str,
-#     vault_service: VaultService = Depends(get_vault_service)
-# ):
-#     """Get specific content details"""
-#     logger.info(f"Getting content {content_id} from vault {vault_id}")
-    
-#     try:
-#         content = await vault_service.get_content(vault_id, content_id)
-        
-#         if not content:
-#             raise HTTPException(status_code=404, detail=f"Content {content_id} not found in vault {vault_id}")
-        
-#         return _content_to_response(content)
-    
-#     except HTTPException:
-#         raise
-    
-#     except Exception as e:
-#         logger.error(f"Error getting content: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @router.delete("/{vault_id}/content/{content_id}", status_code=204)
-# async def delete_content(
-#     vault_id: str,
-#     content_id: str,
-#     vault_service: VaultService = Depends(get_vault_service)
-# ):
-#     """Delete content from a vault"""
-#     logger.info(f"Deleting content {content_id} from vault {vault_id}")
-    
-#     try:
-#         result = await vault_service.delete_content(vault_id, content_id)
-        
-#         if not result:
-#             raise HTTPException(status_code=404, detail=f"Content {content_id} not found in vault {vault_id}")
-        
-#         return None
-    
-#     except HTTPException:
-#         raise
-    
-#     except Exception as e:
-#         logger.error(f"Error deleting content: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @router.patch("/{vault_id}/content/{content_id}/status")
-# async def update_content_status(
-#     vault_id: str,
-#     content_id: str,
-#     status: str = Query(..., description="New status (pending, processing, ready, error)"),
-#     error_message: Optional[str] = Query(None, description="Error message if status is error"),
-#     pipeline_execution_id: Optional[str] = Query(None, description="Pipeline execution ID"),
-#     entities_extracted: Optional[int] = Query(None, description="Number of entities extracted"),
-#     chunks_created: Optional[int] = Query(None, description="Number of chunks created"),
-#     vault_service: VaultService = Depends(get_vault_service)
-# ):
-#     """Update content processing status (for internal use)"""
-#     logger.info(f"Updating status for content {content_id} in vault {vault_id}")
-    
-#     try:
-#         content = await vault_service.update_content_status(
-#             vault_id=vault_id,
-#             content_id=content_id,
-#             status=status,
-#             error_message=error_message,
-#             pipeline_execution_id=pipeline_execution_id,
-#             entities_extracted=entities_extracted,
-#             chunks_created=chunks_created
-#         )
-        
-#         if not content:
-#             raise HTTPException(status_code=404, detail=f"Content {content_id} not found in vault {vault_id}")
-        
-#         return _content_to_response(content)
-    
-#     except HTTPException:
-#         raise
-    
-#     except Exception as e:
-#         logger.error(f"Error updating content status: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
+#endregion Vault execution endpoints

@@ -39,10 +39,11 @@ export const VaultCard = ({
             <Folder className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold mb-1">{vault.name}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <h3 className="text-xl font-semibold mb-1">{vault.name?.length > 18 ? vault.name.slice(0, 18) + "..." : vault.name}</h3>
+            <h6 className="text-[0.625rem] text-muted-foreground mb-1">ID: {vault.id}</h6>
+            {/* <p className="text-sm text-muted-foreground line-clamp-2">
               {vault.description}
-            </p>
+            </p> */}
           </div>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -68,7 +69,7 @@ export const VaultCard = ({
       <div className="space-y-3 mb-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Pipeline:</span>
-          <Badge variant="secondary">{vault.pipeline_name || "Unknown"}</Badge>
+          <Badge variant="secondary" title={vault.pipeline_name}>{vault.pipeline_name?.length > 36 ? vault.pipeline_name.slice(0, 36) + "..." : vault.pipeline_name || "Unknown"}</Badge>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Status:</span>

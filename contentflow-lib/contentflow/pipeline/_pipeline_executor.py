@@ -9,6 +9,7 @@ This module provides the PipelineExecutor class that handles:
 """
 
 import logging
+import traceback
 from typing import Any, Dict, List, Optional, AsyncIterator, Union, cast
 from pathlib import Path
 from datetime import datetime, timezone
@@ -318,7 +319,7 @@ class PipelineExecutor:
             logger.info(f"Pipeline execution completed: {self.pipeline_name}")
         except Exception as e:
             status = PipelineStatus.FAILED
-            error_msg = str(e)
+            error_msg = str(e) or traceback.format_exc()
             logger.error(
                 f"Pipeline execution failed: {self.pipeline_name}",
                 exc_info=True

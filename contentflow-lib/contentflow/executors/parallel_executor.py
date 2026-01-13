@@ -143,9 +143,7 @@ class ParallelExecutor(BaseExecutor, ABC):
                 f"Content item failed in executor {self.id}: "
                 f"{content.id.canonical_id if content.id else 'unknown'}: {str(e)}",
                 exc_info=True
-            )
-            logger.exception(e)
-            
+            )            
             content.executor_logs.append(ExecutorLogEntry(
                 executor_id=self.id,
                 start_time=start_time,
@@ -156,7 +154,7 @@ class ParallelExecutor(BaseExecutor, ABC):
             ))
             
             if self.fail_pipeline_on_error:
-                raise
+                raise e
             else:
                 return content  # Return original content on error"
         

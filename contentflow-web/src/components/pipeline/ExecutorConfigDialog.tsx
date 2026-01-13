@@ -269,7 +269,7 @@ export const ExecutorConfigDialog = ({
               id={fieldId}
               type="number"
               value={value || ""}
-              onChange={(e) => handleFieldChange(key, e.target.value ? Number(e.target.value) : "")}
+              onChange={(e) => handleFieldChange(key, e.target.value ? Number(e.target.value.trim()) : "")}
               min={setting.min}
               max={setting.max ? setting.max : undefined}
               placeholder={setting.placeholder || setting.description}

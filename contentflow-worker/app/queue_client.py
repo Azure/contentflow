@@ -150,7 +150,7 @@ class TaskQueueClient:
             List of QueueMessage objects
         """
         messages = self.client.receive_messages(
-            messages_per_page=max_messages,
+            max_messages=max_messages,
             visibility_timeout=visibility_timeout
         )
         

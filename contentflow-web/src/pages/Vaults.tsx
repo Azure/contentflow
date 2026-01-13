@@ -4,6 +4,15 @@ import { Input } from "@/components/ui/input";
 import { VaultCard } from "@/components/vaults/VaultCard";
 import { VaultExecutionsView } from "@/components/vaults/VaultExecutionsView";
 import { CreateVaultDialog } from "@/components/vaults/CreateVaultDialog";
+import { UpdateVaultDialog } from "@/components/vaults/UpdateVaultDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Plus, Search, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getVaults, createVault, updateVault, deleteVault } from "@/lib/api/vaultsApi";
@@ -14,14 +23,26 @@ import type { Pipeline } from "@/types/components";
 export const Vaults = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [vaultToEdit, setVaultToEdit] = useState<Vault | null>(null);
   const [viewingVaultId, setViewingVaultId] = useState<string | null>(null);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vaultToDelete, setVaultToDelete] = useState<string | null>(null);
 
   // Fetch vaults and pipelines on mount
   useEffect(() => {
+    
+    // Get vault-id from query params to view specific vault
+    const params = new URLSearchParams(window.location.search);
+    const vaultIdFromParams = params.get("vaultId");
+    if (vaultIdFromParams) {
+      setViewingVaultId(vaultIdFromParams);
+    }
+
     loadData();
   }, []);
 
@@ -36,7 +57,7 @@ export const Vaults = () => {
       setPipelines(pipelinesData);
     } catch (error) {
       console.error("Error loading data:", error);
-      toast.error("Failed to load vaults and pipelines");
+      toast.error("Failed to load vaults. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +72,7 @@ export const Vaults = () => {
       toast.success("Vault created successfully!");
     } catch (error) {
       console.error("Error creating vault:", error);
-      toast.error("Failed to create vault");
+      toast.error("Failed to create vault. " + (error?.message || ""));
     } finally {
       setIsUpdating(false);
     }
@@ -59,29 +80,55 @@ export const Vaults = () => {
 
   const handleViewVault = (vaultId: string) => {
     setViewingVaultId(vaultId);
+    // update URL params
+    const params = new URLSearchParams(window.location.search);
+    params.set("vaultId", vaultId);
+    const newUrl = window.location.pathname + `?${params.toString()}`;
+    window.history.replaceState({}, "", newUrl);
   };
 
   const handleEditVault = (vaultId: string) => {
-    // TODO: Implement edit dialog
-    toast.info("Edit vault functionality coming soon!");
+    const vault = vaults.find(v => v.id === vaultId);
+    if (vault) {
+      setVaultToEdit(vault);
+      setIsUpdateDialogOpen(true);
+    }
+  };
+
+  const handleUpdateVault = async (vaultId: string, vaultData: UpdateVaultRequest) => {
+    setIsUpdating(true);
+    try {
+      const updatedVault = await updateVault(vaultId, vaultData);
+      setVaults(vaults.map(v => v.id === vaultId ? updatedVault : v));
+      setIsUpdateDialogOpen(false);
+      setVaultToEdit(null);
+      toast.success("Vault updated successfully!");
+    } catch (error) {
+      console.error("Error updating vault:", error);
+      toast.error("Failed to update vault. " + (error?.message || ""));
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleDeleteVault = async (vaultId: string) => {
-    const vault = vaults.find(v => v.id === vaultId);
-    if (!vault) return;
+    setVaultToDelete(vaultId);
+    setDeleteDialogOpen(true);
+  };
 
-    if (!confirm(`Are you sure you want to delete "${vault.name}"?`)) {
-      return;
-    }
+  const confirmDeleteVault = async () => {
+    if (!vaultToDelete) return;
 
     setIsUpdating(true);
     try {
-      await deleteVault(vaultId);
-      setVaults(vaults.filter(v => v.id !== vaultId));
-      toast.success(`Vault "${vault.name}" deleted successfully!`);
+      await deleteVault(vaultToDelete);
+      setVaults(vaults.filter(v => v.id !== vaultToDelete));
+      toast.success("Vault deleted successfully!");
+      setDeleteDialogOpen(false);
+      setVaultToDelete(null);
     } catch (error) {
       console.error("Error deleting vault:", error);
-      toast.error("Failed to delete vault");
+      toast.error("Failed to delete vault. " + (error?.message || ""));
     } finally {
       setIsUpdating(false);
     }
@@ -102,40 +149,23 @@ export const Vaults = () => {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => setViewingVaultId(null)}
+            onClick={() => {
+              setViewingVaultId(null); 
+              // remove vaultId from URL params
+              const params = new URLSearchParams(window.location.search);
+              params.delete("vaultId");
+              const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+              window.history.replaceState({}, "", newUrl);
+            }}
             className="gap-2 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Vaults
           </Button>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{viewingVault.name}</h1>
-              <p className="text-lg text-muted-foreground mb-4">
-                {viewingVault.description || "No description"}
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Pipeline: </span>
-                  <span className="font-semibold">{viewingVault.pipeline_name || "Unknown"}</span>
-                </div>
-                {viewingVault.tags && viewingVault.tags.length > 0 && (
-                  <div className="flex gap-2">
-                    {viewingVault.tags.map((tag) => (
-                      <span key={tag} className="text-xs px-2 py-1 bg-secondary rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
         <VaultExecutionsView
-          vaultId={viewingVault.id}
-          pipelineId={viewingVault.pipeline_id}
+          vault={viewingVault}
         />
       </div>
     );
@@ -209,6 +239,44 @@ export const Vaults = () => {
         pipelines={pipelines}
         isLoading={isUpdating}
       />
+
+      <UpdateVaultDialog
+        open={isUpdateDialogOpen}
+        onOpenChange={setIsUpdateDialogOpen}
+        vault={vaultToEdit}
+        onUpdateVault={handleUpdateVault}
+        isLoading={isUpdating}
+      />
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Vault</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{vaultToDelete ? vaults.find(v => v.id === vaultToDelete)?.name : ''}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setVaultToDelete(null);
+              }}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteVault}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -30,8 +30,8 @@ class WorkerSettings(BaseModel):
     # Polling settings
     QUEUE_POLL_INTERVAL_SECONDS: int = Field(default=5, description="Interval between queue polls")
     QUEUE_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=300, description="Message visibility timeout (5 minutes)")
-    QUEUE_MAX_MESSAGES: int = Field(default=32, description="Maximum messages to retrieve per poll")
-    DEFAULT_POLLING_INTERVAL_SECONDS: int = Field(default=300, description="Default polling interval if not specified in executor (5 minutes)")
+    QUEUE_MAX_MESSAGES: int = Field(default=32, description="Maximum messages to retrieve per poll per worker")
+    DEFAULT_POLLING_INTERVAL_SECONDS: int = Field(default=300, description="Default polling interval if not specified in input executor (5 minutes)")
     SCHEDULER_SLEEP_INTERVAL_SECONDS: int = Field(default=5, description="How often scheduler checks for ready pipelines")
     LOCK_TTL_SECONDS: int = Field(default=300, description="Lock time-to-live (5 minutes)")
     
@@ -45,7 +45,7 @@ class WorkerSettings(BaseModel):
     COSMOS_DB_CONTAINER_PIPELINES: str = Field(default="pipelines", description="Container for pipelines")
     COSMOS_DB_CONTAINER_VAULT_EXECUTIONS: str = Field(default="vault_executions", description="Container for executions")
     COSMOS_DB_CONTAINER_VAULTS: str = Field(default="vaults", description="Container for vaults")
-    COSMOS_DB_CONTAINER_LOCKS: str = Field(default="vault_exec_locks", description="Container for distributed locks")
+    COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS: str = Field(default="vault_exec_locks", description="Container for distributed locks")
     COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS: str = Field(default="vault_crawl_checkpoints", description="Container for vault input executor crawling checkpoints")
     
     # Blob Storage settings (for content retrieval)
@@ -91,7 +91,7 @@ class WorkerSettings(BaseModel):
             "COSMOS_DB_CONTAINER_PIPELINES": os.getenv("COSMOS_DB_CONTAINER_PIPELINES", "pipelines"),
             "COSMOS_DB_CONTAINER_VAULTS": os.getenv("COSMOS_DB_CONTAINER_VAULTS", "vaults"),
             "COSMOS_DB_CONTAINER_VAULT_EXECUTIONS": os.getenv("COSMOS_DB_CONTAINER_VAULT_EXECUTIONS", "vault_executions"),
-            "COSMOS_DB_CONTAINER_LOCKS": os.getenv("COSMOS_DB_CONTAINER_LOCKS", "vault_exec_locks"),
+            "COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS": os.getenv("COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS", "vault_exec_locks"),
             "COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS": os.getenv("COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS", "vault_crawl_checkpoints"),
             "DEFAULT_POLLING_INTERVAL_SECONDS": int(os.getenv("DEFAULT_POLLING_INTERVAL_SECONDS", "300")),
             "SCHEDULER_SLEEP_INTERVAL_SECONDS": int(os.getenv("SCHEDULER_SLEEP_INTERVAL_SECONDS", "5")),
@@ -144,7 +144,10 @@ class WorkerSettings(BaseModel):
                 value = config_provider.get_config_value(key)
                 if value is not None:
                     # Convert to appropriate type
-                    if key in ["NUM_PROCESSING_WORKERS", "NUM_SOURCE_WORKERS", "API_PORT", "QUEUE_POLL_INTERVAL_SECONDS", "QUEUE_VISIBILITY_TIMEOUT_SECONDS", "QUEUE_MAX_MESSAGES", "MAX_TASK_RETRIES", "TASK_TIMEOUT_SECONDS", "SOURCE_WORKER_POLL_INTERVAL_SECONDS", "DEFAULT_POLLING_INTERVAL_SECONDS", "SCHEDULER_SLEEP_INTERVAL_SECONDS", "LOCK_TTL_SECONDS"]:
+                    if key in ["NUM_PROCESSING_WORKERS", "NUM_SOURCE_WORKERS", "API_PORT", "QUEUE_POLL_INTERVAL_SECONDS", 
+                               "QUEUE_VISIBILITY_TIMEOUT_SECONDS", "QUEUE_MAX_MESSAGES", "MAX_TASK_RETRIES", "TASK_TIMEOUT_SECONDS", 
+                               "SOURCE_WORKER_POLL_INTERVAL_SECONDS", "DEFAULT_POLLING_INTERVAL_SECONDS", "SCHEDULER_SLEEP_INTERVAL_SECONDS", 
+                               "LOCK_TTL_SECONDS"]:
                         value = int(value)
                     elif key in ["API_ENABLED", "DEBUG"]:
                         value = value.lower() in ("true", "1", "yes")

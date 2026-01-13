@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText, Network, Sparkles, Zap } from "lucide-react";
+import { DashboardTables } from "./dashboard/DashboardTables";
 
 interface HeroProps {
   onGetStarted: () => void;
@@ -19,7 +20,19 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
             <span className="text-sm font-medium text-secondary">Agentic AI-Powered Content Intelligence</span>
           </div>
           
-          <h1 className="font-display text-6xl md:text-7xl font-bold mb-6 text-foreground leading-tight">
+        {/* Table of pipelines and vaults available */}
+        <div>
+          <div className="grid md:grid-cols-1 gap-6 max-w-6xl mx-auto mb-8">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+              Your Workspace
+            </h2>
+            <p className="text-muted-foreground">Manage your pipelines and vaults</p>
+          </div>
+          <DashboardTables />
+        </div>
+
+          <hr className="my-16 border-border" />
+          <h1 className="font-display text-6xl md:text-7xl font-bold mt-8 mb-6 text-foreground leading-tight">
             Transform Content Into
             <span className="block bg-gradient-secondary bg-clip-text text-transparent">
               <img src="/contentflow.svg" alt="Connected Knowledge" className="inline-block w-16 h-16 ml-1" /> Connected Knowledge
@@ -47,7 +60,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {/* <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           <FeatureCard
             icon={<Zap className="w-6 h-6" />}
             title="Pipeline Builder"
@@ -66,7 +79,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
             description="Visualize and explore interconnected entities with interactive graph views"
             color="accent"
           />
-        </div>
+        </div> */}
 
         {/* Visual Element */}
         {/* <div className="mt-20 max-w-5xl mx-auto">
@@ -81,6 +94,10 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
             </div>
           </div>
         </div> */}
+
+        
+
+
       </div>
     </div>
   );

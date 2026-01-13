@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from app.database.cosmos import CosmosDBClient
+from app.database.cosmos import CosmosDBClient, ContainerProxy
 
 class BaseService:
     """Base service class for common CRUD operations"""
@@ -12,17 +12,20 @@ class BaseService:
         
         self.cosmos_container_client = self.cosmos.get_container(container_name)
     
-    async def create(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def create(self, item: Dict[str, Any], target_container: Optional[str] = None) -> Dict[str, Any]:
         """Create a new item"""
-        return await self.cosmos.create(self.container_name, item)
+        target_container = target_container or self.container_name
+        return await self.cosmos.create(target_container, item)
     
-    async def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
+    async def get_by_id(self, item_id: str, target_container: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Get item by ID"""
-        return await self.cosmos.get_by_id(self.container_name, item_id)
+        target_container = target_container or self.container_name
+        return await self.cosmos.get_by_id(target_container, item_id)
     
-    async def list_all(self, query: Optional[str] = None, parameters: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    async def list_all(self, query: Optional[str] = None, parameters: Optional[List[Dict[str, Any]]] = None, target_container: Optional[str] = None) -> List[Dict[str, Any]]:
         """List all items"""
-        return await self.cosmos.list_all(self.container_name, query, parameters)
+        target_container = target_container or self.container_name
+        return await self.cosmos.list_all(target_container, query, parameters)
     
     async def query(self, query: str, parameters: Optional[List[Dict[str, Any]]] = None, target_container: Optional[str] = None) -> List[Dict[str, Any]]:
         """Execute a query"""
@@ -46,3 +49,11 @@ class BaseService:
         
         target_container = target_container or self.container_name
         return await self.cosmos.batch_upsert(target_container, items)
+
+    async def get_container_client(self, container_name: Optional[str] = None) -> ContainerProxy:
+        """Get the Cosmos DB container client"""
+        
+        if container_name not in [None, ""]:
+            return self.cosmos.get_container(container_name)
+        
+        return self.cosmos_container_client

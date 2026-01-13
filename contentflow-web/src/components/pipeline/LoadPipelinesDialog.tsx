@@ -127,11 +127,15 @@ export const LoadPipelinesDialog = ({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-foreground mb-1 truncate">
-                            {pipeline.name}
+                            {pipeline.name.length > 50
+                              ? pipeline.name.slice(0, 50) + "..."
+                              : pipeline.name}
                           </h4>
                           {pipeline.description && (
                             <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                              {pipeline.description}
+                              {pipeline.description?.length > 100
+                                ? pipeline.description.slice(0, 100) + "..."
+                                : pipeline.description}
                             </p>
                           )}
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">

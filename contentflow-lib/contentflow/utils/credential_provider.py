@@ -22,9 +22,9 @@ async def get_azure_credential_async():
         ManagedIdentityCredentialAsync(client_id=os.environ.get("AZURE_CLIENT_ID")),
     )
 
-    global _async_credential
-    if not _async_credential:
-        _async_credential = ChainedTokenCredentialAsync(*credential_chain)
+    # global _async_credential
+    # if not _async_credential:
+    _async_credential = ChainedTokenCredentialAsync(*credential_chain)
         
     return _async_credential
 

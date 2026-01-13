@@ -151,34 +151,60 @@ export interface Vault {
   description?: string;
   pipeline_id: string;
   pipeline_name?: string;
+  save_execution_output?: boolean;
   tags: string[];
-  storage_config?: VaultStorageConfig;
   enabled?: boolean;
   created_by?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface VaultStorageConfig {
-  account_name: string;
-  container_name: string;
-  credential_type: string;
-  credential_key?: string;
-}
-
 export interface CreateVaultRequest {
   name: string;
   description?: string;
   pipeline_id: string;
+  save_execution_output?: boolean;
   tags?: string[];
-  storage_config?: VaultStorageConfig;
+  enabled?: boolean;
 }
 
 export interface UpdateVaultRequest {
   name?: string;
   description?: string;
   tags?: string[];
+  save_execution_output?: boolean;
   enabled?: boolean;
+}
+
+export interface VaultExecution {
+    id: string;
+    pipeline_id: string;
+    pipeline_name: string;
+    vault_id: string;
+    status: "pending" | "running" | "completed" | "failed";
+    status_message?: string;
+    task_id: string;
+    source_worker_id?: string;
+    processing_worker_id?: string;
+    created_by?: string;
+    error?: string;
+    executor_outputs?: Record<string, any>;
+    events?: Record<string, any>[];
+    started_at?: string;
+    completed_at?: string;
+    content?: Record<string, any>;
+    number_of_items?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface VaultCrawlCheckpoint {
+    id: string;
+    pipeline_id: string;
+    vault_id: string;
+    executor_id: string;
+    checkpoint_timestamp: string;
+    worker_id: string;
 }
 
 // ============================================================================

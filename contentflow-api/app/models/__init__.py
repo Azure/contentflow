@@ -14,7 +14,8 @@ from ._vault import (
     Vault,
     VaultCreateRequest,
     VaultUpdateRequest,
-    VaultStorageConfig,
+    VaultExecution,
+    VaultCrawlCheckpoint,
 )
 
 try:
@@ -36,5 +37,6 @@ __all__ = [
             "Vault",
             "VaultCreateRequest",
             "VaultUpdateRequest",
-            "VaultStorageConfig",
+            "VaultExecution",
+            "VaultCrawlCheckpoint",
           ]

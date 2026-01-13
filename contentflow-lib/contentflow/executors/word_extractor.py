@@ -157,11 +157,20 @@ class WordExtractorExecutor(ParallelExecutor):
                 source = f"file: {doc_path}" if doc_path else f"bytes: {len(doc_bytes)} bytes"
                 logger.debug(f"Processing Word document {content.id} from {source}")
             
-            # Open Word document
-            if doc_bytes:
-                doc = Document(io.BytesIO(doc_bytes))
-            else:
-                doc = Document(doc_path)
+            doc = None
+            
+            try:
+                # Open Word document
+                if doc_bytes:
+                    doc = Document(io.BytesIO(doc_bytes))
+                else:
+                    doc = Document(doc_path)
+            except Exception as e:
+                logger.warning(
+                    f"Invalid Word document for content {content.id}: {str(e)}"
+                )
+                content.summary_data['word_extraction_status'] = "invalid_file"
+                return content
             
             extracted_data = {}
             
