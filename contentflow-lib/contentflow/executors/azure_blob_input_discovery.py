@@ -3,7 +3,7 @@
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union
+from typing import AsyncGenerator, Dict, Any, List, Optional, Union
 
 from agent_framework import WorkflowContext
 
@@ -176,14 +176,12 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
     async def crawl(
         self,
         checkpoint_timestamp: Optional[datetime] = None,
-        continuation_token: Optional[str] = None
-    ) -> tuple[List[Content], Optional[str]]:
+    ) -> AsyncGenerator[tuple[List[Content] | None, Optional[bool] | None], None]:
         """
         Crawl Azure Blob Storage and return a batch of Content items.
         
         Args:
             checkpoint_timestamp: Optional timestamp to fetch only blobs modified after this time
-            continuation_token: Optional token for pagination
             
         Returns:
             Tuple of (List[Content], Optional continuation token)
@@ -196,43 +194,46 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                 logger.debug(
                     f"Crawling container '{self.blob_container_name}' "
                     f"with prefix '{self.prefix}', "
-                    f"checkpoint={checkpoint_timestamp}, "
-                    f"continuation_token={continuation_token is not None}"
+                    f"checkpoint={checkpoint_timestamp}"
                 )
             
             # List blobs with pagination support
             # Note: Azure SDK returns a continuation token for pagination
-            blobs = await self.blob_connector.list_blobs(
-                container_name=self.blob_container_name,
-                prefix=self.prefix if self.prefix else None,
-                max_results=self.batch_size
-            )
+            async for blobs in self.blob_connector.list_blobs(container_name=self.blob_container_name,
+                                                                prefix=self.prefix if self.prefix else None,
+                                                                max_results=self.max_results,
+                                                                batch_size=self.batch_size
+                                                             ):
             
-            blob_list = blobs
-            next_token = None
-            
-            if self.debug_mode:
-                logger.debug(f"Found {len(blob_list)} blobs before filtering")
-            
-            # Filter blobs based on checkpoint and other criteria
-            filtered_blobs = self._filter_blobs(
-                blob_list,
-                checkpoint_timestamp=checkpoint_timestamp
-            )
-            
-            if self.debug_mode:
-                logger.debug(f"After filtering: {len(filtered_blobs)} blobs")
-            
-            # Sort blobs
-            sorted_blobs = self._sort_blobs(filtered_blobs)
-            
-            # Create Content objects
-            content_items = []
-            for blob in sorted_blobs:
-                content = self._create_content_from_blob(blob)
-                content_items.append(content)
-            
-            return content_items, next_token
+                blob_list = blobs
+                
+                if self.debug_mode:
+                    logger.debug(f"Found {len(blob_list)} blobs before filtering")
+                
+                if blob_list is None or len(blob_list) == 0:
+                    yield (None, False)
+                
+                # Filter blobs based on checkpoint and other criteria
+                filtered_blobs = self._filter_blobs(
+                    blob_list,
+                    checkpoint_timestamp=checkpoint_timestamp
+                )
+                
+                if self.debug_mode:
+                    logger.debug(f"After filtering: {len(filtered_blobs)} blobs")
+                
+                # Sort blobs
+                sorted_blobs = self._sort_blobs(filtered_blobs)
+                
+                # Create Content objects
+                content_items = []
+                for blob in sorted_blobs:
+                    content = self._create_content_from_blob(blob)
+                    content_items.append(content)
+                
+                yield (content_items, True)
+                
+            yield (None, False)
             
         except Exception as e:
             logger.error(
@@ -265,14 +266,20 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
             # Use crawl_all to fetch all content with automatic pagination
             content_items = []
             
-            async for batch in self.crawl_all(checkpoint_timestamp=None):
-                content_items.extend(batch)
+            async for batch, has_more in self.crawl(checkpoint_timestamp=None):
                 
-                if self.debug_mode:
-                    logger.debug(
-                        f"Processed batch of {len(batch)} items, "
-                        f"total so far: {len(content_items)}"
-                    )
+                if batch is not None and len(batch) > 0:
+                    content_items.extend(batch)
+                    
+                    if self.debug_mode:
+                        logger.debug(
+                            f"Processed batch of {len(batch)} items, "
+                            f"total so far: {len(content_items)}"
+                        )
+            
+                if batch is None and has_more is False:
+                    # No more items
+                    break
             
             elapsed = (datetime.now() - start_time).total_seconds()
             

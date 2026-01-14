@@ -8,7 +8,7 @@ writing documents during workflow execution.
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import AsyncGenerator, Optional, List, Dict, Any
 
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 
@@ -213,8 +213,9 @@ class AzureBlobConnector(ConnectorBase):
         self,
         container_name: str,
         prefix: Optional[str] = None,
-        max_results: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        max_results: Optional[int] = None,
+        batch_size: int = 10
+    ) -> AsyncGenerator[List[Dict[str, Any]], None]:
         """
         List blobs in a container.
         
@@ -231,21 +232,42 @@ class AzureBlobConnector(ConnectorBase):
         
         container_client = self.blob_service_client.get_container_client(container_name)
         
+        total_fetched = 0
         blobs = []
-        async for blob in container_client.list_blobs(name_starts_with=prefix):
-            blobs.append({
-                "name": blob.name,
-                "size": blob.size,
-                "last_modified": blob.last_modified,
-                "content_type": blob.content_settings.content_type if blob.content_settings else None,
-                "metadata": blob.metadata
-            })
-            
-            if max_results and max_results > 0 and len(blobs) >= max_results:
+        async for blob_page in container_client.list_blobs(name_starts_with=prefix, results_per_page=batch_size).by_page():
+                         
+            async for blob in blob_page:
+                blobs.append({
+                    "name": blob.name,
+                    "size": blob.size,
+                    "last_modified": blob.last_modified,
+                    "content_type": blob.content_settings.content_type if blob.content_settings else None,
+                    "metadata": blob.metadata
+                })
+                
+                total_fetched += 1
+                
+                # Yield when we have a full batch
+                if len(blobs) >= batch_size:
+                    batch_to_yield = blobs[:batch_size]
+                    logger.debug(f"Yielding batch of {len(batch_to_yield)} blobs from {container_name} (prefix: {prefix})")
+                    yield batch_to_yield
+                    blobs = blobs[batch_size:]
+                
+                # Stop fetching if we've reached max_results
+                if max_results and max_results > 0 and total_fetched >= max_results:
+                    break
+
+            if max_results and max_results > 0 and total_fetched >= max_results:
                 break
+            
+        # Yield any remaining blobs (less than batch_size)
+        if blobs:
+            remaining = blobs[:max_results - total_fetched + len(blobs)] if max_results and max_results > 0 else blobs
+            logger.debug(f"Yielding final batch of {len(remaining)} blobs from {container_name} (prefix: {prefix})")
+            yield remaining
         
-        logger.debug(f"Listed {len(blobs)} blobs from {container_name} (prefix: {prefix})")
-        return blobs
+        logger.info(f"Completed listing blobs from {container_name} (prefix: {prefix}). Total blobs listed: {total_fetched}")
     
     async def blob_exists(self, container_name: str, blob_path: str) -> bool:
         """Check if a blob exists."""

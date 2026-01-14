@@ -80,6 +80,9 @@ class CosmosDBClient:
             
     def get_container(self, container_name: str) -> ContainerProxy:
         """Get container by name"""
+        container_proxy = self.containers.get(container_name)
+        if not container_proxy:
+            self.containers[container_name] = self._ensure_container(container_name)
         
         return self.containers[container_name]
     

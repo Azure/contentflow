@@ -152,7 +152,7 @@ class StartupValidator:
             self.settings.COSMOS_DB_CONTAINER_PIPELINES,
             self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS,
             self.settings.COSMOS_DB_CONTAINER_VAULTS,
-            self.settings.COSMOS_DB_CONTAINER_LOCKS,
+            self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS,
             self.settings.COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS,
         ]
         

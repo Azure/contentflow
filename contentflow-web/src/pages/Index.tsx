@@ -36,13 +36,13 @@ const Index = () => {
           <div className="flex items-center gap-4">
             <Button
               variant={activeView === "home" ? "default" : "ghost"}
-              onClick={() => setActiveView("home")}
+              onClick={() => navigate(`/?view=home`)}
             >
               Home
             </Button>
             <Button
               variant={activeView === "pipeline" ? "default" : "ghost"}
-              onClick={() => setActiveView("pipeline")}
+              onClick={() => navigate(`/?view=pipeline`)}
             >
               Pipeline Builder
             </Button>
@@ -54,7 +54,7 @@ const Index = () => {
             </Button> */}
             <Button
               variant={activeView === "vaults" ? "default" : "ghost"}
-              onClick={() => setActiveView("vaults")}
+              onClick={() => navigate(`/?view=vaults`)}
               className="gap-2"
             >
               <FolderOpen className="w-4 h-4" />
@@ -73,7 +73,7 @@ const Index = () => {
       </nav>
 
       <main className="pt-20">
-        {activeView === "home" && <Hero onGetStarted={() => setActiveView("pipeline")} />}
+        {activeView === "home" && <Hero onGetStarted={() => navigate("/?view=pipeline")} />}
         {activeView === "pipeline" && <PipelineBuilder />}
         {activeView === "graph" && <KnowledgeGraph />}
         {activeView === "vaults" && <Vaults />}

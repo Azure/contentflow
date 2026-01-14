@@ -74,6 +74,7 @@ def setup_logging(log_level: str = "DEBUG"):
     logging.getLogger('msal.token_cache').setLevel(logging.WARNING)
     logging.getLogger('azure.monitor.opentelemetry').setLevel(logging.ERROR)
     logging.getLogger('opentelemetry').setLevel(logging.ERROR)
+    logging.getLogger('asyncio').setLevel(logging.ERROR)
     
     # Configure OpenTelemetry to use Azure Monitor with the 
     # APPLICATIONINSIGHTS_CONNECTION_STRING environment variable.

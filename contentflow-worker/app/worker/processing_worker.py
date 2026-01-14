@@ -8,6 +8,7 @@ This module implements the ContentProcessingWorker that:
 """
 
 import asyncio
+from datetime import datetime, timezone
 import logging
 import multiprocessing as mp
 import signal
@@ -133,6 +134,8 @@ class ContentProcessingWorker:
         """Process a batch of messages from the queue"""
         try:
             # Receive messages
+            logger.debug(f"{self.name} polling for messages... will retrieve up to {self.settings.QUEUE_MAX_MESSAGES} messages.")
+            
             messages = self.queue_client.receive_messages(
                 max_messages=self.settings.QUEUE_MAX_MESSAGES,
                 visibility_timeout=self.settings.QUEUE_VISIBILITY_TIMEOUT_SECONDS
@@ -181,7 +184,9 @@ class ContentProcessingWorker:
             # Check retry count
             if task.retry_count >= task.max_retries:
                 logger.error(f"{self.name} task {task.task_id} exceeded max retries")
-                self._update_execution_status(task.execution_id, "failed", error="Max retries exceeded")
+                self._update_execution_status(execution_id=task.execution_id, 
+                                              status="failed", 
+                                              error="Max retries exceeded")
                 self.queue_client.delete_message(message)
                 return
             
@@ -209,36 +214,36 @@ class ContentProcessingWorker:
             task: ContentProcessingTask to execute
             
         Returns:
-            True if successful, False otherwise
+            True if successful (completed or failed), False if an exception occurred that was not handled
         """
-        logger.debug(f"{self.name} executing task {task.task_id} for pipeline {task.pipeline_name}")
+        logger.debug(f"{self.name} executing task '{task.task_id}', with execution id '{task.execution_id}' for pipeline '{task.pipeline_name}'")
         
         try:
             # Update execution status to running
-            self._update_execution_status(task.execution_id, "running")
+            self._update_execution_status(execution_id=task.execution_id, status="running")
             
             # Get pipeline from Cosmos DB
             pipeline_config = self._get_pipeline(task.pipeline_id)
             if not pipeline_config:
                 logger.error(f"{self.name} pipeline not found: {task.pipeline_id}")
-                self._update_execution_status(task.execution_id, "failed", error="Pipeline not found")
-                return False
+                self._update_execution_status(execution_id=task.execution_id, status="failed", error="Pipeline not found")
+                return True
             
             # verify input content
             content = task.content
             if not content or len(content) == 0:
                 logger.error(f"{self.name} no input content for task {task.task_id}")
-                self._update_execution_status(task.execution_id, "failed", error="No input content")
-                return False
+                self._update_execution_status(execution_id=task.execution_id, status="failed", error="No input content")
+                return True
             
             # Execute pipeline synchronously (using asyncio.run)
             result = self._run_pipeline(pipeline_config, content, task)
             
             if result and result.status == "completed":
-                self._update_execution_status(task.execution_id, "completed")
-                
+                self._update_execution_status(execution_id=task.execution_id, status="completed")
+                should_save_output = self._get_vault_should_save_output(task.vault_id)
                 try:
-                    self._save_execution_output(task.execution_id, result)
+                    self._save_execution_output(task.execution_id, result, should_save_output)
                 except cosmos_exceptions.CosmosHttpResponseError as ce:
                     # check if it's due to request entity too large
                     if ce.status_code == 413:
@@ -249,20 +254,25 @@ class ContentProcessingWorker:
                         if isinstance(result.content, list):
                             for c in result.content:
                                 c.data = {"data": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
-                            self._save_execution_output(task.execution_id, result)
+                            self._save_execution_output(task.execution_id, result, should_save_output)
                         else:
                             result.content.data = {"data": "Output data too large to store in Cosmos DB. View output saved by output executor(s)."}
-                            self._save_execution_output(task.execution_id, result)
+                            self._save_execution_output(task.execution_id, result, should_save_output)
                     
                     else:
-                        logger.error(f"Failed to add save result to execution {task.execution_id}: {ce}", exc_info=True)
+                        logger.error(f"Failed to add result to execution {task.execution_id}: {ce}", exc_info=True)
                         raise ce
                 
                 logger.debug(f"{self.name} task {task.task_id} completed successfully")
                 return True
+            elif result and result.status == "failed":
+                logger.error(f"{self.name} task {task.task_id} failed during execution: {result.error}")
+                self._update_execution_status(execution_id=task.execution_id, status="failed", error=result.error)
+                self._save_execution_output(task.execution_id, result, should_save_output=False)
+                return True
             else:
-                self._update_execution_status(task.execution_id, "failed", error="Pipeline execution failed")
-                return False
+                self._update_execution_status(execution_id=task.execution_id, status=result.status, error="Pipeline execution has unknown status")
+                return True
                 
         except Exception as e:
             logger.error(f"{self.name} error executing task {task.task_id}: {e}")
@@ -378,10 +388,23 @@ class ContentProcessingWorker:
             # Read current execution
             execution = container.read_item(item=execution_id, partition_key=execution_id)
             
+            logger.debug(f"{self.name}: Retrieved execution {execution_id}. Current execution status: {execution.get('status')}")
+            
             # Update status
             execution["status"] = status
+            if status == "running":
+                execution["started_at"] = datetime.now(timezone.utc).isoformat()
+                execution["status_message"] = "Execution is running"
+            elif status in ["completed", "failed"]:
+                execution["completed_at"] = datetime.now(timezone.utc).isoformat()
+                execution["status_message"] = f"Execution {status}"
+                
             if error:
                 execution["error"] = error
+                execution["status_message"] = f"Execution failed. View error details."
+            
+            execution["processing_worker_id"] = self.name
+            execution['updated_at'] = datetime.now(timezone.utc).isoformat()
             
             # Update in Cosmos DB
             container.upsert_item(execution)
@@ -389,9 +412,10 @@ class ContentProcessingWorker:
             logger.debug(f"{self.name} updated execution {execution_id} status to {status}")
             
         except Exception as e:
-            logger.error(f"{self.name} error updating execution status: {e}")
+            logger.error(f"{self.name} error updating execution {execution_id}. Error: {e}")
+            logger.exception(e)
     
-    def _save_execution_output(self, execution_id: str, result: PipelineResult):
+    def _save_execution_output(self, execution_id: str, result: PipelineResult, should_save_output: bool = False):
         """Save execution output to Cosmos DB"""
         try:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
@@ -402,10 +426,22 @@ class ContentProcessingWorker:
             
             # Save output
             if result.content is not None:
-                if isinstance(result.content, list):
-                    execution["content"] = [make_safe_json(c) for c in result.content]
+                if should_save_output:
+                    if isinstance(result.content, list):
+                        execution["content"] = [make_safe_json(c) for c in result.content]
+                    else:
+                        execution["content"] = make_safe_json(result.content)
+                                        
                 else:
-                    execution["content"] = make_safe_json(result.content)
+                    # Only save content identifiers and execution metadata
+                    if isinstance(result.content, list):
+                        execution["content"] = [c.id.model_dump() for c in result.content]
+                    else:
+                        execution["content"] = result.content.id.model_dump()
+                        
+                execution["number_of_items"] = len(result.content) if isinstance(result.content, list) else 1
+            
+            execution['updated_at'] = datetime.now(timezone.utc).isoformat()
             
             # Update in Cosmos DB
             container.upsert_item(execution)
@@ -416,6 +452,26 @@ class ContentProcessingWorker:
             logger.error(f"{self.name} error saving execution output: {e}")
             raise e
     
+    def _get_vault_should_save_output(self, vault_id: str) -> bool:
+        """Get whether the vault is configured to save execution output"""
+        
+        if not vault_id:
+            return False
+        
+        try:
+            database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULTS)
+            
+            # Read current execution
+            vault = container.read_item(item=vault_id, partition_key=vault_id)
+            
+            return vault.get("save_execution_output", False)
+        
+        except Exception as e:
+            logger.error(f"{self.name} error getting vault save output flag: {e}")
+        
+        return False
+        
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
         logger.info(f"{self.name} received signal {signum}")

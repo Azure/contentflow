@@ -6,6 +6,10 @@ import { HealthCheck, SystemInfo, ApiResponse } from './apiTypes';
  * Functions to interact with system health and information endpoints
  */
 
+export const getApiClientConfig = () => {
+  return apiClient.getConfig();
+}
+
 /**
  * Get system health status
  */

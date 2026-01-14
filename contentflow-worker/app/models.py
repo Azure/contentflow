@@ -50,10 +50,11 @@ class ContentProcessingTask(BaseModel):
     pipeline_id: str = Field(description="ID of the pipeline to execute")
     pipeline_name: str = Field(description="Name of the pipeline")
     execution_id: str = Field(description="ID of the pipeline execution")
+    vault_id: Optional[str] = Field(default=None, description="ID of the vault associated with this content")
     
     # Input content details
     content: List[Content] = Field(description="List of content items to process")
-        
+
     # Executor tracking
     executed_input_executor: Optional[str] = Field(default=None, description="ID of input executor already executed")
     

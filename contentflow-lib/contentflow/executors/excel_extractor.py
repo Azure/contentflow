@@ -7,9 +7,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 try:
-    from openpyxl import load_workbook
+    from openpyxl import load_workbook, Workbook
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.worksheet import Worksheet
+    from openpyxl.utils.exceptions import InvalidFileException
 except ImportError:
     raise ImportError(
         "openpyxl is required for Excel extraction. "
@@ -175,19 +176,28 @@ class ExcelExtractorExecutor(ParallelExecutor):
                 source = f"file: {excel_path}" if excel_path else f"bytes: {len(excel_bytes)} bytes"
                 logger.debug(f"Processing Excel {content.id} from {source}")
             
+            wb: Workbook = None
+            
             # Open Excel workbook
-            if excel_bytes:
-                wb = load_workbook(
-                    io.BytesIO(excel_bytes),
-                    read_only=self.read_only,
-                    data_only=self.data_only
+            try:
+                if excel_bytes:
+                    wb = load_workbook(
+                        io.BytesIO(excel_bytes),
+                        read_only=self.read_only,
+                        data_only=self.data_only
+                    )
+                else:
+                    wb = load_workbook(
+                        excel_path,
+                        read_only=self.read_only,
+                        data_only=self.data_only
+                    )
+            except InvalidFileException as e:
+                logger.warning(
+                    f"Invalid Excel file for content {content.id}: {str(e)}"
                 )
-            else:
-                wb = load_workbook(
-                    excel_path,
-                    read_only=self.read_only,
-                    data_only=self.data_only
-                )
+                content.summary_data['excel_extraction_status'] = "invalid_file"
+                return content
             
             extracted_data = {}
             

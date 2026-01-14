@@ -48,6 +48,7 @@ import { getPipelines, savePipeline as savePipelineApi, deletePipeline as delete
 import { getExecutors } from "@/lib/api/executorsApi";
 import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
 import { load } from "js-yaml";
+import { set } from "date-fns";
 
 const nodeTypes = {
   executor: ExecutorNode,
@@ -66,7 +67,8 @@ export const PipelineBuilder = () => {
   const [showAllInCategory, setShowAllInCategory] = useState<Record<string, boolean>>({});
   const [executorTypes, setExecutorTypes] = useState<ExecutorWithUI[]>([]);
   const [isLoadingExecutors, setIsLoadingExecutors] = useState(true);
-  
+  const [loadedTemplate, setLoadedTemplate] = useState<PipelineTemplate | null>(null);
+
   // Pipeline management state
   const [currentPipeline, setCurrentPipeline] = useState<Pipeline | null>(null);
   const [loadedPipelines, setLoadedPipelines] = useState<Pipeline[]>([]);
@@ -212,6 +214,9 @@ export const PipelineBuilder = () => {
   }, [viewMode, nodes, edges, currentPipeline]);
 
   const loadTemplate = (template: PipelineTemplate) => {
+    
+    setLoadedTemplate(template);
+
     setNodes(template.nodes.map(node => {
       // Re-hydrate executor with full details from catalog
       const fullExecutor = executorTypes.find(et => et.id === node.data.executor?.id);
@@ -238,6 +243,7 @@ export const PipelineBuilder = () => {
       style: { stroke: "hsl(var(--secondary))", strokeWidth: 2 },
     })));
     setSelectedEdges([]);
+    setLoadedTemplate(template);
   };
 
   const onConnect = useCallback(
@@ -513,7 +519,7 @@ export const PipelineBuilder = () => {
       const pipelineData: SavePipelineRequest = {
         id: currentPipeline?.id || undefined,
         name: data.name,
-        description: data.description,
+        description: data.description || loadedTemplate?.description || "",
         yaml,
         nodes: serializableNodes,
         edges: edges,
@@ -539,11 +545,13 @@ export const PipelineBuilder = () => {
         newUrl.searchParams.set('pipeline', savedPipeline.id);
         window.history.pushState({}, '', newUrl.toString());
       }
+
+      setLoadedTemplate(null);
       
       toast.success(currentPipeline?.id ? "Pipeline updated" : "Pipeline saved");
     } catch (error) {
       console.error("Failed to save pipeline:", error);
-      toast.error("Failed to save pipeline");
+      toast.error("Failed to save pipeline. " + (error?.message || ""));
     } finally {
       setIsSaving(false);
     }
@@ -644,6 +652,19 @@ export const PipelineBuilder = () => {
   }, [currentPipeline?.id]);
 
   const deletePipeline = async (pipelineId: string) => {
+    const clearPipeline = () => {
+      setNodes([]);
+      setEdges([]);
+      setCurrentPipeline(null);
+      setHasUnsavedChanges(false);
+      setLoadedTemplate(null);
+      
+      // Clear pipeline ID from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('pipeline');
+      window.history.pushState({}, '', newUrl.toString());
+    };
+    
     try {
       await deletePipelineApi(pipelineId);
       
@@ -652,12 +673,14 @@ export const PipelineBuilder = () => {
       
       if (currentPipeline?.id === pipelineId) {
         setCurrentPipeline(null);
+        clearPipeline();
       }
       
       toast.success("Pipeline deleted");
     } catch (error) {
       console.error("Failed to delete pipeline:", error);
-      toast.error("Failed to delete pipeline");
+      
+      toast.error("Failed to delete pipeline. " + (error?.message || ""));
     }
   };
 
@@ -704,10 +727,10 @@ export const PipelineBuilder = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-display text-4xl font-bold mb-2 text-foreground">
-                {currentPipeline?.name || "Pipeline Builder"}
+                {currentPipeline?.name || loadedTemplate?.name || "Pipeline Builder"}
               </h1>
               <p className="text-muted-foreground">
-                {currentPipeline?.description || "Design complex processing pipelines with sub-pipelines."}
+                {currentPipeline?.description || loadedTemplate?.description || "Design complex processing pipelines with sub-pipelines."}
               </p>
             </div>
             

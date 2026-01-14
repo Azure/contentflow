@@ -69,16 +69,22 @@ class EntityExtractionExecutor(AzureOpenAIAgentExecutor):
     ):
         # Extract entity-specific settings
         settings = settings or {}
-        entity_types = settings.get("entity_types", ["person", "organization", "location", "date"])
+        entity_types = settings.get("entity_types", "person, organization, location, date")
         output_format = settings.get("output_format", "structured")
         include_context = settings.get("include_context", False)
         custom_entities = settings.get("custom_entities", None)
+        
+        if entity_types not in [None, ""]:
+            if isinstance(entity_types, str):
+                entity_types = [et.strip() for et in entity_types.split(",")]
         
         # Build specialized instructions
         instructions = "You are an expert named entity recognition system. "
         instructions += f"Extract the following types of entities from the text: {', '.join(entity_types)}. "
         
         if custom_entities:
+            if isinstance(custom_entities, str):
+                custom_entities = [et.strip() for et in custom_entities.split(",")]
             instructions += f"Also extract these custom entities: {', '.join(custom_entities)}. "
         
         if output_format == "structured":

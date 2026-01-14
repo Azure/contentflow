@@ -14,17 +14,59 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { getHealthCheck } from "@/lib/api/systemApi";
+import { getApiClientConfig, getHealthCheck } from "@/lib/api/systemApi";
 import { ServiceStatus } from "@/lib/api/apiTypes";
 
 interface ServiceHealthItemProps {
   name: string;
   status: "connected" | "degraded" | "offline";
-  details?: ServiceStatus;
+  serviceStatus?: ServiceStatus;
   getStatusColor: (status: "connected" | "degraded" | "offline") => string;
 }
 
-const ServiceHealthItem = ({ name, status, details, getStatusColor }: ServiceHealthItemProps) => {
+const ApiHealthItem = ({ name, status, apiBaseUrl, getStatusColor }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-lg">
+      <div className="p-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1">
+            <div
+              className={`w-3 h-3 rounded-full ${getStatusColor(status)}`}
+            />
+            <span className="text-sm font-medium">API Service</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground capitalize">
+              {status}
+            </span>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                {isOpen ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </div>
+        <CollapsibleContent className="pt-2">
+          <div className="space-y-1 text-xs text-muted-foreground pl-5 border-t mt-2 pt-2">
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">Base URL:</span>
+              <span className="text-xs break-all">{apiBaseUrl}</span>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+
+};
+
+const ServiceHealthItem = ({ name, status, serviceStatus, getStatusColor }: ServiceHealthItemProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -37,7 +79,7 @@ const ServiceHealthItem = ({ name, status, details, getStatusColor }: ServiceHea
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground capitalize">{status}</span>
-            {details && (
+            {serviceStatus && (
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                   {isOpen ? (
@@ -50,45 +92,51 @@ const ServiceHealthItem = ({ name, status, details, getStatusColor }: ServiceHea
             )}
           </div>
         </div>
-        {details && (
+        {serviceStatus && (
           <CollapsibleContent className="pt-2">
             <div className="space-y-1 text-xs text-muted-foreground pl-5 border-t mt-2 pt-2">
-              {details.name && (
+              {serviceStatus.name && (
                 <div className="flex justify-between">
                   <span className="font-medium">Service:</span>
-                  <span>{details.name}</span>
+                  <span>{serviceStatus.name}</span>
                 </div>
               )}
-              {details.response_time_ms !== undefined && (
+              {serviceStatus.endpoint !== undefined && (
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">Endpoint:</span>
+                  <span className="text-xs break-words text-blue-700">{serviceStatus.endpoint}</span>
+                </div>
+              )}
+              {serviceStatus.response_time_ms !== undefined && (
                 <div className="flex justify-between">
                   <span className="font-medium">Response Time:</span>
-                  <span>{details.response_time_ms}ms</span>
+                  <span>{serviceStatus.response_time_ms}ms</span>
                 </div>
               )}
-              {details.message && (
+              {serviceStatus.message && (
                 <div className="flex flex-col gap-1">
                   <span className="font-medium">Message:</span>
-                  <span className="text-xs break-words">{details.message}</span>
+                  <span className="text-xs break-words">{serviceStatus.message}</span>
                 </div>
               )}
-              {details.error && (
+              {serviceStatus.error && (
                 <div className="flex flex-col gap-1">
                   <span className="font-medium text-red-500">Error:</span>
-                  <span className="text-xs text-red-400 break-words">{details.error}</span>
+                  <span className="text-xs text-red-400 break-words">{serviceStatus.error}</span>
                 </div>
               )}
-              {details.details && Object.keys(details.details).length > 0 && (
+              {serviceStatus.details && Object.keys(serviceStatus.details).length > 0 && (
                 <div className="flex flex-col gap-1">
                   <span className="font-medium">Details:</span>
                   <textarea className="text-xs bg-muted p-1 rounded overflow-x-auto h-36 max-h-40" readOnly>
-                    {JSON.stringify(details.details, null, 2)}
+                    {JSON.stringify(serviceStatus.details, null, 2)}
                   </textarea>
                 </div>
               )}
-              {details.last_checked && (
+              {serviceStatus.last_checked && (
                 <div className="flex justify-between">
                   <span className="font-medium">Last Checked:</span>
-                  <span>{new Date(details.last_checked).toLocaleTimeString()}</span>
+                  <span>{new Date(serviceStatus.last_checked).toLocaleTimeString()}</span>
                 </div>
               )}
             </div>
@@ -172,11 +220,13 @@ export const Footer = () => {
   };
 
   useEffect(() => {
-
-    checkHealth();
+    const initialCheckTimeout = setTimeout(checkHealth, 5000); // Wait 5 seconds, then check
     const interval = setInterval(checkHealth, 600000); // Check every 10 minutes
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialCheckTimeout);
+      clearInterval(interval);
+    };
   }, []);
 
   const getOverallStatus = (): "connected" | "degraded" | "offline" => {
@@ -255,53 +305,48 @@ export const Footer = () => {
                   </Button>
                 </div>
               </DialogHeader>
-              <div className="space-y-3 py-4">
-                <div className="border rounded-lg p-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${getStatusColor(systemHealth.api)}`}
-                      />
-                      <span className="text-sm font-medium">API Service</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {systemHealth.api}
-                    </span>
-                  </div>
-                </div>
+              <div className="space-y-3 py-4 px-4 overflow-scroll max-h-96">
+                
+                <ApiHealthItem
+                  name="API Service"
+                  status={systemHealth.api}
+                  apiBaseUrl={getApiClientConfig().baseURL}
+                  getStatusColor={getStatusColor}
+                />
+                
 
                 <ServiceHealthItem
                   name="Cosmos DB"
                   status={systemHealth.cosmosDB}
-                  details={systemHealth.serviceDetails.cosmosDB}
+                  serviceStatus={systemHealth.serviceDetails.cosmosDB}
                   getStatusColor={getStatusColor}
                 />
 
                 <ServiceHealthItem
                   name="App Config"
                   status={systemHealth.appConfig}
-                  details={systemHealth.serviceDetails.appConfig}
+                  serviceStatus={systemHealth.serviceDetails.appConfig}
                   getStatusColor={getStatusColor}
                 />
 
                 <ServiceHealthItem
                   name="Blob Storage"
                   status={systemHealth.blobStorage}
-                  details={systemHealth.serviceDetails.blobStorage}
+                  serviceStatus={systemHealth.serviceDetails.blobStorage}
                   getStatusColor={getStatusColor}
                 />
 
                 <ServiceHealthItem
                   name="Storage Queue"
                   status={systemHealth.storageQueue}
-                  details={systemHealth.serviceDetails.storageQueue}
+                  serviceStatus={systemHealth.serviceDetails.storageQueue}
                   getStatusColor={getStatusColor}
                 />
 
                 <ServiceHealthItem
                   name="Worker Engine"
                   status={systemHealth.worker}
-                  details={systemHealth.serviceDetails.worker}
+                  serviceStatus={systemHealth.serviceDetails.worker}
                   getStatusColor={getStatusColor}
                 />
 

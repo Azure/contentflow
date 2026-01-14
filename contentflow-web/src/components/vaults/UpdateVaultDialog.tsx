@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,53 +27,55 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { Pipeline, CreateVaultRequest } from "@/types/components";
+import type { Vault, Pipeline, UpdateVaultRequest } from "@/types/components";
 
-interface CreateVaultDialogProps {
+interface UpdateVaultDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateVault: (vault: CreateVaultRequest) => void;
-  pipelines: Pipeline[];
+  vault: Vault | null;
+  onUpdateVault: (vaultId: string, data: UpdateVaultRequest) => void;
   isLoading?: boolean;
 }
 
-export const CreateVaultDialog = ({
+export const UpdateVaultDialog = ({
   open,
   onOpenChange,
-  onCreateVault,
-  pipelines,
+  vault,
+  onUpdateVault,
   isLoading = false,
-}: CreateVaultDialogProps) => {
-  const [formData, setFormData] = useState<CreateVaultRequest>({
+}: UpdateVaultDialogProps) => {
+  const [formData, setFormData] = useState<UpdateVaultRequest>({
     name: "",
     description: "",
-    pipeline_id: "",
     save_execution_output: false,
     enabled: true,
     tags: [],
   });
   const [tagInput, setTagInput] = useState("");
 
+  // Update form when vault changes
+  useEffect(() => {
+    if (vault) {
+      setFormData({
+        name: vault.name,
+        description: vault.description || "",
+        save_execution_output: vault.save_execution_output || false,
+        enabled: vault.enabled !== false,
+        tags: vault.tags || [],
+      });
+      setTagInput("");
+    }
+  }, [vault, open]);
+
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast.error("Please enter a vault name");
       return;
     }
-    if (!formData.pipeline_id) {
-      toast.error("Please select a content pipeline");
-      return;
+    
+    if (vault) {
+      onUpdateVault(vault.id, formData);
     }
-
-    onCreateVault(formData);
-    setFormData({
-      name: "",
-      description: "",
-      pipeline_id: "",
-      save_execution_output: false,
-      enabled: true,
-      tags: [],
-    });
-    setTagInput("");
   };
 
   const addTag = () => {
@@ -97,9 +99,9 @@ export const CreateVaultDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New Vault</DialogTitle>
+          <DialogTitle>Update Vault</DialogTitle>
           <DialogDescription>
-            Create a new content vault and associate it with a content pipeline
+            Update the vault details and settings
           </DialogDescription>
         </DialogHeader>
 
@@ -123,25 +125,6 @@ export const CreateVaultDialog = ({
               placeholder="Describe the purpose of this vault..."
               rows={3}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pipeline">Content Pipeline *</Label>
-            <Select
-              value={formData.pipeline_id}
-              onValueChange={(value) => setFormData({ ...formData, pipeline_id: value })}
-            >
-              <SelectTrigger id="pipeline">
-                <SelectValue placeholder="Select a pipeline" />
-              </SelectTrigger>
-              <SelectContent>
-                {pipelines.map((pipeline) => (
-                  <SelectItem key={pipeline.id} value={pipeline.id}>
-                    {pipeline.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-4">
@@ -232,7 +215,7 @@ export const CreateVaultDialog = ({
             Cancel
           </Button>
           <Button onClick={handleSubmit} className="bg-gradient-secondary" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Vault"}
+            {isLoading ? "Updating..." : "Update Vault"}
           </Button>
         </DialogFooter>
       </DialogContent>

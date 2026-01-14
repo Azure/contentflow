@@ -195,6 +195,13 @@ class ApiClient {
   }
 
   /**
+   * Get current API client configuration
+   */
+  getConfig(): ApiConfig {
+    return this.config;
+  }
+
+  /**
    * GET request
    */
   async get<T>(path: string, options?: RequestOptions): Promise<T> {

@@ -3,7 +3,9 @@ import { apiClient } from './apiClient';
 import type {   
   Vault,
   CreateVaultRequest,
-  UpdateVaultRequest
+  UpdateVaultRequest,
+  VaultExecution,
+  VaultCrawlCheckpoint
 } from '@/types/components';
 
 /**
@@ -49,3 +51,31 @@ export const updateVault = async (vaultId: string, updates: UpdateVaultRequest):
 export const deleteVault = async (vaultId: string): Promise<void> => {
   await apiClient.delete(`/vaults/${vaultId}`);
 };
+
+/**
+ * Get vault executions for a specific vault
+ */
+export const getVaultExecutions = async (vaultId: string, dateRange?: { start_date?: string; end_date?: string }): Promise<VaultExecution[]> => {
+  const params = new URLSearchParams();
+  if (dateRange?.start_date) {
+    params.append('start_date', dateRange.start_date);
+  }
+  if (dateRange?.end_date) {
+    params.append('end_date', dateRange.end_date);
+  }
+  
+  const queryString = params.toString();
+  const url = `/vaults/executions/${vaultId}${queryString ? `?${queryString}` : ''}`;
+  const response = await apiClient.get<VaultExecution[]>(url);
+  return response;
+};
+
+/**
+ * Get vault crawl checkpoints for a specific vault
+ */
+export const getVaultCrawlCheckpoints = async (vaultId: string): Promise<VaultCrawlCheckpoint[]> => {
+  const response = await apiClient.get<VaultCrawlCheckpoint[]>(`/vaults/crawl-checkpoints/${vaultId}`);
+  return response;
+};
+
+

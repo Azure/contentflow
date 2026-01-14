@@ -61,6 +61,13 @@ var blobRoleAssignments array = [for principalId in roleAssignedManagedIdentityP
         }
       ]
 
+var queueRoleAssignments array = [for principalId in roleAssignedManagedIdentityPrincipalIds: {
+          principalId: principalId
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Storage Queue Data Contributor'        
+        }
+      ]
+
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
@@ -165,6 +172,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.27.1' = {
     roleAssignments: concat(
       accountRoleAssignments,
       blobRoleAssignments,
+      queueRoleAssignments,
       deployerRoleAssignments
     )
     tags: tags

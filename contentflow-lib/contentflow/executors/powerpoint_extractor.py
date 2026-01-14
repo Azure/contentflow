@@ -158,11 +158,20 @@ class PowerPointExtractorExecutor(ParallelExecutor):
                 source = f"file: {pptx_path}" if pptx_path else f"bytes: {len(pptx_bytes)} bytes"
                 logger.debug(f"Processing PowerPoint {content.id} from {source}")
             
-            # Open PowerPoint presentation
-            if pptx_bytes:
-                prs = Presentation(io.BytesIO(pptx_bytes))
-            else:
-                prs = Presentation(pptx_path)
+            prs = None
+            
+            try:
+                # Open PowerPoint presentation
+                if pptx_bytes:
+                    prs = Presentation(io.BytesIO(pptx_bytes))
+                else:
+                    prs = Presentation(pptx_path)
+            except Exception as e:
+                logger.warning(
+                    f"Invalid PowerPoint file for content {content.id}: {str(e)}"
+                )
+                content.summary_data['pptx_extraction_status'] = "invalid_file"
+                return content
             
             extracted_data = {}
             

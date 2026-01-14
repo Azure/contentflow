@@ -128,7 +128,7 @@ class PipelineService(BaseService):
         from app.dependencies import get_vault_service
         vault_service = await get_vault_service()
         
-        in_use_vaults = await vault_service.check_pipeline_in_use_by_vault(existing["name"])
+        in_use_vaults = await vault_service.check_pipeline_in_use_by_vault(pipeline_id=pipeline_id)
         if in_use_vaults:
             raise ValueError(f"Pipeline is in use by vaults: {in_use_vaults}")
 

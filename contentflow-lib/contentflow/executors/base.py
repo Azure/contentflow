@@ -241,7 +241,8 @@ class BaseExecutor(Executor, ABC):
             await ctx.send_message(processed_content)
             
             logger.info(
-                    f"Executor {self.id} completed {input.id if isinstance(input, Content) else f'{len(input)} content item(s)'} "
+                    f"Executor {self.id} completed processing {11 if isinstance(input, Content) else f'{len(input)} input content item(s)'} "
+                    f" and produced {1 if isinstance(processed_content, Content) else f'{len(processed_content)} output content item(s)'} "
                     f"in {elapsed:.2f}s"
                 )
             
@@ -258,7 +259,7 @@ class BaseExecutor(Executor, ABC):
             )
             
             if self.fail_pipeline_on_error:
-                raise
+                raise e
             else:
                 # Pass through the original document if error is not fatal
                 await ctx.send_message(input)

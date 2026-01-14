@@ -87,6 +87,10 @@ class InputSourceWorker:
         # Key: pipeline_id, Value: next_execution_time (datetime)
         self.pipeline_schedule: Dict[str, datetime] = {}
         
+        # Map of pipeline to vault
+        # Key: pipeline_id, Value: vault_id
+        self.pipeline_vaults: Dict[str, str] = {}
+        
         # Track polling intervals per pipeline
         # Key: pipeline_id, Value: polling_interval_seconds
         self.pipeline_intervals: Dict[str, int] = {}
@@ -159,12 +163,12 @@ class InputSourceWorker:
         """Refresh the list of pipelines and their schedules"""
         try:
             # Get pipelines with vaults
-            pipelines = self._get_pipelines_with_vaults()
+            vault_pipelines = self._get_pipelines_with_vaults()
             
             current_time = datetime.now(timezone.utc)
             
             # Update schedule for new or modified pipelines
-            for pipeline_id in pipelines:
+            for vault_id, pipeline_id in vault_pipelines:
                 
                 # If pipeline is new to schedule, add it
                 if pipeline_id not in self.pipeline_schedule:
@@ -174,18 +178,21 @@ class InputSourceWorker:
                     
                     # Schedule for immediate execution (first run)
                     self.pipeline_schedule[pipeline_id] = current_time
+                    self.pipeline_vaults[pipeline_id] = vault_id
+                    
                     logger.info(
                         f"{self.name} added pipeline {pipeline_id} "
                         f"with {interval}s polling interval"
                     )
             
             # Remove pipelines that are no longer active
-            active_pipeline_ids = set(pipelines)
-            inactive_ids = set(self.pipeline_schedule.keys()) - active_pipeline_ids
+            active_pipeline_ids = set([pipeline_id for _, pipeline_id in vault_pipelines])
+            inactive_pipeline_ids = set(self.pipeline_schedule.keys()) - active_pipeline_ids
             
-            for inactive_id in inactive_ids:
+            for inactive_id in inactive_pipeline_ids:
                 del self.pipeline_schedule[inactive_id]
                 del self.pipeline_intervals[inactive_id]
+                del self.pipeline_vaults[inactive_id]
                 logger.info(f"{self.name} removed inactive pipeline {inactive_id}")
                 
         except Exception as e:
@@ -277,14 +284,16 @@ class InputSourceWorker:
         """
         try:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
-            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_LOCKS)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS)
             
             lock_id = f"pipeline_{pipeline_id}_lock"
             current_time = datetime.now(timezone.utc)
+            value_id = self.pipeline_vaults.get(pipeline_id, None)
             
             lock_doc = {
                 "id": lock_id,
                 "pipeline_id": pipeline_id,
+                "vault_id": value_id,
                 "worker_id": self.name,
                 "locked_at": current_time.isoformat(),
                 "ttl": self.settings.LOCK_TTL_SECONDS  # Auto-expire after TTL
@@ -342,7 +351,7 @@ class InputSourceWorker:
         """
         try:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
-            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_LOCKS)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTION_LOCKS)
             
             lock_id = f"pipeline_{pipeline_id}_lock"
             
@@ -390,7 +399,7 @@ class InputSourceWorker:
             logger.error(f"{self.name} error getting pipeline: {e}")
             return None
     
-    def _get_pipelines_with_vaults(self) -> List[str]:
+    def _get_pipelines_with_vaults(self) -> List[tuple[str,str]]:
         """Get enabled pipelines that have associated vaults"""
         try:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
@@ -398,10 +407,10 @@ class InputSourceWorker:
             # Query vaults container for enabled vaults
             vaults_container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULTS)
             vault_pipelines = list(vaults_container.query_items(
-                query="SELECT DISTINCT c.pipeline_id FROM c WHERE c.enabled = true",
+                query="SELECT DISTINCT c.id, c.pipeline_id FROM c WHERE c.enabled = true",
                 enable_cross_partition_query=True
             ))
-            return [vp["pipeline_id"] for vp in vault_pipelines]
+            return [(vp["id"], vp["pipeline_id"]) for vp in vault_pipelines]
             
         except Exception as e:
             logger.error(f"{self.name} error querying pipelines: {e}")
@@ -420,11 +429,11 @@ class InputSourceWorker:
             input_executor_config = self._find_input_executor(pipeline)
             
             if not input_executor_config:
-                logger.debug(f"{self.name}: no input executor found in pipeline {pipeline_name}")
+                logger.warning(f"{self.name}: no input executor found in pipeline {pipeline_name}")
                 return
             
             executor_id = input_executor_config.get('id')
-            logger.info(f"{self.name}: found input executor: {executor_id}")
+            logger.debug(f"{self.name}: found input executor: {executor_id}")
             
             # Retrieve checkpoint before execution
             checkpoint_timestamp = self._get_checkpoint(pipeline_id, executor_id)
@@ -439,13 +448,22 @@ class InputSourceWorker:
             tasks_created = 0
             
             # Execute input executor to discover content
-            async for content_items in self._execute_input_executor(pipeline_id, input_executor_config, checkpoint_timestamp):
-                if not content_items:
-                    logger.info(f"{self.name}: no content discovered from pipeline {pipeline_name}")
-                    return
+            async for content_items in self._execute_input_executor(pipeline_id=pipeline_id, 
+                                                                    pipeline_name=pipeline_name, 
+                                                                    executor_config=input_executor_config, 
+                                                                    checkpoint_timestamp=checkpoint_timestamp):
+                if content_items is None:
+                    logger.debug(f"{self.name}: no content discovered from pipeline {pipeline_name}")
+                    self._create_no_content_discovered_execution_record(pipeline_id, pipeline_name)
+                    break
             
-                logger.info(f"{self.name}: discovered {len(content_items)} content items")
-
+                logger.debug(f"{self.name}: discovered {len(content_items)} content items")
+                
+                # Skip if no content, this might be the case if content is retrieved from the source but filtered out by the input executor
+                if len(content_items) == 0:
+                    continue
+                
+                # Create processing tasks for each content item
                 try:
                     self._create_processing_task(pipeline, content_items, executor_id)
                     logger.debug(f"{self.name}: queued processing task for content with {len(content_items)} items")
@@ -455,7 +473,6 @@ class InputSourceWorker:
                     logger.error(f"{self.name}: failed to create processing task: {e}")
                     logger.exception(e)
                     
-                # Create processing tasks for each content item
                 if self.stop_event.is_set():
                     break
             
@@ -465,11 +482,10 @@ class InputSourceWorker:
             # Use start time as the checkpoint for next execution
             latest_timestamp = execution_start_time
             self._save_checkpoint(pipeline_id, executor_id, latest_timestamp)
-            logger.debug(f"{self.name}: saved checkpoint {latest_timestamp.isoformat()}")
             
         except Exception as e:
             logger.error(f"{self.name}: error processing pipeline {pipeline_name}: {e}")
-            logger.error(traceback.format_exc())
+            logger.exception(e)
     
     def _find_input_executor(self, pipeline: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Find the input executor in the pipeline configuration"""
@@ -505,7 +521,13 @@ class InputSourceWorker:
             logger.error(f"{self.name} error parsing pipeline YAML: {e}")
             return None
     
-    async def _execute_input_executor(self, pipeline_id: str, executor_config: Dict[str, Any], checkpoint_timestamp: Optional[datetime] = None) -> AsyncGenerator[List[Content], None]:
+    async def _execute_input_executor(self, 
+                                      pipeline_id: str, 
+                                      pipeline_name:str, 
+                                      executor_config: Dict[str, Any], 
+                                      checkpoint_timestamp: Optional[datetime] = None
+                                      ) -> AsyncGenerator[List[Content], None]:
+        
         """Execute an input executor to discover content"""
         executor_type = executor_config.get('type')
         executor_id = executor_config.get('id')
@@ -518,22 +540,31 @@ class InputSourceWorker:
             executor = self._create_executor(executor_type, executor_id, settings)
             
             if not executor or not isinstance(executor, InputExecutor):
-                logger.error(f"{self.name}: failed to create executor of type {executor_type}, or it is not an InputExecutor.")
+                logger.error(f"{self.name}: failed to create executor of type {executor_type}. Returned {executor} which is not an InputExecutor.")
+                # create an execution record with failed status
+                self._create_failed_execution_record(pipeline_id=pipeline_id, 
+                                                     pipeline_name=pipeline_name, 
+                                                     error_message=f"{self.name}: failed to create executor of type {executor_type}, got {executor} which is not an InputExecutor.")
                 return
             
             # Execute to discover content
-            async for content_items in executor.crawl_all(checkpoint_timestamp=checkpoint_timestamp):
+            async for batch, has_more in executor.crawl(checkpoint_timestamp=checkpoint_timestamp):
                 # Ensure we have a list
-                if not isinstance(content_items, list):
-                    content_items = [content_items] if content_items else []
+                if batch is not None:
+                    yield batch
                 
-                yield content_items
-            
-            
+                if batch is None and has_more is False:
+                    # No more items
+                    yield None
+        
         except Exception as e:
             logger.error(f"{self.name}: error executing input executor: {e}")
-            logger.error(traceback.format_exc())
+            logger.exception(e)
             # Don't save checkpoint on error - will retry from last successful checkpoint
+            # create an execution record with failed status
+            self._create_failed_execution_record(pipeline_id=pipeline_id, 
+                                                 pipeline_name=pipeline_name, 
+                                                 error_message=f"{self.name}: {str(e)}. {traceback.format_exc()}")
             raise
     
     def _create_executor(self, executor_type: str, executor_id: str, settings: Dict[str, Any]) -> BaseExecutor:
@@ -556,7 +587,12 @@ class InputSourceWorker:
             
         except Exception as e:
             logger.error(f"{self.name} error creating executor: {e}")
-            return None
+            logger.exception(e)
+            raise
+    
+    def _create_execution_id(self) -> str:
+        """Generate a unique execution ID"""
+        return f"exec_{uuid.uuid4().hex[:12]}"
     
     def _create_processing_task(
         self,
@@ -566,7 +602,8 @@ class InputSourceWorker:
     ):
         """Create and queue a content processing task"""
         # Create execution record in Cosmos DB
-        execution_id = f"exec_{uuid.uuid4().hex[:12]}"
+        execution_id = self._create_execution_id()
+        vault_id = self.pipeline_vaults.get(pipeline['id'], None)
         
         # Create processing task
         processing_task = ContentProcessingTask(
@@ -574,20 +611,31 @@ class InputSourceWorker:
             priority=TaskPriority.NORMAL,
             pipeline_id=pipeline['id'],
             pipeline_name=pipeline['name'],
+            vault_id=vault_id,
             execution_id=execution_id,
             content=content,
             executed_input_executor=executed_input_executor,  # Mark which executor was already run
             max_retries=self.settings.MAX_TASK_RETRIES
         )
         
-        # Create execution record
-        self._create_execution_record(execution_id, processing_task)
+        try:
+            # Create execution record
+            self._create_execution_record(execution_id, processing_task)
+            
+            try:
+                # Send to queue
+                self.queue_client.send_content_processing_task(processing_task)
+            except Exception as e:
+                logger.error(f"{self.name} error sending processing task to queue: {e}")
+                # Mark execution as failed in Cosmos DB
+                self._mark_execution_failed(execution_id, str(e))
+                raise
+            
+            logger.debug(f"{self.name} created processing task for {len(content)} content items")
+        except Exception as e:
+            logger.error(f"{self.name} error execution record or queue creating processing task: {e}")
+            raise
         
-        # Send to queue
-        self.queue_client.send_content_processing_task(processing_task)
-        
-        logger.debug(f"{self.name} created processing task for {len(content)} content items")
-    
     def _create_execution_record(
         self,
         execution_id: str,
@@ -598,27 +646,132 @@ class InputSourceWorker:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
             container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS)
             
-            from datetime import datetime, timezone
+            vault_id = self.pipeline_vaults.get(task.pipeline_id, None)
             
             execution = {
                 "id": execution_id,
                 "pipeline_id": task.pipeline_id,
                 "pipeline_name": task.pipeline_name,
+                "vault_id": vault_id,
                 "status": "pending",
+                "status_message": "Task queued for processing with input content of size " + str(len(task.content)),
                 "task_id": task.task_id,
+                "source_worker_id": self.name,
                 "content": [make_safe_json(c) for c in task.content],
+                "number_of_items": len(task.content) if task.content else 0,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": self.name,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": None,
+                "completed_at": None,
+                "error": None,
                 "executor_outputs": {},
                 "events": []
             }
             
             container.create_item(execution)
             logger.debug(f"{self.name} created execution record {execution_id}")
-            
         except Exception as e:
             logger.error(f"{self.name} error creating execution record: {e}")
             raise
+    
+    def _create_no_content_discovered_execution_record(self, pipeline_id: str, pipeline_name: str):
+        """Create an execution record for no content discovered"""
+        try:
+            execution_id = self._create_execution_id()
+            
+            database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS)
+            
+            vault_id = self.pipeline_vaults.get(pipeline_id, None)
+            
+            execution = {
+                "id": execution_id,
+                "pipeline_id": pipeline_id,
+                "pipeline_name": pipeline_name,
+                "vault_id": vault_id,
+                "status": "completed",
+                "status_message": "No content discovered during execution",
+                "task_id": None,
+                "source_worker_id": self.name,
+                "error": None,
+                "content": None,
+                "number_of_items": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": self.name,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": None,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "executor_outputs": {},
+                "events": []
+            }
+            
+            container.create_item(execution)
+            logger.debug(f"{self.name} created no-content-discovered execution record {execution_id}")
+        except Exception as e:
+            logger.error(f"{self.name} error creating no-content-discovered execution record: {e}")
+            raise
+    
+    def _create_failed_execution_record(self, pipeline_id: str, pipeline_name: str, error_message: str):
+        """Create a failed execution record in Cosmos DB"""
+        try:
+            execution_id = self._create_execution_id()
+            
+            database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS)
+            
+            vault_id = self.pipeline_vaults.get(pipeline_id, None)
+            
+            execution = {
+                "id": execution_id,
+                "pipeline_id": pipeline_id,
+                "pipeline_name": pipeline_name,
+                "vault_id": vault_id,
+                "status": "failed",
+                "status_message": "Execution failed. View error for details.",
+                "task_id": None,
+                "source_worker_id": self.name,
+                "content": None,
+                "number_of_items": None,
+                "error": error_message,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": self.name,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": None,
+                "completed_at": None,
+                "executor_outputs": {},
+                "events": []
+            }
+            
+            container.create_item(execution)
+            logger.debug(f"{self.name} created failed execution record {execution_id}")
+        except Exception as e:
+            logger.error(f"{self.name} error creating failed execution record: {e}")
+            raise
+        
+    def _mark_execution_failed(self, execution_id: str, error_message: str):
+        """Mark an execution as failed in Cosmos DB"""
+        try:
+            database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
+            container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_VAULT_EXECUTIONS)
+            
+            # Read existing execution
+            execution = container.read_item(
+                item=execution_id,
+                partition_key=execution_id
+            )
+            
+            # Update status and error message
+            execution['status'] = 'failed'
+            execution['status_message'] = "Execution failed. View error for details."
+            execution['error'] = error_message
+            execution['updated_at'] = datetime.now(timezone.utc).isoformat()
+            
+            container.upsert_item(body=execution)
+            logger.debug(f"{self.name} marked execution {execution_id} as failed")
+            
+        except Exception as e:
+            logger.error(f"{self.name} error marking execution as failed: {e}")
     
     def _get_checkpoint(self, pipeline_id: str, executor_id: str) -> Optional[datetime]:
         """
@@ -673,14 +826,15 @@ class InputSourceWorker:
             database = self.cosmos_client.get_database_client(self.settings.COSMOS_DB_NAME)
             container = database.get_container_client(self.settings.COSMOS_DB_CONTAINER_CRAWL_CHECKPOINTS)
             
+            vault_id = self.pipeline_vaults.get(pipeline_id, None)
             checkpoint_id = f"{pipeline_id}_{executor_id}"
             
             checkpoint_doc = {
                 "id": checkpoint_id,
                 "pipeline_id": pipeline_id,
+                "vault_id": vault_id,
                 "executor_id": executor_id,
                 "checkpoint_timestamp": checkpoint_timestamp.isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
                 "worker_id": self.name
             }
             

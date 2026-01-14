@@ -4,6 +4,7 @@ from .base_service import BaseService
 from .health_service import HealthService
 from .pipeline_service import PipelineService
 from .vault_service import VaultService
+from .vault_execution_service import VaultExecutionService
 from .executor_catalog_service import ExecutorCatalogService
 
 try:
@@ -16,5 +17,6 @@ __all__ = [
             "HealthService",
             "PipelineService",
             "VaultService",
+            "VaultExecutionService",
             "ExecutorCatalogService",
           ]

@@ -228,7 +228,7 @@ Executes a pipeline on a content item.
 
 ### Source Worker Workflow (Continuous Scheduling)
 1. **Continuous Scheduling Loop**:
-   - Runs continuously, checking pipeline schedule every 5 seconds
+   - Runs continuously, checking pipeline schedule every 5 seconds (configurable via `SCHEDULER_SLEEP_INTERVAL_SECONDS`)
    - Maintains next execution time for each pipeline based on per-executor polling intervals
    
 2. **Pipeline Discovery**:
@@ -404,12 +404,8 @@ QUEUE_VISIBILITY_TIMEOUT_SECONDS=300
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.12+
 - Azure Storage Account (Queue)
 - Azure Cosmos DB
 - contentflow-lib package
 - Azure credentials (DefaultAzureCredential)
-
-## License
-
-See main ContentFlow project license.

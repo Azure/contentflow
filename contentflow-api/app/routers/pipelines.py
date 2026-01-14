@@ -83,7 +83,7 @@ async def delete_pipeline(pipeline_id: str, service: PipelineService = Depends(g
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to delete pipeline: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Attemp to delete pipeline failed. {str(e)}")
     
     return {"message": "Pipeline deleted successfully"}
 

@@ -580,7 +580,7 @@ executor_catalog:
         description: "Azure Document Intelligence service endpoint"
         placeholder: "https://<your-resource>.cognitiveservices.azure.com/"
         required: true
-        default: null
+        default: "https://<your-resource>.cognitiveservices.azure.com/"
         ui_component: "input"
 
       doc_intelligence_credential_type:
@@ -666,7 +666,7 @@ executor_catalog:
         title: "Output field"
         description: "Field to store extracted output"
         required: false
-        default: "content_understanding_output"
+        default: "content_understanding_result"
         ui_component: "input"
         
       analyzer_id:
@@ -681,8 +681,9 @@ executor_catalog:
         type: string
         title: "Azure Content Understanding Endpoint"
         description: "Azure Content Understanding service endpoint"
+        placeholder: "https://<foundry-resource>.services.ai.azure.com/"
         required: true
-        default: null
+        default: "https://<foundry-resource>.services.ai.azure.com/"
         ui_component: "input"
 
       content_understanding_credential_type:
@@ -748,7 +749,7 @@ executor_catalog:
         description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-4.1-mini\":\"gpt_4.1_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
         placeholder: '{"model_name":"deployment_id"}'
         required: true
-        default: null
+        default: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
         ui_component: "input"
       
       max_concurrent:
@@ -2132,7 +2133,7 @@ executor_catalog:
         title: "Azure OpenAI Endpoint"
         description: "Azure OpenAI service endpoint URL"
         required: true
-        default: null
+        default: https://<foundry-resource>.openai.azure.com/openai/v1/
         ui_component: "input"
 
       deployment_name:
@@ -2303,7 +2304,7 @@ executor_catalog:
         title: "Azure OpenAI Endpoint"
         description: "Azure OpenAI service endpoint URL"
         required: true
-        default: null
+        default: "https://<foundry-resource>.openai.azure.com/openai/v1/"
         ui_component: "input"
 
       deployment_name:
@@ -2311,7 +2312,7 @@ executor_catalog:
         title: "Model Deployment Name"
         description: "Azure OpenAI model deployment name"
         required: true
-        default: null
+        default: "gpt-4.1-mini"
         ui_component: "input"
 
       credential_type:
