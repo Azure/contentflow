@@ -23,6 +23,15 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        placeholder: "Enter condition - example: metadata['type'] == \"invoice\""
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -219,6 +228,15 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        placeholder: "Enter condition - example: file_type == \"pdf\""
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -307,6 +325,15 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        placeholder: "Enter condition - example: metadata.file_size > 1000"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -430,6 +457,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -627,6 +662,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -798,6 +841,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -945,6 +996,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1098,6 +1157,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1259,6 +1326,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1418,6 +1493,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1621,6 +1704,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1799,6 +1890,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -1947,6 +2046,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2076,6 +2183,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2248,6 +2363,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2419,6 +2542,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2599,6 +2730,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2787,6 +2926,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -2976,6 +3123,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3168,6 +3323,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3357,6 +3520,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3552,6 +3723,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3595,6 +3774,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3782,6 +3969,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -3956,6 +4151,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -4000,6 +4203,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -4030,6 +4241,14 @@ executor_catalog:
         type: string
         title: "Object Field Mappings"
         description: "Dictionary of source → target object field mappings in JSON format for nested structures (use dot notation), either this or 'mappings' is required."
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      source_id_mappings:
+        type: string
+        title: "Source ID Mappings"
+        description: "Dictionary of target → source ID field mappings in JSON format (use dot notation for nested fields) to remap Content IDs."
         required: false
         default: null
         ui_component: "textarea"
@@ -4141,7 +4360,7 @@ executor_catalog:
 
   ########################################################
   # Field Selector Executor
-  - id: field_selector_executor
+  - id: field_selector
     name: "Field Selector"
     description: "Select, keep, or remove specific fields from Content items for data privacy, size optimization, or pipeline simplification"
     module_path: contentflow.executors.field_selector_executor
@@ -4160,6 +4379,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean
@@ -4283,6 +4510,204 @@ executor_catalog:
       description_long: "Filter Content item fields by selecting only specific fields or excluding unwanted fields. Supports wildcard patterns, nested field selection, conditional filtering, and privacy-focused data masking for GDPR compliance and payload optimization."
 
   ########################################################
+  # GPT-RAG Search Index Document Generator Executor
+  - id: gptrag_search_index_document_generator
+    name: "GPT-RAG Search Index Document Generator"
+    description: "Transform Content items into Azure AI Search indexable documents following the GPT-RAG schema"
+    module_path: contentflow.executors.gptrag_search_index_doc_generator
+    class_name: GPTRAGSearchIndexDocumentGeneratorExecutor
+    tags: [output, transform, search, indexing, azure, ai-search]
+    category: "transform"
+    version: "1.0"
+    
+    # Settings schema for validation and UI generation
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
+      
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if indexing preparation fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      use_chunks:
+        type: boolean
+        title: "Use Chunks"
+        description: "Create separate search documents for each chunk (true) or single document from full content (false)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      chunk_field:
+        type: string
+        title: "Chunk Field Path"
+        description: "Field path to chunks array in content.data (dot notation, e.g., 'chunks' or 'results.chunks')"
+        required: false
+        default: "chunks"
+        ui_component: "input"
+      
+      content_field:
+        type: string
+        title: "Content Field Path"
+        description: "Field path to full content text in content.data (dot notation, e.g., 'markdown' or 'full_content.text')"
+        required: false
+        default: "markdown"
+        ui_component: "input"
+      
+      extract_title:
+        type: boolean
+        title: "Extract Title from Content"
+        description: "Extract title from first heading in content or use title_field"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      title_field:
+        type: string
+        title: "Title Field Path"
+        description: "Field path to pre-extracted title in content.data (optional, overrides extraction)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      category_field:
+        type: string
+        title: "Category Field Path"
+        description: "Field path to document category in content metadata"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      default_category:
+        type: string
+        title: "Default Category"
+        description: "Default category for documents without extracted category"
+        required: false
+        default: "document"
+        ui_component: "input"
+      
+      max_title_length:
+        type: integer
+        title: "Max Title Length"
+        description: "Maximum length for extracted title"
+        required: false
+        default: 500
+        ui_component: "input"
+      
+      include_summary:
+        type: boolean
+        title: "Include Summary"
+        description: "Include document summary extracted from content analysis results"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      generate_id:
+        type: boolean
+        title: "Generate Document IDs"
+        description: "Auto-generate unique document IDs based on source path and chunk index"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      id_prefix:
+        type: string
+        title: "ID Prefix"
+        description: "Prefix for generated document IDs (e.g., 'doc-' results in 'doc-sha256hash')"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      parent_id_field:
+        type: string
+        title: "Parent ID Field Path"
+        description: "Field path for parent document ID (links chunks to parent when use_chunks is true)"
+        required: false
+        default: null
+        ui_component: "input"
+      
+      include_page_metadata:
+        type: boolean
+        title: "Include Page Metadata"
+        description: "Include page number, offset, and length fields for precise document location"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      include_storage_metadata:
+        type: boolean
+        title: "Include Storage Metadata"
+        description: "Include Azure storage metadata (path, name, last_modified)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      include_source_metadata:
+        type: boolean
+        title: "Include Source Metadata"
+        description: "Include source identification fields (source, filepath, url)"
+        required: false
+        default: true
+        ui_component: "checkbox"
+      
+      extract_images:
+        type: boolean
+        title: "Extract Image Captions"
+        description: "Extract imageCaptions field if available in content analysis"
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      output_mode:
+        type: string
+        title: "Output Mode"
+        description: "Format of output documents: list - returns list of search documents | nested - keeps in content.data.search_documents"
+        required: false
+        default: "list"
+        options: ["list", "nested"]
+        ui_component: "select"
+      
+      add_output_metadata:
+        type: boolean
+        title: "Add Output Metadata"
+        description: "Add metadata about document preparation to content.summary_data"
+        required: false
+        default: false
+        ui_component: "checkbox"
+    
+    # UI metadata
+    ui_metadata:
+      icon: "search"
+      description_short: "Transform to search documents"
+      description_long: "Convert extracted content into Azure AI Search indexable documents following the GPT-RAG schema. Supports chunk-based or full-content indexing, automatic metadata extraction, title generation from content, and flexible field mapping for search index preparation."
+
+  ########################################################
   # Web Scraping Executor
   - id: web_scraper
     name: "Web Scraper"
@@ -4302,6 +4727,14 @@ executor_catalog:
         required: false
         default: true
         ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
       
       fail_pipeline_on_error:
         type: boolean

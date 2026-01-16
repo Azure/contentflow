@@ -91,7 +91,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         # Content Understanding connector config
         self.content_understanding_endpoint = self.get_setting("content_understanding_endpoint", default=None, required=True)
         if not self.content_understanding_endpoint:
-            raise ValueError("Content Understanding endpoint must be provided in settings")
+            raise ValueError(f"{self.id}: Content Understanding endpoint must be provided in settings")
         
         self.content_understanding_credential_type = self.get_setting(
             "content_understanding_credential_type", 
@@ -127,12 +127,12 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             required=True
         )
         if not isinstance(self.content_understanding_model_mappings, str):
-            raise ValueError("'content_understanding_model_mappings' must be a JSON string of model to deployment ID mappings.")
+            raise ValueError(f"{self.id}: 'content_understanding_model_mappings' must be a JSON string of model to deployment ID mappings.")
         try:
             import json
             self.content_understanding_model_mappings = json.loads(self.content_understanding_model_mappings)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse 'content_understanding_model_mappings' JSON string: {e}")
+            raise ValueError(f"{self.id}: Failed to parse 'content_understanding_model_mappings' JSON string: {e}")
         
         # Create connector
         connector_settings = {
@@ -156,7 +156,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"AzureContentUnderstandingExtractorExecutor with id {self.id} initialized: "
+                f"AzureContentUnderstandingExtractorExecutor {self.id} initialized: "
                 f"analyzer={self.analyzer_id}"
             )
 

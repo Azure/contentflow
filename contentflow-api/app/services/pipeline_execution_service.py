@@ -237,6 +237,14 @@ class PipelineExecutionService(BaseService):
                 
         except Exception as e:
             logger.error(f"Pipeline execution failed: {execution_id}", exc_info=True)
+            await self.add_event(execution_id, PipelineExecutionEvent(
+                            event_type="WorkflowFailedEvent",
+                            executor_id=None,
+                            timestamp=datetime.now(timezone.utc).isoformat(),
+                            data=None,
+                            additional_info=None,
+                            error=str(e)
+                        ))
             await self.update_execution_status(
                 execution_id,
                 ExecutionStatus.FAILED,

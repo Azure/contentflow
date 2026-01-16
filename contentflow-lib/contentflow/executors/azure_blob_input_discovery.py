@@ -134,7 +134,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
         # Validate settings
         if self.sort_by not in ["name", "last_modified", "size"]:
             raise ValueError(
-                f"Invalid sort_by value: {self.sort_by}. "
+                f"{self.id}: Invalid sort_by value: {self.sort_by}. "
                 f"Must be one of: name, last_modified, size"
             )
         
@@ -165,7 +165,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"AzureBlobInputExecutor initialized: "
+                f"AzureBlobInputExecutor {self.id} initialized: "
                 f"container={self.blob_container_name}, "
                 f"prefix={self.prefix}, "
                 f"extensions={self.file_extensions}, "

@@ -122,7 +122,7 @@ class EntityExtractionExecutor(AzureOpenAIAgentExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"EntityExtractionExecutor initialized with entity_types={entity_types}, "
+                f"EntityExtractionExecutor {self.id} initialized with entity_types={entity_types}, "
                 f"output_format={output_format}"
             )
     

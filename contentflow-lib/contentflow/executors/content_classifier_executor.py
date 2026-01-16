@@ -73,7 +73,7 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
         categories = settings.get("categories", None)
         
         if not categories or not isinstance(categories, list) or len(categories) == 0:
-            raise ValueError("ContentClassifierExecutor requires 'categories' setting with at least one category")
+            raise ValueError(f"{self.id}: ContentClassifierExecutor requires 'categories' setting with at least one category")
         
         multi_label = settings.get("multi_label", False)
         include_confidence = settings.get("include_confidence", True)
@@ -144,7 +144,7 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"ContentClassifierExecutor initialized with {len(categories)} categories, "
+                f"ContentClassifierExecutor {self.id} initialized with {len(categories)} categories, "
                 f"multi_label={multi_label}"
             )
     

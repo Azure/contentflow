@@ -98,7 +98,7 @@ class AzureOpenAIEmbeddingsExecutor(ParallelExecutor):
         self.dimensions = self.get_setting("dimensions", default=None)
         
         if not self.deployment_name:
-            raise ValueError("deployment_name is required for Azure OpenAI Embeddings")
+            raise ValueError(f"{self.id}: deployment_name is required for Azure OpenAI Embeddings")
         
         # Initialize Azure OpenAI client
         client_kwargs = {
@@ -113,16 +113,16 @@ class AzureOpenAIEmbeddingsExecutor(ParallelExecutor):
             client_kwargs["azure_ad_token"] = token_provider.token
         elif self.credential_type == "azure_key_credential":
             if not self.api_key:
-                raise ValueError("api_key must be provided for azure_key_credential")
+                raise ValueError(f"{self.id}: api_key must be provided for azure_key_credential")
             client_kwargs["api_key"] = self.api_key
         else:
-            raise ValueError(f"Unsupported credential_type: {self.credential_type}")
+            raise ValueError(f"{self.id}: Unsupported credential_type: {self.credential_type}")
         
         self.client = AsyncAzureOpenAI(**client_kwargs)
         
         if self.debug_mode:
             logger.debug(
-                f"AzureOpenAIEmbeddingsExecutor with id {self.id} initialized: "
+                f"AzureOpenAIEmbeddingsExecutor {self.id} initialized: "
                 f"deployment_name={self.deployment_name}, dimensions={self.dimensions}"
             )
     

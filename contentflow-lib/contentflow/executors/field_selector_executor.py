@@ -139,19 +139,19 @@ class FieldSelectorExecutor(ParallelExecutor):
         # Field selection configuration
         self.mode = self.get_setting("mode", default="include")
         if self.mode not in ["include", "exclude"]:
-            raise ValueError("'mode' must be 'include' or 'exclude'")
+            raise ValueError(f"{self.id}: 'mode' must be 'include' or 'exclude'")
         
         self.fields = self.get_setting("fields", default="", required=True)
         if not isinstance(self.fields, str):
-            raise ValueError("'fields' must be a JSON string list of field names or patterns")
+            raise ValueError(f"{self.id}: 'fields' must be a JSON string list of field names or patterns")
         try:
             import json
             self.fields = json.loads(self.fields)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse 'fields' JSON string: {e}")
+            raise ValueError(f"{self.id}: Failed to parse 'fields' JSON string: {e}")
         
         if not isinstance(self.fields, list):
-            raise ValueError("'fields' must be a list of field names or patterns")
+            raise ValueError(f"{self.id}: 'fields' must be a list of field names or patterns")
         
         self.nested_delimiter = self.get_setting("nested_delimiter", default=".")
         self.preserve_structure = self.get_setting("preserve_structure", default=True)
@@ -167,12 +167,12 @@ class FieldSelectorExecutor(ParallelExecutor):
         # Validate conditional selection settings
         if self.conditional_selection:
             if not self.condition_field:
-                raise ValueError("'condition_field' is required when conditional_selection is True")
+                raise ValueError(f"{self.id}: 'condition_field' is required when conditional_selection is True")
             if self.condition_operator not in [
                 "equals", "not_equals", "contains", "not_contains", "exists", "not_exists"
             ]:
                 raise ValueError(
-                    "'condition_operator' must be one of: equals, not_equals, contains, "
+                    f"{self.id}: 'condition_operator' must be one of: equals, not_equals, contains, "
                     "not_contains, exists, not_exists"
                 )
         

@@ -813,7 +813,96 @@ pipeline:
 `;
 
 
-// Template 9: Content Understanding & Classification
+// Template 9: Multi-Format Document Processing using Azure Content Understanding
+const multiFormatContentUnderstandingYaml  = `
+pipeline:
+  name: "Multi-Format Document Processing using Azure Content Understanding"
+  description: "Process multiple document formats using Azure Content Understanding extractor."
+  executors:
+    - id: blob-discovery-1
+      name: "Discover Documents"
+      type: azure_blob_input_discovery
+      position: { x: 250, y: 50 }
+      description: "Scan for various document types"
+      settings:
+        file_extensions: ".pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff"
+        max_depth: 1
+        batch_size: 3
+        max_results: 5
+    
+    - id: blob-content-retrieval-1
+      name: "Retrieve Content"
+      type: azure_blob_content_retriever
+      position: { x: 250, y: 200 }
+      description: "Retrieve content from Azure Blob Storage"
+      settings:
+        use_temp_file_for_content: true
+        
+    - id: content-understanding-1
+      name: "Content Extraction"
+      type: azure_content_understanding_extractor
+      position: { x: 250, y: 350 }
+      description: "Extract content with Azure Content Understanding"
+      settings:
+        analyzer_id: "prebuilt-documentSearch"
+        output_content_format: "markdown"
+        output_field: content_understanding_result
+        content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
+        content_understanding_model_mappings: |
+          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+
+    - id: field_mapper-1
+      name: Field Mapper
+      type: field_mapper
+      position: { x: 250, y: 500 }
+      description: "Map extracted fields to unified structure"
+      settings:
+        enabled: true
+        fail_pipeline_on_error: true
+        debug_mode: false
+        mappings: |-
+          {
+           "pdf_output.text": "text",
+           "word_output.text": "text",
+           "pptx_output.text": "text",
+           "excel_output.text": "text"
+          }
+        object_mappings: ''
+        copy_mode: copy
+        create_nested: false
+        overwrite_existing: true
+        template_fields: true
+        nested_delimiter: .
+        list_handling: concatenate
+        join_separator: '---'
+        merge_filter_empty: true
+        merge_deduplicate: false
+        case_transform: ''
+        fail_on_missing_source: false
+        remove_empty_objects: true
+        
+    - id: blob-output-1
+      name: "Save Results to Blob"
+      type: azure_blob_output
+      position: { x: 250, y: 650 }
+      description: "Save processed content"
+      
+  edges:
+    - from: blob-discovery-1
+      to: blob-content-retrieval-1
+      type: sequential
+    - from: blob-content-retrieval-1
+      to: content-understanding-1
+      type: sequential
+    - from: content-understanding-1
+      to: field_mapper-1
+      type: sequential
+    - from: field_mapper-1
+      to: blob-output-1
+      type: sequential
+`;
+
+// Template 10: Content Understanding & Classification
 const contentClassificationYaml = `
 pipeline:
   name: "Content Understanding & Classification"
@@ -884,7 +973,7 @@ pipeline:
       type: sequential
 `;
 
-// Template 9: PII Detection & Redaction
+// Template 11: PII Detection & Redaction
 const piiDetectionYaml = `
 pipeline:
   name: "PII Detection & Redaction"
@@ -940,7 +1029,7 @@ pipeline:
       type: sequential
 `;
 
-// Template 10: Language Detection & Translation
+// Template: Language Detection & Translation
 const translationYaml = `
 pipeline:
   name: "Language Detection & Translation"
@@ -1175,6 +1264,28 @@ export const pipelineTemplates: PipelineTemplate[] = [
     ],
     yaml: multiFormatDocIntelligenceYaml,
     ...createPipelineFromYaml(multiFormatDocIntelligenceYaml),
+  },
+  {
+    id: "multi-format-processing-cu",
+    name: "Multi-Format Document Processing (using Content Understanding)",
+    description: "Process multiple document formats with Azure Content Understanding extractor",
+    category: "extraction",
+    steps: 7,
+    estimatedTime: "3-5 min",
+    useCases: [
+      "Document Management: Process diverse document types in batch operations",
+      "Compliance: Extract data from various format types for regulatory reporting",
+      "Knowledge Management: Unified processing of company documentation",
+      "Data Migration: Convert legacy documents to modern formats",
+    ],
+    features: [
+      "Multi-format processing",
+      "Azure Content Understanding extractor",
+      "Unified field mapping",
+      "Batch processing",
+    ],
+    yaml: multiFormatContentUnderstandingYaml,
+    ...createPipelineFromYaml(multiFormatContentUnderstandingYaml),
   },
   {
     id: "content-classification",
