@@ -32,6 +32,16 @@ class FieldMapperExecutor(ParallelExecutor):
           Example: {"pages_with_content": {"page_num": "pages.page_number", "text": "pages.lines"}}
           This creates: [{"page_num": 1, "text": [...]}, {"page_num": 2, "text": [...]}]
           Default: None (disabled)
+          
+        - source_id_mappings (str): A JSON dictionary to map content.id fields to data fields.
+          Supports field extraction, whole ID copying, and f-string templates.
+          Example formats:
+            - {"doc_id": "id.unique_id"} - Extract unique_id field from content.id
+            - {"url": "id.canonical_id"} - Extract canonical_id field
+            - {"path": "{id.container}/{id.path}"} - F-string template (when template_fields=True)
+            - {"id": "content.id"} - Copy entire content.id object
+          Supports dot notation for nested field access within content.id
+          Default: None (disabled)
         
         - copy_mode (str): How to handle source fields after mapping
           Default: "move"
@@ -46,8 +56,13 @@ class FieldMapperExecutor(ParallelExecutor):
         - overwrite_existing (bool): Overwrite target field if it already exists
           Default: True
         
-        - template_fields (bool): Enable template-based dynamic field naming
-          Allows using {field_name} placeholders in target paths
+        - template_fields (bool): Enable template-based dynamic field naming and f-string evaluation
+          Source and target paths support Python f-string style formatting with {variable} placeholders.
+          Variables are resolved from content.data at runtime.
+          Examples:
+            - Source: "data.{source_type}_content" evaluates based on content.data['source_type']
+            - Target: "extracted_{format}" evaluates based on content.data['format']
+            - Can reference nested fields: "result.{doc.type}_output"
           Default: False
         
         - nested_delimiter (str): Delimiter for nested field paths
@@ -136,15 +151,55 @@ class FieldMapperExecutor(ParallelExecutor):
             }
         )
         
-        # Template-based field naming
+        # Template-based field naming with f-string evaluation
         executor = FieldMapperExecutor(
             id="dynamic_mapper",
             settings={
                 "mappings": {
-                    "content": "{source_type}_content",
+                    "data.{source_type}_content": "extracted_data",
                     "metadata": "{source_type}_metadata"
                 },
                 "template_fields": True
+            }
+        )
+        # If content.data has source_type="pdf":
+        # - "data.{source_type}_content" -> "data.pdf_content"
+        # - "{source_type}_metadata" -> "pdf_metadata"
+        
+        # Map content.id fields to data fields
+        executor = FieldMapperExecutor(
+            id="add_id_fields",
+            settings={
+                "source_id_mappings": {
+                    "doc_id": "id.unique_id",
+                    "url": "id.canonical_id",
+                    "reference": "id"
+                }
+            }
+        )
+        
+        # Map with f-string templates (requires template_fields=True)
+        executor = FieldMapperExecutor(
+            id="id_templates",
+            settings={
+                "source_id_mappings": {
+                    "path": "{id.container}/{id.path}",
+                    "full_reference": "{id.unique_id}_v{id.version}"
+                },
+                "template_fields": True
+            }
+        )
+        
+        # Combine content.id mapping with regular field mappings
+        executor = FieldMapperExecutor(
+            id="combined_mapper",
+            settings={
+                "mappings": {
+                    "title": "document_title"
+                },
+                "source_id_mappings": {
+                    "doc_id": "content.id"
+                }
             }
         )
         ```
@@ -173,24 +228,33 @@ class FieldMapperExecutor(ParallelExecutor):
         
         self.mappings = self.get_setting("mappings", default="")
         if self.mappings and not isinstance(self.mappings, str):
-            raise ValueError("'mappings' must be a JSON string of source -> target field paths")
+            raise ValueError(f"{self.id}: 'mappings' must be a JSON string of source -> target field paths")
         try:
             self.mappings = json.loads(self.mappings) if self.mappings else {}
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON for 'mappings': {e}")
+            raise ValueError(f"{self.id}: Invalid JSON for 'mappings': {e}")
+        
+        # Source ID mappings for mapping content.id to data fields
+        self.source_id_mappings = self.get_setting("source_id_mappings", default="")
+        if self.source_id_mappings and not isinstance(self.source_id_mappings, str):
+            raise ValueError(f"{self.id}: 'source_id_mappings' must be a JSON string")
+        try:
+            self.source_id_mappings = json.loads(self.source_id_mappings) if self.source_id_mappings else {}
+        except json.JSONDecodeError as e:
+            raise ValueError(f"{self.id}: Invalid JSON for 'source_id_mappings': {e}")
         
         # Object mappings for multi-source combinations
         self.object_mappings = self.get_setting("object_mappings", default="")
         if self.object_mappings and not isinstance(self.object_mappings, str):
-            raise ValueError("'object_mappings' must be a JSON string")
+            raise ValueError(f"{self.id}: 'object_mappings' must be a JSON string")
         try:
             self.object_mappings = json.loads(self.object_mappings) if self.object_mappings else {}
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON for 'object_mappings': {e}")
+            raise ValueError(f"{self.id}: Invalid JSON for 'object_mappings': {e}")
         
         # Validate that at least one mapping type is provided
-        if not self.mappings and not self.object_mappings:
-            raise ValueError("At least one of 'mappings' or 'object_mappings' must be provided")
+        if not self.mappings and not self.object_mappings and not self.source_id_mappings:
+            raise ValueError(f"{self.id}: At least one of 'mappings', 'object_mappings', or 'source_id_mappings' must be provided")
         
         self.case_transform = self.get_setting("case_transform", default=None)
         self.fail_on_missing_source = self.get_setting("fail_on_missing_source", default=False)
@@ -199,7 +263,7 @@ class FieldMapperExecutor(ParallelExecutor):
         # List handling configuration
         self.list_handling = self.get_setting("list_handling", default="merge")
         if self.list_handling not in ["first", "merge", "concatenate", "all"]:
-            raise ValueError("'list_handling' must be 'first', 'merge', 'concatenate', or 'all'")
+            raise ValueError(f"{self.id}: 'list_handling' must be 'first', 'merge', 'concatenate', or 'all'")
         
         self.join_separator = self.get_setting("join_separator", default="\n")
         self.merge_deduplicate = self.get_setting("merge_deduplicate", default=False)
@@ -209,17 +273,17 @@ class FieldMapperExecutor(ParallelExecutor):
             "lower", "upper", "title", "camel", "snake"
         ]:
             raise ValueError(
-                "'case_transform' must be one of: lower, upper, title, camel, snake"
+                f"{self.id}: 'case_transform' must be one of: lower, upper, title, camel, snake"
             )
         
         # Additional configuration
         self.copy_mode = self.get_setting("copy_mode", default="move")
         if self.copy_mode not in ["move", "copy"]:
-            raise ValueError("'copy_mode' must be 'move' or 'copy'")
+            raise ValueError(f"{self.id}: 'copy_mode' must be 'move' or 'copy'")
         
         self.create_nested = self.get_setting("create_nested", default=True)
         self.overwrite_existing = self.get_setting("overwrite_existing", default=True)
-        self.template_fields = self.get_setting("template_fields", default=False)
+        self.template_fields = self.get_setting("template_fields", default=True)
         self.nested_delimiter = self.get_setting("nested_delimiter", default=".")
         
         if self.debug_mode:
@@ -279,6 +343,11 @@ class FieldMapperExecutor(ParallelExecutor):
         Args:
             content: Content item to modify
         """
+        
+        # Step 1: Apply source ID mappings to extract fields from content.id
+        # Apply source ID mappings (content.id fields to data fields)
+        self._apply_source_id_mappings(content)
+        
         # Apply object mappings first (multi-source to single target)
         for target_path, field_mappings in self.object_mappings.items():
             try:
@@ -287,12 +356,13 @@ class FieldMapperExecutor(ParallelExecutor):
                     self._set_nested_value(content.data, target_path, combined_objects)
                     
                     if self.debug_mode:
-                        logger.debug(f"Created {len(combined_objects)} objects at '{target_path}'")
+                        logger.debug(f"{self.id}: Created {len(combined_objects)} objects at '{target_path}'")
             except Exception as e:
-                logger.error(f"Failed to apply object mapping to '{target_path}': {e}")
+                logger.error(f"{self.id}: Failed to apply object mapping to '{target_path}': {e}")
                 raise
         
-        # Resolve templates if enabled
+        
+        # Resolve templates if enabled and apply regular mappings
         mappings = self._resolve_template_mappings(content) if self.template_fields else self.mappings
         
         # Process each mapping
@@ -334,36 +404,223 @@ class FieldMapperExecutor(ParallelExecutor):
         if self.copy_mode == "move" and self.remove_empty_objects:
             self._remove_empty_objects(content.data)
     
+    # region Source ID Mappings
+    
+    def _apply_source_id_mappings(self, content: Content) -> None:
+        """
+        Apply source ID mappings to extract fields from content.id to data fields.
+        
+        Supports:
+        - Direct field access: "id.field_name" extracts content.id.field_name
+        - F-string templates: "{id.field1}/{id.field2}" evaluates with id fields
+        - Whole ID: "content.id" or "id" copies the entire ID
+        
+        Args:
+            content: Content item to process
+        """
+        for target_path, source_spec  in self.source_id_mappings.items():
+            try:
+                value = None
+                
+                # Check for f-string template format if enabled
+                if self.template_fields and "{" in source_spec:
+                    # Create context from content.id for template evaluation
+                    id_context = self._flatten_id_for_templates(content.id.to_dict())
+                    try:
+                        value = source_spec.format(**id_context)
+                    except (KeyError, ValueError, AttributeError) as e:
+                        logger.warning(
+                            f"{self.id}: Failed to resolve source ID template '{source_spec}, using {id_context}': {e}"
+                        )
+                        value = None
+                # Handle dot notation to extract specific fields from content.id
+                elif source_spec.startswith("id."):
+                    # Extract field from content.id using dot notation
+                    field_path = source_spec[3:]  # Remove "id." prefix
+                    value = self._get_id_field(content.id, field_path)
+                # Handle whole ID reference
+                elif source_spec in ["content.id", "id"]:
+                    value = content.id
+                else:
+                    # Literal value
+                    value = source_spec
+                
+                if value is not None:
+                    self._set_nested_value(content.data, target_path, value)
+                    if self.debug_mode:
+                        logger.debug(f"Mapped '{source_spec}' to '{target_path}'")
+                else:
+                    logger.debug(f"Source ID mapping '{source_spec}' resolved to None")
+            except Exception as e:
+                logger.error(f"Failed to apply source ID mapping to '{target_path}': {e}", exc_info=True)
+                if self.fail_on_missing_source:
+                    raise
+    
+    def _get_id_field(self, id_obj: Any, field_path: str) -> Any:
+        """
+        Extract a field from content.id using dot notation.
+        
+        Args:
+            id_obj: The content.id object
+            field_path: Dot-notation path (e.g., "unique_id", "container.name")
+            
+        Returns:
+            Field value, or None if not found
+        """
+        if not field_path:
+            return id_obj
+        
+        keys = field_path.split(self.nested_delimiter)
+        current = id_obj
+        
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            elif hasattr(current, key):
+                current = getattr(current, key)
+            else:
+                return None
+        
+        return current
+    
+    def _flatten_id_for_templates(self, id_obj: dict, prefix: str = "id") -> Dict[str, Any]:
+        """
+        Flatten content.id object for use as f-string template context.
+        
+        Creates both direct keys and dot-notation keys for accessing nested values.
+        Handles both dict-like and object attribute access.
+        
+        Args:
+            id_obj: The content.id object (dict or object)
+            prefix: Current prefix for recursive calls (default: "id")
+            
+        Returns:
+            Flattened dictionary with template context
+            
+        Example:
+            Input: {"unique_id": "doc123", "container": {"name": "docs"}}
+            Output: {
+                "id": {...full object...},
+                "id.unique_id": "doc123",
+                "id.container": {...},
+                "id.container.name": "docs"
+            }
+        """
+        result = {prefix: id_obj}
+        
+        # Recursively flatten nested structures
+        if isinstance(id_obj, dict):
+            for key, value in id_obj.items():
+                full_key = f"{prefix}{self.nested_delimiter}{key}"
+                
+                # Always include the value itself
+                result[full_key] = value
+                
+                # For nested dicts, recursively flatten them
+                if isinstance(value, dict):
+                    nested_flat = self._flatten_id_for_templates(value, full_key)
+                    result.update(nested_flat)
+        
+        return result
+    
+    # endregion Source ID Mappings
+    
     def _resolve_template_mappings(self, content: Content) -> Dict[str, str]:
         """
-        Resolve template placeholders in mapping targets.
+        Resolve f-string style template placeholders in mapping source and target paths.
+        
+        Evaluates {variable} placeholders using content.data as the variable context.
+        Templates can appear in both source and target paths and support nested field access.
         
         Args:
             content: Content item for template context
             
         Returns:
-            Resolved mappings dictionary
+            Resolved mappings dictionary with template placeholders evaluated
+            
+        Example:
+            If content.data = {"source_type": "pdf", "format": "text"}
+            mappings = {"data.{source_type}_content": "output.{format}_file"}
+            Result = {"data.pdf_content": "output.text_file"}
         """
         resolved = {}
         
         for source_path, target_path in self.mappings.items():
-            # Find all template placeholders {field_name}
-            placeholders = re.findall(r'\{([^}]+)\}', target_path)
+            # Create a flat dictionary for template evaluation
+            # This allows both top-level and nested field access
+            template_context = self._flatten_dict_for_templates(content.data)
             
-            resolved_target = target_path
-            for placeholder in placeholders:
-                # Get value from content data
-                value = self._get_nested_value(content.data, placeholder)
-                if value is not None:
-                    resolved_target = resolved_target.replace(f"{{{placeholder}}}", str(value))
-                else:
-                    logger.warning(
-                        f"Template placeholder '{placeholder}' not found in content data"
-                    )
+            try:
+                # Resolve source path using f-string style formatting
+                resolved_source = source_path.format(**template_context)
+            except (KeyError, ValueError) as e:
+                logger.warning(
+                    f"Failed to resolve source path template '{source_path}': {e}"
+                )
+                resolved_source = source_path
             
-            resolved[source_path] = resolved_target
+            try:
+                # Resolve target path using f-string style formatting
+                resolved_target = target_path.format(**template_context)
+            except (KeyError, ValueError) as e:
+                logger.warning(
+                    f"Failed to resolve target path template '{target_path}': {e}"
+                )
+                resolved_target = target_path
+            
+            if self.debug_mode:
+                logger.debug(
+                    f"Resolved templates: '{source_path}' -> '{resolved_source}' "
+                    f"and '{target_path}' -> '{resolved_target}'"
+                )
+            
+            resolved[resolved_source] = resolved_target
         
         return resolved
+    
+    def _flatten_dict_for_templates(self, data: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
+        """
+        Flatten a nested dictionary for use as f-string template context.
+        
+        Creates both flat keys and dot-notation keys for accessing nested values.
+        
+        Args:
+            data: Dictionary to flatten
+            prefix: Current prefix for recursive calls
+            
+        Returns:
+            Flattened dictionary with both direct and nested-path keys
+            
+        Example:
+            Input: {"user": {"name": "John", "age": 30}, "status": "active"}
+            Output: {
+                "user.name": "John",
+                "user.age": 30,
+                "status": "active",
+                "user": {"name": "John", "age": 30}
+            }
+        """
+        result = {}
+        
+        for key, value in data.items():
+            full_key = f"{prefix}{key}" if prefix else key
+            
+            # Always include the value itself
+            result[key] = value
+            
+            # For nested dicts, add both the dict itself and flattened keys
+            if isinstance(value, dict):
+                # Add the nested dict
+                result[full_key] = value
+                # Recursively flatten nested dictionaries
+                nested_flat = self._flatten_dict_for_templates(value, f"{full_key}.")
+                result.update(nested_flat)
+            else:
+                # For non-dict values, add with full prefix key too
+                if prefix:
+                    result[full_key] = value
+        
+        return result
     
     def _combine_fields_to_objects(
         self,

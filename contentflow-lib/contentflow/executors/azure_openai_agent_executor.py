@@ -105,7 +105,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             credential = get_azure_credential()
         elif self.credential_type == "azure_key_credential":
             if not self.api_key:
-                raise ValueError("api_key must be provided for azure_key_credential")
+                raise ValueError(f"{self.id}: api_key must be provided for azure_key_credential")
         
         # Initialize Azure OpenAI Responses Client
         client_kwargs = {}
@@ -129,7 +129,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"AIAgentExecutor with id {self.id} initialized: "
+                f"AIAgentExecutor {self.id} initialized: "
                 f"instructions='{self.instructions[:50]}...', deployment_name={self.deployment_name}"
             )
     

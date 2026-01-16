@@ -61,7 +61,7 @@ class FanInAggregator(BaseExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"Initialized FanInAggregator: {id}, (enabled: {self.enabled})"
+                f"Initialized FanInAggregator {self.id}, (enabled: {self.enabled})"
             )
     
     @handler

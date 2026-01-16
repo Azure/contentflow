@@ -124,7 +124,7 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
         # Document intelligence connector config
         self.doc_intelligence_endpoint = self.get_setting("doc_intelligence_endpoint", default=None)
         if not self.doc_intelligence_endpoint:
-            raise ValueError("Document Intelligence endpoint must be provided in settings")
+            raise ValueError(f"{self.id}: Document Intelligence endpoint must be provided in settings")
         
         self.doc_intelligence_credential_type = self.get_setting("doc_intelligence_credential_type", default="default_azure_credential")
         self.doc_intelligence_credential_key = self.get_setting("doc_intelligence_credential_key", default=None)
@@ -140,7 +140,7 @@ class AzureDocumentIntelligenceExtractorExecutor(ParallelExecutor):
                 
         if self.debug_mode:
             logger.debug(
-                f"DocumentIntelligenceExtractorExecutor with id {self.id} initialized: "
+                f"DocumentIntelligenceExtractorExecutor {self.id} initialized: "
                 f"model={self.model_id}, text={self.extract_text}, "
                 f"tables={self.extract_tables}, kv={self.extract_kv_pairs}"
             )

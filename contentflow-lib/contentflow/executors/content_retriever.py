@@ -103,7 +103,7 @@ class ContentRetrieverExecutor(ParallelExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"ContentRetrieverExecutor with id {self.id} initialized: "
+                f"ContentRetrieverExecutor {self.id} initialized: "
                 f"temp_folder={self.temp_folder}, "
                 f"use_temp_file={self.use_temp_file}"
             )

@@ -543,8 +543,6 @@ class PipelineFactory:
                 self._add_parallel_edges(builder, executor_factories, edge_def)
             elif edge_type == 'join':
                 self._add_join_edges(builder, executor_factories, edge_def)
-            elif edge_type == 'conditional':
-                self._add_conditional_edges(builder, executor_factories, edge_def)
             else:
                 logger.warning(f"Unknown edge type '{edge_type}', treating as sequential")
                 self._add_sequential_edge(builder, executor_factories, edge_def)
@@ -716,51 +714,6 @@ class PipelineFactory:
         # Note: Agent Framework handles fan-in naturally when multiple edges point to same target
         # The wait_strategy is informational for now, could be used with custom executors
     
-    def _add_conditional_edges(
-        self,
-        builder: WorkflowBuilder,
-        executor_factories: Dict[str, Any],
-        edge_def: Dict[str, Any]
-    ) -> None:
-        """
-        Add conditional edges: from -> [{target: to1, condition: "..."}, {target: to2, condition: "..."}].
-        
-        Note: Full conditional routing requires custom executor logic.
-        This method sets up the edges; the source executor must implement routing logic.
-        """
-        from_id = edge_def.get('from')
-        to_conditions = edge_def.get('to', [])
-        
-        if not from_id:
-            logger.warning(f"Conditional edge missing from: {edge_def}")
-            return
-        
-        if not isinstance(to_conditions, list):
-            logger.warning(f"Conditional edge 'to' must be a list: {edge_def}")
-            return
-        
-        if from_id not in executor_factories:
-            logger.warning(f"Conditional edge references unknown source executor: {from_id}")
-            return
-        
-        # Add edge to each conditional target
-        for condition_def in to_conditions:
-            if isinstance(condition_def, dict):
-                to_id = condition_def.get('target')
-                condition = condition_def.get('condition', 'default')
-            else:
-                to_id = condition_def
-                condition = 'default'
-            
-            if not to_id or to_id not in executor_factories:
-                logger.warning(f"Conditional edge references unknown target: {to_id}")
-                continue
-            
-            builder.add_edge(from_id, to_id)
-            logger.debug(f"Added conditional edge: {from_id} -> {to_id} (condition: {condition})")
-        
-        # Note: The from_executor needs to implement routing logic based on conditions
-        # This typically requires a custom executor or router executor type
     
     def get_pipeline_names(self) -> List[str]:
         """Get list of available workflow names."""

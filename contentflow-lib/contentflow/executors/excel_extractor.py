@@ -133,11 +133,11 @@ class ExcelExtractorExecutor(ParallelExecutor):
         
         # Validate image output mode
         if self.image_output_mode not in ["base64", "bytes"]:
-            raise ValueError(f"Invalid image_output_mode: {self.image_output_mode}. Must be 'base64' or 'bytes'")
+            raise ValueError(f"{self.id}: Invalid image_output_mode: {self.image_output_mode}. Must be 'base64' or 'bytes'")
         
         if self.debug_mode:
             logger.debug(
-                f"ExcelExtractorExecutor with id {self.id} initialized: "
+                f"ExcelExtractorExecutor {self.id} initialized: "
                 f"text={self.extract_text}, sheets={self.extract_sheets}, "
                 f"tables={self.extract_tables}, images={self.extract_images}"
             )

@@ -34,6 +34,7 @@ from .language_detector_executor import LanguageDetectorExecutor
 from .translation_executor import TranslationExecutor
 from .field_mapper_executor import FieldMapperExecutor
 from .field_selector_executor import FieldSelectorExecutor
+from .gptrag_search_index_doc_generator import GPTRAGSearchIndexDocumentGeneratorExecutor
 from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
 
@@ -79,6 +80,7 @@ __all__ = [
     "TranslationExecutor",
     "FieldMapperExecutor",
     "FieldSelectorExecutor",
+    "GPTRAGSearchIndexDocumentGeneratorExecutor",
     "PassThroughExecutor",
     # # Knowledge Graph
     # "KnowledgeGraphEntityExtractorExecutor",

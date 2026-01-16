@@ -70,7 +70,7 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
           Default: True
           Note: Requires input from extractors that provide page data (PDF, Word, PowerPoint)
 
-        Also setting from ParallelExecutor and BaseExecutor apply.
+        Also settings from ParallelExecutor and BaseExecutor apply.
     
     Example:
         ```python
@@ -227,11 +227,12 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
             # Create chunk objects with metadata
             chunk_objects = []
             for i, chunk_data in enumerate(chunks):
-                chunk_obj = {'text': chunk_data['text']}
+                chunk_obj = {'content': chunk_data['text']}
+                chunk_obj['chunk_index'] = i
+                chunk_obj['page_number'] = chunk_data.get('page_numbers', [])[0] if chunk_data.get('page_numbers') else None
                 
                 if self.add_metadata:
                     chunk_obj['metadata'] = {
-                        'chunk_index': i,
                         'char_count': len(chunk_data['text']),
                         'word_count': len(chunk_data['text'].split()),
                         'split_level': chunk_data.get('split_level', 0),
@@ -246,7 +247,7 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
             
             # Update summary
             if chunk_objects:
-                avg_size = sum(len(c['text']) for c in chunk_objects) / len(chunk_objects)
+                avg_size = sum(len(c['content']) for c in chunk_objects) / len(chunk_objects)
                 content.summary_data['chunks_created'] = len(chunk_objects)
                 content.summary_data['avg_chunk_size'] = int(avg_size)
                 content.summary_data['chunking_method'] = "recursive"

@@ -12,6 +12,19 @@ class ContentIdentifier(BaseModel):
     path : Optional[str] = Field(default=None, description='Path or location of the content within the source')
     filename: Optional[str] = Field(default=None, description='Filename of the content item')
     metadata : dict[str, object] | None = Field(default=None, description='Metadata associated with the content')
+    
+    def to_dict(self) -> dict[str, Any]:
+        """Convert ContentIdentifier to a dictionary."""
+        return {
+            "canonical_id": self.canonical_id,
+            "unique_id": self.unique_id,
+            "source_name": self.source_name,
+            "source_type": self.source_type,
+            "container": self.container,
+            "path": self.path,
+            "filename": self.filename,
+            "metadata": self.metadata or {},
+        }
 
 class ExecutorLogEntry(BaseModel):
     """Metadata for tracking document processing details."""
