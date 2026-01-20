@@ -93,6 +93,7 @@ pipeline:
       description: "Discover PDF files from Azure Blob Storage"
       settings:
         file_extensions: ".pdf"
+        blob_container_name: "content"
         max_depth: 3
         max_results: 25
 
@@ -160,6 +161,7 @@ pipeline:
         file_extensions: ".pdf,.docx,.txt"
         max_depth: 1
         max_results: 5
+        blob_container_name: "content"
     
     - id: blob-content-retrieval-1
       name: "Retrieve Articles"
@@ -283,6 +285,7 @@ pipeline:
       description: "Discover documents from Azure Blob Storage"
       settings:
         file_extensions: ".pdf,.docx"
+        blob_container_name: "content"
         max_depth: 1
         max_results: 5
     
@@ -448,6 +451,7 @@ pipeline:
       description: "Discover images from Azure Blob Storage"
       settings:
         file_extensions: ".jpg,.jpeg,.png,.tiff"
+        blob_container_name: "content"
         max_depth: 1
         max_results: 5
     
@@ -521,67 +525,194 @@ pipeline:
   name: "GPT-RAG Document Ingestion"
   description: "Enterprise RAG pipeline with intelligent chunking and embedding generation"
   executors:
-    - id: blob-input-1
-      name: "Source Scanning"
-      type: azure_blob_input
-      position: { x: 250, y: 50 }
-      description: "Discover documents from blob storage"
+    - id: blob-discovery-1
+      name: Discover Documents
+      type: azure_blob_input_discovery
+      position: { x: 0, y: 50 }
+      description: Scan for various document from blob storage
       settings:
+        blob_container_name: content
         file_extensions: ".pdf,.docx,.pptx,.xlsx,.jpg,.png"
+        max_results: 0
+        batch_size: 2
+        include_metadata: true
+  
+    - id: blob-content-retrieval-1
+      name: "Retrieve Content"
+      type: azure_blob_content_retriever
+      position: { x: 300, y: 50 }
+      description: "Retrieve content from Azure Blob Storage"
+      settings:
+        use_temp_file_for_content: true
         
     - id: content-understanding-1
-      name: "Content Extraction"
+      name: "Azure Content Understanding Analysis"
       type: azure_content_understanding_extractor
-      position: { x: 250, y: 200 }
-      description: "Extract content with Azure Content Understanding"
+      position: { x: 550, y: 50 }
+      description: "Analyze visual content"
       settings:
-        analyzer: "prebuilt-documentSearch"
+        analyzer_id: "prebuilt-layout"
         output_content_format: "markdown"
-        
-    - id: chunker-1
-      name: "Smart Chunking"
-      type: recursive_text_chunker
-      position: { x: 70, y: 370 }
-      description: "Apply intelligent chunking strategies"
+        output_field: content_understanding_result
+        content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
+        content_understanding_model_mappings: |
+          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          
+    - id: field_mapper-non-pdf
+      name: Non-PDF Field Mapper
+      type: field_mapper
+      position: { x: 300, y: 250 }
+      description: Map extracted fields to unified structure
       settings:
+        condition: id.metadata.content_type != "application/pdf"
+        mappings: |-
+          {
+            "content_understanding_result.result.contents.markdown": "markdown"
+          }
+        copy_mode: copy
+        create_nested: true
+        overwrite_existing: true
+        template_fields: true
+        nested_delimiter: .
+        list_handling: concatenate
+        join_separator: '--'
+        fail_on_missing_source: false
+        remove_empty_objects: true
+
+    - id: field_mapper-pdf
+      name: PDF Field Mapper
+      type: field_mapper
+      position: { x: 550, y: 250 }
+      description: Rename, move, and remap fields within Content items for standardization and compatibility
+      settings:
+        condition: id.metadata.content_type == "application/pdf"
+        object_mappings: |-
+          {
+               "chunks": {
+                        "chunk_index": "content_understanding_result.result.contents.pages.pageNumber",
+                        "page_number": "content_understanding_result.result.contents.pages.pageNumber",
+                        "text": "content_understanding_result.result.contents.pages.lines.content"
+               }
+          }
+        copy_mode: copy
+        create_nested: true
+        overwrite_existing: true
+        template_fields: true
+        nested_delimiter: .
+        list_handling: concatenate
+        join_separator: '--'
+        merge_filter_empty: true
+        fail_on_missing_source: false
+        remove_empty_objects: false
+
+    - id: recursive_text_chunker-1
+      name: Recursive Text Chunker
+      type: recursive_text_chunker
+      position: { x: 300, y: 450 }
+      description: Creates chunks using recursive text splitting with configurable separator hierarchy for optimal RAG retrieval
+      settings:
+        condition: id.metadata.content_type != "application/pdf"
+        input_field: markdown
+        output_field: chunks
         chunk_size: 1000
         chunk_overlap: 200
-        preserve_page_numbers: true
-        
-    - id: entity-1
-      name: "Content Enrichment"
-      type: entity_extractor
-      position: { x: 400, y: 370 }
-      description: "Add metadata and context"
-      
-    - id: embeddings-1
-      name: "Embedding Generation"
-      type: azure_openai_embeddings
-      position: { x: 250, y: 550 }
-      description: "Generate vector embeddings"
+        separators: |-
+
+
+          ,
+          ,.
+        min_chunk_size: 100
+        add_metadata: true
+        include_page_numbers: true
+        max_concurrent: 3
+        continue_on_error: true
+    
+    - id: fan_in_aggregator-1
+      name: Result Aggregator
+      type: fan_in_aggregator
+      position: { x: 550, y: 500 }
+      description: |
+        "Aggregate results from multiple parallel branches by merging content items based on canonical 
+        IDs. Must always be used as the joining executor after parallel (fan-out) execution branches."
       settings:
-        model: "text-embedding-3-large"
-        dimensions: 1536
-        
-    - id: search-index-1
-      name: "Azure AI Search Indexing"
-      type: ai_search_index_output
-      position: { x: 500, y: 700 }
-      description: "Index chunks for semantic search"
+
+    - id: field_mapper-3
+      name: ID Fields Mapper
+      type: field_mapper
+      position: { x: 800, y: 500 }
+      description: Rename, move, and remap fields within Content items for standardization and compatibility
+      settings:
+        fail_pipeline_on_error: false
+        source_id_mappings: |-
+          {
+          "unique_id": "id.unique_id",
+          "url": "id.canonical_id",
+          "parent_id": "/{id.container}/{id.path}",
+          "metadata_storage_path": "/{id.container}/{id.path}",
+          "metadata_storage_name": "{id.filename}",
+          "metadata_storage_last_modified": "{id.metadata.last_modified}",
+          "metadata_security_id": "[]",
+          "source": "blob"
+          }
+        copy_mode: copy
+        create_nested: true
+        overwrite_existing: true
+        template_fields: true
+        nested_delimiter: .
+        list_handling: concatenate
+        join_separator: '---'
+        fail_on_missing_source: false
+
+    - id: gptrag_search_index_document_generator-1
+      name: GPT-RAG Search Index Document Generator
+      type: gptrag_search_index_document_generator
+      position: { x: 800, y: 650 }
+      description: Transform Content items into Azure AI Search indexable documents following the GPT-RAG index schema.
+      settings:
+        fail_pipeline_on_error: true
+        chunk_field: chunks
+        content_field: text
+        extract_title: true
+        max_title_length: 50
+        default_category: document
+        output_field: search_documents
+        add_output_metadata: true
+
+    - id: blob-output-1
+      name: "Save Results to Blob"
+      type: azure_blob_output
+      position: { x: 800, y: 800 }
+      description: "Save processed content"
       
   edges:
-    - from: blob-input-1
+    - from: blob-discovery-1
+      to: blob-content-retrieval-1
+      type: sequential
+    - from: blob-content-retrieval-1
       to: content-understanding-1
       type: sequential
     - from: content-understanding-1
-      to: [chunker-1, entity-1]
+      to:
+        - field_mapper-non-pdf
+        - field_mapper-pdf
       type: parallel
-    - from: [chunker-1, entity-1]
-      to: embeddings-1
+    - from: field_mapper-non-pdf
+      to: recursive_text_chunker-1
+      type: sequential
+    - from:
+        - field_mapper-pdf
+        - recursive_text_chunker-1
+      to: fan_in_aggregator-1
       type: join
       wait_strategy: all
-    - from: embeddings-1
-      to: search-index-1
+    - from: fan_in_aggregator-1
+      to: field_mapper-3
+      type: sequential
+    - from: field_mapper-3
+      to: gptrag_search_index_document_generator-1
+      type: sequential
+    - from: gptrag_search_index_document_generator-1
+      to: blob-output-1
       type: sequential
 `;
 
@@ -598,6 +729,7 @@ pipeline:
       description: "Scan for various document types"
       settings:
         file_extensions: ".pdf,.docx,.pptx,.xlsx"
+        blob_container_name: "content"
         max_depth: 1
         max_results: 5
     
@@ -740,6 +872,7 @@ pipeline:
       description: "Scan for various document types"
       settings:
         file_extensions: ".pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff"
+        blob_container_name: "content"
         max_depth: 1
         batch_size: 3
         max_results: 5
@@ -826,6 +959,7 @@ pipeline:
       description: "Scan for various document types"
       settings:
         file_extensions: ".pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff"
+        blob_container_name: "content"
         max_depth: 1
         batch_size: 3
         max_results: 5

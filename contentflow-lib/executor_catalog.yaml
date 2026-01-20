@@ -4513,7 +4513,7 @@ executor_catalog:
   # GPT-RAG Search Index Document Generator Executor
   - id: gptrag_search_index_document_generator
     name: "GPT-RAG Search Index Document Generator"
-    description: "Transform Content items into Azure AI Search indexable documents following the GPT-RAG schema"
+    description: "Transform Content items into Azure AI Search indexable documents following the GPT-RAG index schema."
     module_path: contentflow.executors.gptrag_search_index_doc_generator
     class_name: GPTRAGSearchIndexDocumentGeneratorExecutor
     tags: [output, transform, search, indexing, azure, ai-search]
@@ -4556,18 +4556,11 @@ executor_catalog:
         ui_component: "checkbox"
 
       # executor-specific settings
-      use_chunks:
-        type: boolean
-        title: "Use Chunks"
-        description: "Create separate search documents for each chunk (true) or single document from full content (false)"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
+      # Chunk processing configuration
       chunk_field:
         type: string
         title: "Chunk Field Path"
-        description: "Field path to chunks array in content.data (dot notation, e.g., 'chunks' or 'results.chunks')"
+        description: "Field path to chunks array in content.data (dot notation, e.g., 'chunks' or 'results.chunks'). Genereates from full content if not present."
         required: false
         default: "chunks"
         ui_component: "input"
@@ -4575,15 +4568,24 @@ executor_catalog:
       content_field:
         type: string
         title: "Content Field Path"
-        description: "Field path to full content text in content.data (dot notation, e.g., 'markdown' or 'full_content.text')"
+        description: "Field path to content text in each chunk or content.data (dot notation, e.g., 'text' or 'full_content.text')"
         required: false
-        default: "markdown"
+        default: "text"
         ui_component: "input"
       
+      max_chunk_size:
+        type: integer
+        title: "Max Chunk Size"
+        description: "Maximum size in characters for each chunk (Azure AI Search limit is 32766 characters)"
+        required: false
+        default: 32766
+        ui_component: "input"
+      
+      # Title and metadata extraction
       extract_title:
         type: boolean
         title: "Extract Title from Content"
-        description: "Extract title from first heading in content or use title_field"
+        description: "Extract title from title_field or first heading in content if not provided"
         required: false
         default: true
         ui_component: "checkbox"
@@ -4596,6 +4598,14 @@ executor_catalog:
         default: null
         ui_component: "input"
       
+      max_title_length:
+        type: integer
+        title: "Max Title Length"
+        description: "Maximum length for extracted title"
+        required: false
+        default: 50
+        ui_component: "input"
+
       category_field:
         type: string
         title: "Category Field Path"
@@ -4611,31 +4621,41 @@ executor_catalog:
         required: false
         default: "document"
         ui_component: "input"
-      
-      max_title_length:
-        type: integer
-        title: "Max Title Length"
-        description: "Maximum length for extracted title"
+
+      # Summary and content configuration      
+      summary_field:
+        type: string
+        title: "Summary Field Path"
+        description: "Field path to document summary in content data"
         required: false
-        default: 500
+        default: "summary"
         ui_component: "input"
       
-      include_summary:
-        type: boolean
-        title: "Include Summary"
-        description: "Include document summary extracted from content analysis results"
+      source_value:
+        type: string
+        title: "Source Value"
+        description: "Static source value to set in each document's source field (overrides content field)"
         required: false
-        default: true
-        ui_component: "checkbox"
+        default: null
+        ui_component: "input"
       
-      generate_id:
-        type: boolean
-        title: "Generate Document IDs"
-        description: "Auto-generate unique document IDs based on source path and chunk index"
+      related_images_field:
+        type: string
+        title: "Related Images Field Path"
+        description: "Field path to related images list in chunk or content data"
         required: false
-        default: true
-        ui_component: "checkbox"
-      
+        default: null
+        ui_component: "input"
+
+      related_files_field:
+        type: string
+        title: "Related Files Field Path"
+        description: "Field path to related files list in chunk or content data"
+        required: false
+        default: null
+        ui_component: "input"
+
+      # ID generation
       id_prefix:
         type: string
         title: "ID Prefix"
@@ -4647,52 +4667,28 @@ executor_catalog:
       parent_id_field:
         type: string
         title: "Parent ID Field Path"
-        description: "Field path for parent document ID (links chunks to parent when use_chunks is true)"
+        description: "Field path for parent document ID (links chunks to parent when chunks are used)"
+        required: false
+        default: null
+        ui_component: "input"
+
+      url_field:
+        type: string
+        title: "URL Field Path"
+        description: "Field path to URL in content metadata for ID generation"
         required: false
         default: null
         ui_component: "input"
       
-      include_page_metadata:
-        type: boolean
-        title: "Include Page Metadata"
-        description: "Include page number, offset, and length fields for precise document location"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      include_storage_metadata:
-        type: boolean
-        title: "Include Storage Metadata"
-        description: "Include Azure storage metadata (path, name, last_modified)"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      include_source_metadata:
-        type: boolean
-        title: "Include Source Metadata"
-        description: "Include source identification fields (source, filepath, url)"
-        required: false
-        default: true
-        ui_component: "checkbox"
-      
-      extract_images:
-        type: boolean
-        title: "Extract Image Captions"
-        description: "Extract imageCaptions field if available in content analysis"
-        required: false
-        default: false
-        ui_component: "checkbox"
-      
-      output_mode:
+      # Output configuration
+      output_field:
         type: string
-        title: "Output Mode"
-        description: "Format of output documents: list - returns list of search documents | nested - keeps in content.data.search_documents"
+        title: "Output Field Path"
+        description: "Field path to write generated search index documents (dot notation, e.g., 'search_documents')"
         required: false
-        default: "list"
-        options: ["list", "nested"]
-        ui_component: "select"
-      
+        default: "search_documents"
+        ui_component: "input"
+        
       add_output_metadata:
         type: boolean
         title: "Add Output Metadata"

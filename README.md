@@ -183,75 +183,13 @@ Web URLs → Web Scraping → Content Extraction → Sentiment Analysis → Topi
 
 ---
 
-## 🏗️ High-Level Architecture
+## 🏗️ Solution Components
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    ContentFlow Platform                      │
-└──────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────┐
-│                      User Interfaces                         │
-├──────────────────────────────┬───────────────────────────────┤
-│   Web Dashboard (React)      │   REST API (FastAPI)          │
-│  • Pipeline Designer         │   • Execute Pipelines         │
-│  • Execution Monitoring      │   • Get Results               │
-│  • Result Visualization      │   • Query History             │
-└──────────────────────────────┴───────────────────────────────┘
-                               ↓
-┌──────────────────────────────────────────────────────────────┐
-│              ContentFlow API Service                         │
-│  (containerapp-api)                                          │
-│  ✓ Pipeline Management & Execution                           │
-│  ✓ Credential & Vault Integration                            │
-│  ✓ Event Streaming & Monitoring                              │
-└──────────────────────────────────────────────────────────────┘
-         ↑                              ↓
-    Config/Tasks             Results & Events
-         ↑                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│           ContentFlow Library (Core Engine)                  │
-├──────────────────────────────────────────────────────────────┤
-│                    Pipeline Factory                          │
-│  • Parses YAML configurations                                │
-│  • Validates executor dependencies                           │
-│  • Creates optimized execution graphs                        │
-├──────────────────────────────────────────────────────────────┤
-│              40+ Pre-Built Executors                         │
-├───────────────────────────┬──────────────────────────────────┤
-│  Input Executors          │  Processing Executors            │
-│  • Azure Blob Discovery   │  • PDF Text Extraction           │
-│  • Local File Reader      │  • Document Intelligence         │
-│  • Web Scraper            │  • Image Processing              │
-│  • Database Query         │  • Embeddings Generation         │
-├───────────────────────────┼──────────────────────────────────┤
-│  Routing Executors        │  Output Executors                │
-│  • Conditional Router     │  • Azure Blob Writer             │
-│  • Batch Splitter         │  • Cosmos DB Storage             │
-│  • Parallel Executor      │  • CSV/JSON Export               │
-│  • Merge Aggregator       │  • Search Index Upload           │
-└───────────────────────────┴──────────────────────────────────┘
-                        ↓
-┌──────────────────────────────────────────────────────────────┐
-│        ContentFlow Worker Service                            │
-│  (containerapp-worker)                                       │
-│  ✓ Processes queued work items                               │
-│  ✓ Manages worker pool & scaling                             │
-│  ✓ Executes pipeline instances                               │
-│  ✓ Handles failures & retries                                │
-└──────────────────────────────────────────────────────────────┘
-                        ↓
-┌──────────────────────────────────────────────────────────────┐
-│            Azure Services Integration                        │
-├───────────────────────┬─────────────────┬────────────────────┤
-│ Storage & Data        │ AI Services     │ Infrastructure     │
-│ • Azure Blob Storage  │ • Document      │ • Container Apps   │
-│ • Cosmos DB           │   Intelligence  │ • App Config       │
-│ • Queue Storage       │ • AI Services   │ • Key Vault        │
-│ • Search Index        │ • OpenAI/Models │ • Log Analytics    │
-│                       │ • Embeddings    │ • App Insights     │
-└───────────────────────┴─────────────────┴────────────────────┘
-```
+<p align="left">
+    <picture>
+    <img src="./assets/ContentFlow Projects.png" alt="ContentFlow Components" style="" />
+    </picture>
+</p>
 
 ### Component Details
 
@@ -269,19 +207,28 @@ Web URLs → Web Scraping → Content Extraction → Sentiment Analysis → Topi
 - Integration with Azure Key Vault for secrets
 - CORS configured for web UI
 
-**[Worker Service (`contentflow-worker`)](./contentflow-worker/README.md)**
-- Multi-threaded content processing engine
-- Queue-based job distribution
-- Automatic scaling based on load
-- Health monitoring and graceful shutdown
-- Error handling with exponential backoff
-
 **[Core Library (`contentflow-lib`)](./contentflow-lib/README.md)**
 - Pipeline Factory: Compiles YAML to execution graphs
 - Executor Framework: Base classes and 40+ implementations
 - Content Models: Strongly-typed data structures
 - Event System: Real-time pipeline execution tracking
 - Plugin Architecture: Easy extension with custom executors
+
+**[Worker Service (`contentflow-worker`)](./contentflow-worker/README.md)**
+- Multi-threaded content processing engine
+- Queue-based job distribution
+- Automatic scaling based on load
+- Health monitoring and graceful shutdown
+- Error handling with exponential backoff  
+
+
+---
+
+## Watch a quick Demo of ContentFlow in action:
+
+<p align="left">
+    <video src="./assets/contentflow-demo.mp4" controls width="100%"></video>
+</p>
 
 ---
 
@@ -415,86 +362,15 @@ contentflow/
 
 ---
 
-## 🎯 Executor Catalog
-
-ContentFlow includes **40+ pre-built executors** for common content processing tasks:
-
-### Input Executors
-- `azure_blob_input_discovery` - Discover files in Blob Storage
-- `local_file_reader` - Read files from local filesystem
-- `web_scraper` - Extract content from web pages
-- `database_query` - Retrieve content from databases
-
-### Extraction Executors
-- `azure_document_intelligence_extractor` - Extract text, tables, layout
-- `pdf_text_extractor` - PDF-specific text extraction
-- `pdf_image_extractor` - Extract images from PDFs
-- `word_document_extractor` - Process Word documents
-- `excel_spreadsheet_extractor` - Extract Excel data
-- `powerpoint_extractor` - Process PowerPoint presentations
-
-### Processing Executors
-- `text_chunker` - Split text into optimal chunks
-- `embeddings_executor` - Generate semantic embeddings
-- `classifier_executor` - Text classification
-- `entity_extractor` - Named entity recognition
-- `sentiment_analyzer` - Sentiment analysis
-- `table_row_splitter` - Extract table rows as documents
-- `field_transformer` - Transform and normalize fields
-
-### Routing Executors
-- `conditional_router` - Route based on conditions
-- `batch_splitter` - Split large batches
-- `parallel_executor` - Execute in parallel
-- `merge_aggregator` - Aggregate results from parallel paths
-
-### Output Executors
-- `azure_blob_writer` - Write to Blob Storage
-- `cosmos_db_writer` - Store in Cosmos DB
-- `search_index_writer` - Index for search
-
----
-
-## 📊 Example Pipelines
-
-ContentFlow comes with **20+ sample pipelines** demonstrating various patterns:
-
-| Sample | Demonstrates | Files |
-|--------|--------------|-------|
-| `01-simple` | Basic pipeline setup | Config + simple execution |
-| `02-batch-processing` | Processing large collections | Batch splitting & aggregation |
-| `03-pdf-extractor` | PDF content extraction | Multi-stage PDF processing |
-| `04-word-extractor` | Word document processing | Document intelligence |
-| `05-powerpoint-extractor` | PowerPoint analysis | Slide extraction |
-| `06-ai-analysis` | AI-powered analysis | LLM integration |
-| `07-embeddings` | Embedding generation | Vector search prep |
-| `08-content-understanding` | Semantic analysis | Chunking & classification |
-| `09-blob-input` | Blob storage integration | Cloud file discovery |
-| `14-gpt-rag-ingestion` | RAG pipeline | GPT + embeddings |
-| `15-document-analysis` | Advanced intelligence | Comprehensive analysis |
-| `17-knowledge-graph` | Entity relationships | Graph construction |
-| `18-web-scraping` | Web content extraction | Dynamic scraping |
-| `32-parallel-processing` | Concurrent execution | Multi-path workflows |
-| `44-conditional-routing` | Smart routing | Condition-based paths |
-
-Run any sample:
-
-```bash
-cd contentflow-lib/samples/01-simple
-python run.py
-```
-
----
-
 ## 🔐 Security & Compliance
 
+✅ **Zero-Trust Architecture** - No exposed endpoints
 ✅ **Managed Identity Authentication** - No exposed credentials  
 ✅ **Azure Key Vault Integration** - Secure secret storage  
 ✅ **RBAC & Access Control** - Fine-grained permissions  
 ✅ **Encrypted Communication** - TLS for all endpoints  
 ✅ **Audit & Logging** - Full audit trail with Application Insights  
 ✅ **Data Isolation** - Separate storage containers per tenant/environment  
-✅ **Compliance Ready** - Supports HIPAA, SOC 2, GDPR patterns  
 
 ---
 

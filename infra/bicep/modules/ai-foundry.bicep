@@ -53,6 +53,18 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
           name: 'GlobalStandard'
         }
       }
+      {
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4.1'
+          version: '2025-04-14'
+        }
+        name: 'gpt-4.1'
+        sku: {
+          capacity: 100
+          name: 'GlobalStandard'
+        }
+      }
     ]
     // aiSearchConfiguration: {
     //   name: '<name>'

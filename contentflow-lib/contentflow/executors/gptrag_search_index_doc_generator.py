@@ -3,6 +3,7 @@
 import logging
 import json
 import hashlib
+import re
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -26,23 +27,18 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
     full content, populating required fields like id, content, title, metadata, etc.
     
     Configuration (settings dict):
-        - use_chunks (bool): Create separate search documents for each chunk
-          Default: True
-          If True, each chunk in content.data.chunks becomes a separate search document
-          If False, creates a single document from content.data.markdown or combined content
-          Also processes Azure Document Intelligence pages if available
         
         - chunk_field (str): Field path to chunks array in content.data
           Default: "chunks"
           Used to locate chunks when use_chunks is True
         
-        - doc_intell_field (str): Field path to Document Intelligence output
-          Default: "doc_intell_output"
-          Used to detect and process Azure Document Intelligence results
-        
         - content_field (str): Field path to content text in content.data
           Default: "markdown"
           Used to get full content text when use_chunks is False
+          
+        - max_chunk_size (int): Maximum size in bytes for chunk content
+          Default: 32766
+          Truncates chunk content exceeding this size to fit Azure AI Search limits
         
         - extract_title (bool): Extract title from markdown/content
           Default: True
@@ -51,22 +47,20 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         - title_field (str): Field path to pre-extracted title in content.data
           Default: None
           If provided, uses this field instead of extracting from markdown
+          
+        - max_title_length (int): Maximum length for extracted title
+          Default: 50
         
-        - category_field (str): Field path to category in content metadata
+        - category_field (str): Field path to category in content.data
           Default: None
           If provided, extracts category from this field
         
         - default_category (str): Default category for documents without category
-          Default: "document"
+          Default: None
         
-        - include_summary (bool): Include content summary in search document
-          Default: True
-          Extracts from content_understanding_result.contents[0].fields.Summary if available
-        
-        - generate_id (bool): Auto-generate document IDs
-          Default: True
-          If True, generates IDs from source path and chunk index
-          If False, uses pre-existing IDs in content
+        - summary_field (str): Field path to summary in content.data
+          Default: "summary"
+          If provided, uses this field to populate document summary
         
         - id_prefix (str): Prefix for generated document IDs
           Default: None
@@ -76,30 +70,25 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
           Default: None
           If provided and use_chunks is True, creates parent_id linking chunks
         
-        - include_page_metadata (bool): Include page number and offset in output
-          Default: True
-          Adds page, offset, and length fields for precise document location
+        - url_field (str): Field path for source URL in content.data
+          Default: None
+          If provided, uses this field to populate document URL
+          
+        - source_value (str): Static source value for all documents
+          Default: None
+          If provided, uses this value for the source field in documents
         
-        - include_storage_metadata (bool): Include Azure storage metadata
-          Default: True
-          Adds metadata_storage_path, metadata_storage_name, etc.
+        - related_images_field (str): Field path for related images in content.data
+          Default: None
+          If provided, extracts related images metadata for documents
         
-        - include_source_metadata (bool): Include original source information
-          Default: True
-          Adds source, filepath, and other source identification fields
-        
-        - extract_images (bool): Extract image captions (if available)
-          Default: False
-          Extracts imageCaptions field if present in content analysis
-        
-        - max_title_length (int): Maximum length for extracted title
-          Default: 500
-        
-        - output_mode (str): Format of output documents
-          Default: "list"
-          Options:
-            - "list": Returns list of search documents in output
-            - "nested": Keeps documents nested in content.data.search_documents
+        - related_files_field (str): Field path for related files in content.data
+          Default: None
+          If provided, extracts related files metadata for documents
+
+        - output_field (str): Field in content.data to store generated documents
+          Default: "search_documents"
+          The generated Azure AI Search documents will be stored here
         
         - add_output_metadata (bool): Add metadata about index preparation
           Default: False
@@ -116,7 +105,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
                 "use_chunks": True,
                 "extract_title": True,
                 "default_category": "document",
-                "include_summary": True,
+                "summary_field": "summary",
                 "include_storage_metadata": True,
                 "id_prefix": "doc-"
             }
@@ -140,7 +129,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             settings={
                 "use_chunks": True,
                 "parent_id_field": "canonical_id",
-                "include_summary": True,
+                "summary_field": "summary",
                 "extract_images": True,
                 "add_output_metadata": True
             }
@@ -168,47 +157,38 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         )
         
         # Chunk processing configuration
-        self.use_chunks = self.get_setting("use_chunks", default=True)
         self.chunk_field = self.get_setting("chunk_field", default="chunks")
-        self.doc_intell_field = self.get_setting("doc_intell_field", default="doc_intell_output")
-        self.content_field = self.get_setting("content_field", default="markdown")
+        self.content_field = self.get_setting("content_field", default="text")
+        self.max_chunk_size = self.get_setting("max_chunk_size", default=32766)
         
         # Title and metadata extraction
         self.extract_title = self.get_setting("extract_title", default=True)
         self.title_field = self.get_setting("title_field", default=None)
+        self.max_title_length = self.get_setting("max_title_length", default=50)
         self.category_field = self.get_setting("category_field", default=None)
-        self.default_category = self.get_setting("default_category", default="document")
-        self.max_title_length = self.get_setting("max_title_length", default=500)
-        
+        self.default_category = self.get_setting("default_category", default=None)
+                        
         # Summary and content configuration
-        self.include_summary = self.get_setting("include_summary", default=True)
+        self.summary_field = self.get_setting("summary_field", default="summary")
+        self.source_value = self.get_setting("source_value", default=None)
+        self.related_images_field = self.get_setting("related_images_field", default=None)
+        self.related_files_field = self.get_setting("related_files_field", default=None)
         
         # ID generation
-        self.generate_id = self.get_setting("generate_id", default=True)
         self.id_prefix = self.get_setting("id_prefix", default=None)
         self.parent_id_field = self.get_setting("parent_id_field", default=None)
-        
-        # Metadata inclusion
-        self.include_page_metadata = self.get_setting("include_page_metadata", default=True)
-        self.include_storage_metadata = self.get_setting("include_storage_metadata", default=True)
-        self.include_source_metadata = self.get_setting("include_source_metadata", default=True)
-        self.extract_images = self.get_setting("extract_images", default=False)
+        self.url_field = self.get_setting("url_field", default=None)
         
         # Output configuration
         self.output_field = self.get_setting("output_field", default="search_documents")
-        self.output_mode = self.get_setting("output_mode", default="list")
-        if self.output_mode not in ["list", "nested"]:
-            raise ValueError("'output_mode' must be 'list' or 'nested'")
-        
         self.add_output_metadata = self.get_setting("add_output_metadata", default=False)
         
         if self.debug_mode:
             logger.debug(
                 f"GPTRAGSearchIndexDocumentGeneratorExecutor '{self.id}' initialized with settings: "
-                f"use_chunks={self.use_chunks}, "
-                f"extract_title={self.extract_title}, "
-                f"include_summary={self.include_summary}, "
-                f"output_mode={self.output_mode}"
+                f"chunk_field={self.chunk_field}, "
+                f"content_field={self.content_field}, "
+                f"output_field={self.output_field}, ..."
             )
     
     async def process_content_item(
@@ -231,7 +211,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         
         logger.debug(
             f"{self.id}: Preparing content for Azure AI Search indexing: "
-            f"use_chunks={self.use_chunks}"
+            f"chunk_field={self.chunk_field}"
         )
         
         try:
@@ -248,9 +228,9 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             if self.add_output_metadata:
                 if not hasattr(content, 'summary_data'):
                     content.summary_data = {}
+                
                 content.summary_data['gptrag_search_index_documents'] = {
                     'documents_generated': len(search_documents),
-                    'use_chunks': self.use_chunks,
                     'timestamp': datetime.now().isoformat()
                 }
             
@@ -276,136 +256,13 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         """
         documents = []
         
-        # Detect input type and process accordingly
-        # Check for Document Intelligence output first
-        if self.doc_intell_field not in [None, ""] and self.doc_intell_field in content.data:
-            doc_intell_output = self._get_nested_value(content.data, self.doc_intell_field)
-            if doc_intell_output and isinstance(doc_intell_output, dict):
-                # Process Document Intelligence pages
-                documents = self._generate_from_doc_intell_output(content)
-        
-        # Check for Content Understanding output if no Document Intelligence output
-        elif self.cu_field not in [None, ""] and self.cu_field in content.data:
-            cu_output = self._get_nested_value(content.data, self.cu_field)
-            if cu_output and isinstance(cu_output, dict):
-                # Process Content Understanding chunks
-                documents = self._generate_from_chunks(content)
-        
-        # Check for python library output (specilized executors)
-        
-        
-        else:
-            # Create single document from full content
-            documents = self._generate_from_full_content(content)
-        
-        return documents
-    
-    def _generate_from_doc_intell_output(self, content: Content) -> List[Dict[str, Any]]:
-        """
-        Generate search documents from Azure Document Intelligence output.
-        
-        Args:
-            content: Content item with Document Intelligence results
-            
-        Returns:
-            List of search documents
-        """
-        documents = []
-        
-        # Get Document Intelligence output
-        doc_intell_output = self._get_nested_value(content.data, self.doc_intell_field)
-        if not doc_intell_output or not isinstance(doc_intell_output, dict):
-            logger.warning(f"No Document Intelligence output found at '{self.doc_intell_field}'")
-            return []
-        
-        # Get parent ID if configured
-        parent_id = None
-        if self.parent_id_field:
-            parent_id = self._get_nested_value(content.data, self.parent_id_field)
-        if parent_id is None and content.id:
-            parent_id = content.id.unique_id
-        
-         # Extract title once for all pages
-        title = self._extract_title(content)
-        category = self._extract_category(content)
-        summary = self._extract_summary(content) if self.include_summary else None
-        
-        # Get pages from Document Intelligence output
-        pages = doc_intell_output.get("pages", [])
-        
-        # Check if all pages are empty, this indicates file types like docx, pptx, xlsx where doc-intell may not extract page text
-        all_pages_empty = all(not page.get("text", "").strip() for page in pages if isinstance(page, dict))
-        if not all_pages_empty:
-            logger.debug("Will use Document Intelligence pages for search document generation")
-            # Create document for each page
-            for page in pages:
-                try:
-                    if not isinstance(page, dict):
-                        logger.warning(f"Skipping non-dict page: {page}")
-                        continue
-                    
-                    page_number = page.get("page_number", 0)
-                    page_text = page.get("text", "")
-                    
-                    # Skip empty pages
-                    if not page_text or not page_text.strip():
-                        if self.debug_mode:
-                            logger.debug(f"Skipping empty page {page_number}")
-                        continue
-                    
-                    doc = self._create_search_document(
-                        content=content,
-                        chunk={
-                            "content": page_text,
-                            "page_number": page_number,
-                            "width": page.get("width"),
-                            "height": page.get("height"),
-                            "unit": page.get("unit"),
-                        },
-                        chunk_index=page_number,
-                        parent_id=parent_id,
-                        title=title,
-                        category=category,
-                        summary=summary
-                    )
-                    documents.append(doc)
-                    
-                except Exception as e:
-                    logger.error(
-                        f"{self.id}: Failed to create search document for page {page.get('page_number', '?')}: {e}",
-                        exc_info=True
-                    )
-                    if self.fail_pipeline_on_error:
-                        raise
-                    continue
-        
-        # Fall back to full text if no valid pages
-        if not pages or all_pages_empty:
-            logger.debug(f"{self.id}: No pages found in Document Intelligence output")
-            # Fall back to full text
-            full_text = doc_intell_output.get("text")
-            if full_text and full_text.strip():
-                return self._generate_from_full_content(content, full_text)
-            return []
-        
-        return documents
-    
-    def _generate_from_chunks(self, content: Content) -> List[Dict[str, Any]]:
-        """
-        Generate search documents from content chunks.
-        
-        Args:
-            content: Content item
-            
-        Returns:
-            List of search documents
-        """
-        documents = []
-        
         # Get chunks from content
-        chunks = self._get_nested_value(content.data, self.chunk_field)
-        if not chunks or not isinstance(chunks, list):
-            logger.warning(f"No chunks found at '{self.chunk_field}', creating from full content")
+        if self.chunk_field not in [None, ""] and self.chunk_field in content.data:
+            chunks = self._get_nested_value(content.data, self.chunk_field)
+            if not chunks or not isinstance(chunks, list):
+                logger.warning(f"No chunks found at '{self.chunk_field}', creating from full content")
+                return self._generate_from_full_content(content)
+        else:
             return self._generate_from_full_content(content)
         
         # Get parent ID if configured
@@ -413,24 +270,28 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         if self.parent_id_field:
             parent_id = self._get_nested_value(content.data, self.parent_id_field)
             if parent_id is None and content.id:
-                parent_id = content.id.canonical_id
+                parent_id = f"/{content.id.container}/{content.id.path}"
         
-        # Extract title once for all chunks
-        title = self._extract_title(content)
-        category = self._extract_category(content)
-        summary = self._extract_summary(content) if self.include_summary else None
         
         # Create document for each chunk
         for chunk_index, chunk in enumerate(chunks):
             try:
+                # Extract content from chunk
+                chunk_content = chunk.get(self.content_field, "") if isinstance(chunk, dict) else ""
+                if len(chunk_content.encode('utf-8')) > self.max_chunk_size:
+                    logger.warning(
+                        f"Chunk content size exceeds max_chunk_size ({self.max_chunk_size} bytes), truncating"
+                    )
+                encoded = chunk_content.encode('utf-8')[:self.max_chunk_size]
+                chunk_content = encoded.decode('utf-8', errors='ignore')
+                
+                chunk[self.content_field] = chunk_content
+                
                 doc = self._create_search_document(
                     content=content,
                     chunk=chunk,
                     chunk_index=chunk_index,
-                    parent_id=parent_id,
-                    title=title, # get title per chunk
-                    category=category,
-                    summary="" # summary per chunk not supported
+                    parent_id=parent_id
                 )
                 documents.append(doc)
                 
@@ -445,7 +306,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         
         return documents
     
-    def _generate_from_full_content(self, content: Content, text: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _generate_from_full_content(self, content: Content) -> List[Dict[str, Any]]:
         """
         Generate single search document from full content.
         
@@ -457,29 +318,28 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         """
         
         # Get full content text
-        content_text = text or self._get_nested_value(content.data, self.content_field)
+        content_text = self._get_nested_value(content.data, self.content_field)
         if not content_text:
             logger.warning(f"No content found at '{self.content_field}'")
-            return []
-        
-        # Extract metadata
-        title = self._extract_title(content)
-        category = self._extract_category(content)
-        summary = self._extract_summary(content) if self.include_summary else None
+            content_text = ""
+            
+        # Truncate content if exceeds max chunk size
+        if len(content_text.encode('utf-8')) > self.max_chunk_size:
+            logger.warning(
+                f"Content size exceeds max_chunk_size ({self.max_chunk_size} bytes), truncating"
+            )
+            encoded = content_text.encode('utf-8')[:self.max_chunk_size]
+            content_text = encoded.decode('utf-8', errors='ignore')
         
         # Create single document
         doc = self._create_search_document(
             content=content,
             chunk={
-                "content": content_text,
+                self.content_field: content_text,
                 "chunk_index": 0,
-                "metadata": {}
             },
             chunk_index=0,
-            parent_id=None,
-            title=title,
-            category=category,
-            summary=summary
+            parent_id=None
         )
         
         return [doc]
@@ -489,10 +349,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         content: Content,
         chunk: Dict[str, Any],
         chunk_index: int,
-        parent_id: Optional[str] = None,
-        title: Optional[str] = None,
-        category: Optional[str] = None,
-        summary: Optional[str] = None
+        parent_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a single Azure AI Search document.
@@ -501,65 +358,71 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             content: Source content item
             chunk: Chunk data
             chunk_index: Index of chunk
-            parent_id: Parent document ID
-            title: Document title
-            category: Document category
-            summary: Document summary
             
         Returns:
             Search document object
         """
+        
+        # Get parent ID if configured
+        parent_id = None
+        if self.parent_id_field:
+            parent_id = self._get_nested_value(content.data, self.parent_id_field)
+        parent_id = parent_id or (f"/{content.id.container}/{content.id.path}" if content.id else None)
+
+        # Extract URL if configured
+        url = None
+        if self.url_field:
+            url = self._get_nested_value(content.data, self.url_field)
+        url = url or (content.id.canonical_id if content.id else None)
+
+        related_images = []
+        if self.related_images_field:
+            if chunk and isinstance(chunk, dict):
+                related_images = chunk.get("related_images", [])
+            if not related_images:
+                related_images = self._get_nested_value(content.data, self.related_images_field) or []
+        
+        related_files = []
+        if self.related_files_field:
+            if chunk and isinstance(chunk, dict):
+                related_files = chunk.get("related_files", [])
+            if not related_files:
+                related_files = self._get_nested_value(content.data, self.related_files_field) or []
+        
+        # Extract title once for all chunks
+        title = self._extract_title(content)
+        category = self._extract_category(content)
+        summary = self._extract_summary(content)
         # Generate document ID
         doc_id = self._generate_document_id(content, chunk_index)
         
-        # Extract content from chunk
-        chunk_content = chunk.get("content", "") if isinstance(chunk, dict) else str(chunk)
+        chunk_content = chunk.get(self.content_field, "") if isinstance(chunk, dict) else ""
         
         # Build base document
         doc = {
             "id": doc_id,
-            "content": chunk_content,
-            "title": title or self.default_category,
-            "category": category or self.default_category,
+            "parent_id": parent_id or "",
+            "metadata_storage_path": (f"/{content.id.container}/{content.id.path}" if content.id else ""),
+            "metadata_storage_name": content.id.filename if (content.id and content.id.filename) else "",
+            "metadata_storage_last_modified": content.id.metadata["last_modified"] if (content.id and hasattr(content.id, "metadata") and content.id.metadata and "last_modified" in content.id.metadata) else "",
+            "metadata_security_group_ids": [],
+            "metadata_security_user_ids": [],
+            "metadata_security_rbac_scopes": "",
+            "chunk_id": chunk_index,
+            "content": chunk_content or "",
+            "imageCaptions": "",
+            "page": chunk.get("page_number", 0) if isinstance(chunk, dict) else 0,
+            "offset": chunk.get("offset", 0) if isinstance(chunk, dict) else 0,
+            "length": len(chunk_content),
+            "title": title or "",
+            "category": category or self.default_category or "",
+            "filepath": (f"/{content.id.container}/{content.id.path}" if content.id else ""),
+            "url": url or "",
+            "summary": summary or "",
+            "related_images": related_images,
+            "related_files": related_files,
+            "source": self.source_value or (content.id.source_type if content.id else ""),
         }
-        
-        # Add parent ID if provided
-        if parent_id:
-            doc["parent_id"] = parent_id
-        
-        # Add summary
-        if summary:
-            doc["summary"] = summary
-        
-        # Add page and offset metadata
-        if isinstance(chunk, dict):
-            chunk_metadata = chunk.get("metadata", {})
-            if "page_number" in chunk_metadata:
-                doc["page"] = chunk_metadata["page_number"]
-            
-            # Calculate offset (character position of chunk content in full text)
-            if "offset" in chunk_metadata:
-                doc["offset"] = chunk_metadata["offset"]
-            
-            # Add content length
-            doc["length"] = len(chunk_content)
-        
-        # Add storage metadata
-        if content.id:
-            doc["metadata_storage_path"] = content.id.canonical_id or ""
-            doc["metadata_storage_name"] = content.id.filename or ""
-            
-            if hasattr(content.id, "metadata") and content.id.metadata:
-                if "last_modified" in content.id.metadata:
-                    doc["metadata_storage_last_modified"] = content.id.metadata["last_modified"]
-        
-            # Add source metadata
-            doc["source"] = content.id.source_name or "unknown"
-            doc["filepath"] = content.id.path or ""
-            doc["url"] = content.id.canonical_id or ""
-        
-        # Add chunk ID
-        doc["chunk_id"] = chunk_index
         
         return doc
     
@@ -584,16 +447,32 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
                 base = content.id.path
         
         if not base:
-            base = "document"
+            base = "doc"
         
-        # Create hash-based ID
-        id_source = f"{base}-{chunk_index}"
-        doc_id = hashlib.sha256(id_source.encode()).hexdigest()
+        base = self._sanitize_key_part(base)
+        
+        if len(base) > 128:
+            digest = hashlib.sha256(base.encode()).hexdigest()
+            base = f"{base[:64]}-{digest}"
+        
+        doc_id = f"{base}-c{chunk_index:05d}"
         
         if self.id_prefix:
             doc_id = f"{self.id_prefix}{doc_id}"
         
         return doc_id
+    
+    def _sanitize_key_part(self, s: str) -> str:
+        """
+        Sanitize a string for use in an Azure AI Search key:
+        keep only [A-Za-z0-9_-]; replace others (including '.') with '-'; collapse repeats; trim.
+        """
+        # Replace disallowed chars (including '.') with '-'
+        s = re.sub(r"[^A-Za-z0-9_-]+", "-", s)
+        # Collapse multiple '-'
+        s = re.sub(r"-+", "-", s)
+        # Trim leading/trailing '-'
+        return s.strip('-')
     
     def _extract_title(self, content: Content) -> Optional[str]:
         """
@@ -625,7 +504,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         
         # Use filename if available
         if content.id and content.id.filename:
-            return content.id.filename[:self.max_title_length]
+            return content.id.filename.split('.')[0][:self.max_title_length]
         
         return None
     
@@ -637,19 +516,14 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             content: Content item
             
         Returns:
-            Category string
+            Category string or None
         """
         if self.category_field:
             category = self._get_nested_value(content.data, self.category_field)
             if category:
                 return str(category)
         
-        # Try to get from summary_data
-        if hasattr(content, 'summary_data') and content.summary_data:
-            if "chunking_method" in content.summary_data:
-                return content.summary_data["chunking_method"]
-        
-        return self.default_category
+        return None
     
     def _extract_summary(self, content: Content) -> Optional[str]:
         """
@@ -661,30 +535,10 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
         Returns:
             Summary string or None
         """
-        # Try to get from content understanding results
-        content_understanding = self._get_nested_value(
-            content.data,
-            "content_understanding_result"
-        )
-        
-        if content_understanding and isinstance(content_understanding, dict):
-            result = content_understanding.get("result", {})
-            contents = result.get("contents", [])
-            
-            if contents and isinstance(contents, list):
-                first_content = contents[0]
-                if isinstance(first_content, dict):
-                    fields = first_content.get("fields", {})
-                    if "Summary" in fields:
-                        summary_obj = fields["Summary"]
-                        if isinstance(summary_obj, dict):
-                            return summary_obj.get("valueString")
-        
-        # Try summary_data
-        if hasattr(content, 'summary_data') and content.summary_data:
-            if "extraction_status" in content.summary_data:
-                # Could build summary from extraction metadata
-                pass
+        if self.summary_field:
+            summary = self._get_nested_value(content.data, self.summary_field)
+            if summary:
+                return str(summary)
         
         return None
     
