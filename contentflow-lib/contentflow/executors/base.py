@@ -164,6 +164,14 @@ class BaseExecutor(Executor, ABC):
                 f"Required setting '{setting_key}' not found for executor '{self.id}'"
             )
         
+        value = value.strip() if isinstance(value, str) else value
+        if value == "":
+            if required:
+                raise ValueError(
+                    f"Required setting '{setting_key}' is empty for executor '{self.id}'"
+                )
+            return default
+        
         return self._resolve_setting_value(value)
     
     def try_extract_nested_field_from_content(

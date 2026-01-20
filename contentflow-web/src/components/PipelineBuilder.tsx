@@ -10,12 +10,18 @@ import ReactFlow, {
   Connection,
   MarkerType,
   BackgroundVariant,
+  useReactFlow, useNodesInitialized
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,8 +53,7 @@ import { nodesToYaml, yamlToNodes } from "@/lib/pipelineYamlConverter";
 import { getPipelines, savePipeline as savePipelineApi, deletePipeline as deletePipelineApi, executePipeline, getExecutionHistory } from "@/lib/api/pipelinesApi";
 import { getExecutors } from "@/lib/api/executorsApi";
 import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
-import { load } from "js-yaml";
-import { set } from "date-fns";
+
 
 const nodeTypes = {
   executor: ExecutorNode,
@@ -720,6 +725,10 @@ export const PipelineBuilder = () => {
     }
   };
 
+  const onReactFlowInitialized = useCallback((reactFlowInstance) => {
+    reactFlowInstance.fitView();
+  }, []);
+
   return (
     <>
       <div className="container mx-auto px-6 py-12">
@@ -854,22 +863,43 @@ export const PipelineBuilder = () => {
                     
                     <CollapsibleContent className="mt-1 space-y-1">
                       {displayExecutors.map((executor) => (
-                        <Button
-                          key={executor.id}
-                          variant="outline"
-                          className="w-full justify-start gap-2 h-auto py-1.5 px-2 hover:shadow-sm transition-all text-left cursor-grab active:cursor-grabbing"
-                          onClick={() => handleExecutorClick(executor)}
-                          draggable
-                          onDragStart={(e) => handleExecutorDragStart(e, executor)}
-                        >
-                          <div className={`${executor.color} text-white p-1 rounded flex-shrink-0`}>
-                            {executor.icon}
-                          </div>
-                          <span className="text-[11px] font-medium flex-1 leading-tight truncate">
-                            {executor.name}
-                          </span>
-                          <Plus className="w-3 h-3 flex-shrink-0" />
-                        </Button>
+                        <HoverCard key={executor.id} openDelay={300}>
+                          <HoverCardTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start gap-2 h-auto py-1.5 px-2 hover:shadow-sm transition-all text-left cursor-grab active:cursor-grabbing"
+                              onClick={() => handleExecutorClick(executor)}
+                              draggable
+                              onDragStart={(e) => handleExecutorDragStart(e, executor)}
+                            >
+                              <div className={`${executor.color} text-white p-1 rounded flex-shrink-0`}>
+                                {executor.icon}
+                              </div>
+                              <span className="text-[11px] font-medium flex-1 leading-tight truncate">
+                                {executor.name}
+                              </span>
+                              <Plus className="w-3 h-3 flex-shrink-0" />
+                            </Button>
+                          </HoverCardTrigger>
+                          <HoverCardContent side="right" align="start" className="w-80">
+                            <div className="flex gap-3">
+                              <div className={`${executor.color} text-white p-2 rounded h-fit`}>
+                                {executor.icon}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <h4 className="text-sm font-semibold">{executor.name}</h4>
+                                <p className="text-xs text-muted-foreground capitalize">
+                                  {executor.category}
+                                </p>
+                                {executor.description && (
+                                  <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                    {executor.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
                       ))}
                       
                       {hasMore && !showAll && (
@@ -959,6 +989,7 @@ export const PipelineBuilder = () => {
                     attributionPosition="bottom-left"
                     deleteKeyCode="Delete"
                     edgesFocusable={true}
+                    onInit={onReactFlowInitialized}
                   >
                     <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(var(--border))" />
                     <Controls className="bg-card border border-border rounded-lg shadow-lg" />

@@ -369,7 +369,7 @@ export const Footer = () => {
         </div>
 
         <div className="text-xs text-muted-foreground">
-          ContentFlow - Build XX.YY.ZZ
+          ContentFlow
         </div>
       </div>
     </footer>

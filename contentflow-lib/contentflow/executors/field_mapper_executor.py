@@ -487,41 +487,27 @@ class FieldMapperExecutor(ParallelExecutor):
         """
         Flatten content.id object for use as f-string template context.
         
-        Creates both direct keys and dot-notation keys for accessing nested values.
-        Handles both dict-like and object attribute access.
+        Provides an attribute-accessible object for format() templates like
+        "{id.container}/{id.path}" by converting nested dicts into namespaces.
         
         Args:
             id_obj: The content.id object (dict or object)
-            prefix: Current prefix for recursive calls (default: "id")
+            prefix: Context key (default: "id")
             
         Returns:
-            Flattened dictionary with template context
-            
-        Example:
-            Input: {"unique_id": "doc123", "container": {"name": "docs"}}
-            Output: {
-                "id": {...full object...},
-                "id.unique_id": "doc123",
-                "id.container": {...},
-                "id.container.name": "docs"
-            }
+            Dictionary with a single key (default: "id") mapped to an
+            attribute-accessible namespace
         """
-        result = {prefix: id_obj}
-        
-        # Recursively flatten nested structures
-        if isinstance(id_obj, dict):
-            for key, value in id_obj.items():
-                full_key = f"{prefix}{self.nested_delimiter}{key}"
-                
-                # Always include the value itself
-                result[full_key] = value
-                
-                # For nested dicts, recursively flatten them
-                if isinstance(value, dict):
-                    nested_flat = self._flatten_id_for_templates(value, full_key)
-                    result.update(nested_flat)
-        
-        return result
+        from types import SimpleNamespace
+
+        def _to_namespace(value: Any) -> Any:
+            if isinstance(value, dict):
+                return SimpleNamespace(**{k: _to_namespace(v) for k, v in value.items()})
+            if isinstance(value, list):
+                return [_to_namespace(v) for v in value]
+            return value
+
+        return {prefix: _to_namespace(id_obj)}
     
     # endregion Source ID Mappings
     

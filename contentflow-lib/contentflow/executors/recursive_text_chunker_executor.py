@@ -227,7 +227,7 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
             # Create chunk objects with metadata
             chunk_objects = []
             for i, chunk_data in enumerate(chunks):
-                chunk_obj = {'content': chunk_data['text']}
+                chunk_obj = {'text': chunk_data['text']}
                 chunk_obj['chunk_index'] = i
                 chunk_obj['page_number'] = chunk_data.get('page_numbers', [])[0] if chunk_data.get('page_numbers') else None
                 

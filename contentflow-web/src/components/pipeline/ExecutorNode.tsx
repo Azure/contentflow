@@ -45,7 +45,7 @@ export const ExecutorNode = memo(({ data }: NodeProps) => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <h4 className="font-semibold text-foreground text-sm truncate">{label}</h4>
+              <h4 className="font-semibold text-foreground text-sm truncate" title={label}>{label}</h4>
               {disabled && (
                 <BanIcon className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
               )}
