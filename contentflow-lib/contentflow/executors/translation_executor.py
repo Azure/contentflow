@@ -3,6 +3,7 @@
 import logging
 from typing import Dict, Any, Optional, List
 
+from contentflow.models._content import Content
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 
 logger = logging.getLogger("contentflow.executors.translation_executor")
@@ -130,6 +131,7 @@ class TranslationExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["parse_response_as_json"] = False  # Translations are plain text
         
         # Call parent constructor
         super().__init__(
@@ -145,3 +147,8 @@ class TranslationExecutor(AzureOpenAIAgentExecutor):
                 f"TranslationExecutor initialized with target={target_language}, "
                 f"style={translation_style}"
             )
+
+    async def process_content_item(self, content: Content) -> Content:
+        """Process content and parse JSON sentiment output."""
+        content = await super().process_content_item(content)
+        return content

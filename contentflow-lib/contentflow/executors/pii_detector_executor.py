@@ -155,6 +155,7 @@ class PIIDetectorExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["parse_response_as_json"] = False # Ensure no JSON parsing by parent, as we handle it here
         
         # Call parent constructor
         super().__init__(

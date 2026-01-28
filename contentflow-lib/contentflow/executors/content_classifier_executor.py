@@ -131,6 +131,7 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["parse_response_as_json"] = True # Ensure JSON parsing
         
         # Store categories for validation
         self.categories = categories
@@ -151,21 +152,4 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
     async def process_content_item(self, content: Content) -> Content:
         """Process content and parse JSON classification output."""
         content = await super().process_content_item(content)
-        
-        # Try to parse JSON response
-        if self.output_field in content.data:
-            try:
-                response_text = content.data[self.output_field]
-                if isinstance(response_text, str):
-                    # Look for JSON block in the response
-                    start = response_text.find('{')
-                    end = response_text.rfind('}')
-                    if start != -1 and end != -1:
-                        json_str = response_text[start:end+1]
-                        parsed = json.loads(json_str)
-                        content.data[self.output_field] = parsed
-            except json.JSONDecodeError:
-                if self.debug_mode:
-                    logger.debug(f"Could not parse classification as JSON for {content.id}")
-        
         return content

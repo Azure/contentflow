@@ -55,7 +55,7 @@ export const VaultExecutionsView = ({
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedExecution, setSelectedExecution] = useState<VaultExecution | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedRange, setSelectedRange] = useState<string>("all");
+  const [selectedRange, setSelectedRange] = useState<string>("15min");
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {

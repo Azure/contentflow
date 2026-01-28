@@ -221,15 +221,6 @@ Web URLs → Web Scraping → Content Extraction → Sentiment Analysis → Topi
 - Health monitoring and graceful shutdown
 - Error handling with exponential backoff  
 
-
----
-
-## Watch a quick Demo of ContentFlow in action:
-
-<p align="left">
-    <video src="./assets/contentflow-demo.mp4" controls width="100%"></video>
-</p>
-
 ---
 
 ## 🔧 Configuration & Customization
@@ -310,6 +301,12 @@ async with PipelineExecutor.from_config_file(
         print(f"  {event.executor_id}: {event.message}")
 ```
 
+
+### Create Custom Executors
+
+⇢ Follow the guide in the [Creating Custom Executors](./contentflow-lib/CustomExecutor.md) to create custom executors and extend ContentFlow's capabilities.
+
+
 ---
 
 ## 📦 Project Structure
@@ -364,7 +361,7 @@ contentflow/
 
 ## 🔐 Security & Compliance
 
-✅ **Zero-Trust Architecture** - No exposed endpoints
+✅ **Zero-Trust Architecture** - No exposed endpoints  
 ✅ **Managed Identity Authentication** - No exposed credentials  
 ✅ **Azure Key Vault Integration** - Secure secret storage  
 ✅ **RBAC & Access Control** - Fine-grained permissions  
@@ -418,7 +415,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: Report bugs and request features on [GitHub Issues](../../issues)
 - **Discussions**: Ask questions and share ideas in [Discussions](../../discussions)
-- **Documentation**: Check our comprehensive [docs](docs/)
+- **Documentation**: Check our comprehensive [docs](contentflow-lib/README.md)
 - **Examples**: Explore [sample pipelines](contentflow-lib/samples/)
 
 ---

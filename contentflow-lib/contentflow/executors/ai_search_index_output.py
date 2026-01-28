@@ -8,6 +8,7 @@ import json
 from . import ParallelExecutor
 from ..models import Content
 from ..connectors import AISearchConnector
+from ..utils import make_safe_json
 
 logger = logging.getLogger("contentflow.executors.ai_search_index_output")
 
@@ -195,88 +196,6 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
                 f"batch_size={self.batch_size}, action_type={self.index_action_type}"
             )
     
-    def _get_nested_value(self, data: Dict[str, Any], field_path: str) -> Any:
-        """
-        Get value from nested dictionary using dot notation.
-        
-        Args:
-            data: Dictionary to extract value from
-            field_path: Dot-separated path (e.g., "id.unique_id" or "metadata.author")
-        
-        Returns:
-            Value at the field path, or None if not found
-        """
-        if not field_path:
-            return None
-        
-        # Remove 'chunk.' prefix if present
-        keys = field_path.replace('chunk.', '').split('.')
-        value = data
-        
-        for key in keys:
-            if isinstance(value, dict) and key in value:
-                value = value[key]
-            else:
-                return None
-        
-        return value
-    
-    def _apply_mappings(
-        self,
-        source_data: Dict[str, Any],
-        mappings: Dict[str, str],
-        target_doc: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Apply field mappings from source data to target document.
-        
-        Args:
-            source_data: Source dictionary to extract values from
-            mappings: Dictionary mapping source field paths to target field names
-            target_doc: Optional existing target document to update
-        
-        Returns:
-            Target document with mapped fields
-        """
-        if target_doc is None:
-            target_doc = {}
-        
-        for source_path, target_field in mappings.items():
-            value = self._get_nested_value(source_data, source_path)
-            if value is not None:
-                # Convert complex types to strings if needed
-                if isinstance(value, (dict, list)):
-                    target_doc[target_field] = json.dumps(value)
-                else:
-                    target_doc[target_field] = value
-        
-        return target_doc
-    
-    async def _get_connector(self) -> AISearchConnector:
-        """
-        Get or initialize the AI Search connector.
-        
-        Returns:
-            AISearchConnector instance
-        """
-        if self._connector is None:
-            
-            self._connector = AISearchConnector(
-                name=f"ai_search_connector_{self.id}",
-                settings={
-                    "account_name": self.ai_search_account,
-                    "credential_type": self.ai_search_credential_type,
-                    "api_key": self.ai_search_api_key,
-                    "api_version": self.ai_search_api_version,
-                    "index_name": self.ai_search_index
-                },
-            )
-            
-            # Ensure connector is initialized
-            await self._connector.initialize()
-        
-        return self._connector
-    
     async def process_content_item(
         self,
         content: Content
@@ -313,6 +232,57 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
             raise
         
         return content
+    
+    def _get_nested_value(self, data: Dict[str, Any], field_path: str) -> Any:
+        """
+        Get value from nested dictionary using dot notation.
+        
+        Args:
+            data: Dictionary to extract value from
+            field_path: Dot-separated path (e.g., "id.unique_id" or "metadata.author")
+        
+        Returns:
+            Value at the field path, or None if not found
+        """
+        if not field_path:
+            return None
+        
+        # Remove 'chunk.' prefix if present
+        keys = field_path.replace('chunk.', '').split('.')
+        value = data
+        
+        for key in keys:
+            if isinstance(value, dict) and key in value:
+                value = value[key]
+            else:
+                return None
+        
+        return value
+    
+    async def _get_connector(self) -> AISearchConnector:
+        """
+        Get or initialize the AI Search connector.
+        
+        Returns:
+            AISearchConnector instance
+        """
+        if self._connector is None:
+            
+            self._connector = AISearchConnector(
+                name=f"ai_search_connector_{self.id}",
+                settings={
+                    "account_name": self.ai_search_account,
+                    "credential_type": self.ai_search_credential_type,
+                    "api_key": self.ai_search_api_key,
+                    "api_version": self.ai_search_api_version,
+                    "index_name": self.ai_search_index
+                },
+            )
+            
+            # Ensure connector is initialized
+            await self._connector.initialize()
+        
+        return self._connector
     
     async def _index_chunks(
         self,
@@ -357,13 +327,6 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
             
             # Apply chunk-level mappings (chunk-specific data)
             self._apply_mappings(chunk, self.content_to_index_mappings, search_doc)
-            
-            # Add chunk index
-            search_doc['chunk_index'] = i
-            
-            # Add timestamp
-            if self.add_timestamp:
-                search_doc['indexed_at'] = datetime.now(timezone.utc).isoformat()
             
             search_docs.append(search_doc)
         
@@ -421,6 +384,34 @@ class AISearchIndexOutputExecutor(ParallelExecutor):
         await self._index_with_retry(search, [search_doc])
         
         return 1
+    
+    def _apply_mappings(
+        self,
+        source_data: Dict[str, Any],
+        mappings: Dict[str, str],
+        target_doc: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Apply field mappings from source data to target document.
+        
+        Args:
+            source_data: Source dictionary to extract values from
+            mappings: Dictionary mapping source field paths to target field names
+            target_doc: Optional existing target document to update
+        
+        Returns:
+            Target document with mapped fields
+        """
+        if target_doc is None:
+            target_doc = {}
+        
+        for source_path, target_field in mappings.items():
+            value = self._get_nested_value(source_data, source_path)
+            if value is not None:
+                # Convert complex types to strings if needed by making safe JSON
+                target_doc[target_field] = make_safe_json(value)
+        
+        return target_doc
     
     async def _index_with_retry(
         self,

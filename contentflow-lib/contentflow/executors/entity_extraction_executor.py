@@ -109,6 +109,7 @@ class EntityExtractionExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["parse_response_as_json"] = True # Ensure JSON parsing
         
         # Store format for post-processing
         self.output_format = output_format
@@ -129,21 +130,5 @@ class EntityExtractionExecutor(AzureOpenAIAgentExecutor):
     async def process_content_item(self, content: Content) -> Content:
         """Process content and parse structured output if needed."""
         content = await super().process_content_item(content)
-        
-        # If output format is structured, try to parse JSON
-        if self.output_format == "structured" and self.output_field in content.data:
-            try:
-                response_text = content.data[self.output_field]
-                # Try to extract JSON from response
-                if isinstance(response_text, str):
-                    # Look for JSON block in the response
-                    start = response_text.find('{')
-                    end = response_text.rfind('}')
-                    if start != -1 and end != -1:
-                        json_str = response_text[start:end+1]
-                        parsed = json.loads(json_str)
-                        content.data[self.output_field] = parsed
-            except json.JSONDecodeError:
-                logger.warning(f"Could not parse entities as JSON for {content.id}")
         
         return content

@@ -519,7 +519,7 @@ pipeline:
       type: sequential
 `;
 
-// Template 6: GPT-RAG Document Ingestion
+// Template: GPT-RAG Document Ingestion
 const ragIngestionYaml = `
 pipeline:
   name: "GPT-RAG Document Ingestion"
@@ -666,22 +666,84 @@ pipeline:
     - id: gptrag_search_index_document_generator-1
       name: GPT-RAG Search Index Document Generator
       type: gptrag_search_index_document_generator
-      position: { x: 800, y: 650 }
+      position: {x: 800, y: 650 }
       description: Transform Content items into Azure AI Search indexable documents following the GPT-RAG index schema.
       settings:
+        enabled: true
+        condition: ''
         fail_pipeline_on_error: true
+        debug_mode: false
         chunk_field: chunks
         content_field: text
+        max_chunk_size: 32766
         extract_title: true
+        title_field: ''
         max_title_length: 50
+        category_field: ''
         default_category: document
+        summary_field: summary
+        source_value: ''
+        related_images_field: ''
+        related_files_field: ''
+        id_prefix: ''
+        parent_id_field: ''
+        url_field: ''
         output_field: search_documents
         add_output_metadata: true
+
+    - id: ai_search_index_output-1
+      name: AI Search Index Output
+      type: ai_search_index_output
+      position: { x: 800, y: 800 }
+      description: Indexes documents or chunks to Azure AI Search
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: false
+        ai_search_account: <enterprise-search-service-name>
+        ai_search_credential_type: default_azure_credential
+        ai_search_api_key: ''
+        ai_search_api_version: 2025-11-01-preview
+        ai_search_index: <gpt-rag-index-name>
+        index_mode: chunks
+        chunk_iterator_field: search_documents
+        content_to_index_mappings: |-
+          { "id": "id",
+            "parent_id": "parent_id",
+            "metadata_storage_path": "metadata_storage_path",
+            "metadata_storage_name": "metadata_storage_name",
+            "metadata_storage_last_modified": "metadata_storage_last_modified",
+            "metadata_security_group_ids": "metadata_security_group_ids",
+            "metadata_security_user_ids": "metadata_security_user_ids",
+            "metadata_security_rbac_scope": "metadata_security_rbac_scope",
+            "chunk_id": "chunk_id",
+            "content": "content",
+            "imageCaptions": "imageCaptions",
+            "page": "page",
+            "offset": "offset",
+            "length": "length",
+            "title": "title",
+            "category": "category",
+            "filepath": "filepath",
+            "url": "url",
+            "summary": "summary",
+            "relatedImages": "relatedImages",
+            "relatedFiles": "relatedFiles",
+            "source": "source"
+          }
+        index_action_type: mergeOrUpload
+        batch_size: 100
+        max_retries: 3
+        retry_delay: 1
+        max_concurrent: 3
+        timeout_secs: 30
+        continue_on_error: true
 
     - id: blob-output-1
       name: "Save Results to Blob"
       type: azure_blob_output
-      position: { x: 800, y: 800 }
+      position: { x: 800, y: 950 }
       description: "Save processed content"
       
   edges:
@@ -712,11 +774,14 @@ pipeline:
       to: gptrag_search_index_document_generator-1
       type: sequential
     - from: gptrag_search_index_document_generator-1
+      to: ai_search_index_output-1
+      type: sequential
+    - from: ai_search_index_output-1
       to: blob-output-1
       type: sequential
 `;
 
-// Template 7: Multi-Format Document Processing
+// Template: Multi-Format Document Processing
 const multiFormatPyLibsYaml = `
 pipeline:
   name: "Multi-Format Document Processing using Python Libraries"
@@ -859,7 +924,7 @@ pipeline:
       type: sequential
 `;
 
-// Template 8: Multi-Format Document Processing using Azure Document Intelligence
+// Template: Multi-Format Document Processing using Azure Document Intelligence
 const multiFormatDocIntelligenceYaml  = `
 pipeline:
   name: "Multi-Format Document Processing using Azure Document Intelligence"
@@ -1107,7 +1172,7 @@ pipeline:
       type: sequential
 `;
 
-// Template 11: PII Detection & Redaction
+// Template: PII Detection & Redaction
 const piiDetectionYaml = `
 pipeline:
   name: "PII Detection & Redaction"
@@ -1220,6 +1285,321 @@ pipeline:
       to: blob-output-1
       type: sequential
 `;
+
+const financialAnnualReportYaml = `
+pipeline:
+  name: "Annual Report KPI + Risk Extraction (Agent Teams)"
+  description: "Long-doc extraction + specialist agents + executive brief synthesis"
+
+  executors:
+    - id: blob-discovery-1
+      name: "Discover Annual Reports"
+      type: azure_blob_input_discovery
+      position: { x: 250, y: 50 }
+      description: "Discover annual/quarterly report PDFs"
+      settings:
+        file_extensions: ".pdf"
+        blob_container_name: "annual-reports"
+        max_results: 10
+
+    - id: blob-content-retrieval-1
+      name: "Retrieve Reports"
+      type: azure_blob_content_retriever
+      position: { x: 250, y: 180 }
+      description: "Retrieve report content"
+      settings:
+        use_temp_file_for_content: true
+
+    - id: pdf_extractor-1
+      name: PDF Extractor
+      type: pdf_extractor
+      position: { x: 250, y: 320 }
+      description: Extracts text, pages, and images from PDF documents using PyMuPDF
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: false
+        content_field: ''
+        temp_file_path_field: temp_file_path
+        output_field: pdf_output
+        max_concurrent: 3
+        continue_on_error: true
+        extract_text: true
+        extract_pages: true
+        extract_images: false
+        image_format: png
+        image_output_mode: base64
+        min_image_size: 100
+        page_separator: |+
+
+
+          ---
+
+    - id: field-mapper-1
+      name: "Normalize Input"
+      type: field_mapper
+      position: { x: 250, y: 460 }
+      description: "Map markdown to agent input"
+      settings:
+        mappings: |-
+          {
+            ""pdf_output.text": "text"
+          }
+        join_separator: "---"
+
+    - id: agent-cashflow
+      name: "Agent: Cash Flow & Liquidity"
+      type: azure_openai_agent
+      position: { x: -250, y: 320 }
+      description: "Extract cash flow, liquidity, and debt maturity highlights"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "cash_flow_liquidity"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract cash flow and liquidity facts into JSON.
+          Output {period, operating_cash_flow, capex, free_cash_flow?, working_capital_notes?,
+          liquidity:{cash, revolver?, covenants?, debt_maturities?, evidence_snippets[]}}.
+
+    - id: agent-kpi
+      name: "Agent: KPI Extractor"
+      type: azure_openai_agent
+      position: { x: -250, y: 460 }
+      description: "Extract KPIs and periods"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1"
+        input_field: "text"
+        output_field: "kpis"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract normalized KPIs with period alignment into JSON.
+          Output {company_name, period, kpis:{...}, evidence_snippets[]}.
+
+    - id: agent-risks
+      name: "Agent: Risk Factors"
+      type: azure_openai_agent
+      position: { x: -250, y: 600 }
+      description: "Extract and rank risk factors"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "risk_factors"
+        temperature: 0.1
+        max_tokens: 4000
+        instructions: |-
+          Extract risk factors with materiality and evidence_snippet into JSON.
+            Output [{risk, materiality_rank, change_vs_prior?, evidence_snippet}].
+
+    - id: agent-nongaap
+      name: "Agent: Non-GAAP & Adjustments"
+      type: azure_openai_agent
+      position: { x: -250, y: 750 }
+      description: "Extract non-GAAP metrics and key adjustments"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "non_gaap_adjustments"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Identify non-GAAP measures and the largest adjustments/reconciliation cues into JSON.
+          Output {measures:[{name, value?, period?, adjustments:[{label, amount?, evidence_snippet}], evidence_snippet}], caveats[]}.
+
+    - id: agent-accounting
+      name: "Agent: Critical Estimates & Accounting Changes"
+      type: azure_openai_agent
+      position: { x: -250, y: 900 }
+      description: "Extract critical accounting estimates and policy changes"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "accounting_estimates_changes"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract critical accounting estimates and accounting policy changes into JSON.
+          Output [{topic, why_it_matters, period_impact?, evidence_snippet}].
+
+    - id: agent-esg
+      name: "Agent: ESG / Sustainability"
+      type: azure_openai_agent
+      position: { x: 720, y: 320 }
+      description: "Extract ESG and sustainability disclosures when present"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "esg_disclosures"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract ESG disclosures only if present (otherwise return []) into JSON.
+          Output [{area, metric_or_claim, target?, timeframe?, evidence_snippet}].
+
+    - id: agent-capalloc
+      name: "Agent: Capital Allocation"
+      type: azure_openai_agent
+      position: { x: 720, y: 460 }
+      description: "Extract capital allocation actions and stated priorities"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "capital_allocation"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract capital allocation details into JSON.
+          Output {dividends, buybacks, mna, debt_actions, capex_plans, stated_priorities, evidence_snippets[]}.
+
+    - id: agent-segments
+      name: "Agent: Segments & Geography"
+      type: azure_openai_agent
+      position: { x: 720, y: 620 }
+      description: "Extract segment reporting and geographic mix"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "segments_geography"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract segment and geographic disclosures into JSON.
+          Output {segments:[{name, metrics:{revenue, operating_income, growth}, notes, evidence_snippet}],
+          geographies:[{region, revenue, growth, evidence_snippet}], customer_concentration:{top_customers?, evidence_snippet?}}.
+
+    - id: agent-footnotes
+      name: "Agent: Footnotes"
+      type: azure_openai_agent
+      position: { x: 720, y: 780 }
+      description: "Summarize key footnotes and accounting policies"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "footnotes"
+        temperature: 0.1
+        max_tokens: 4000
+        instructions: |-
+          Summarize key policies/footnotes with evidence_snippet into JSON.
+          Output [{topic, summary, evidence_snippet}].
+
+    - id: agent-legal
+      name: "Agent: Legal / Commitments / Contingencies"
+      type: azure_openai_agent
+      position: { x: 720, y: 900 }
+      description: "Extract litigation, regulatory matters, commitments, and contingencies"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "legal_commitments_contingencies"
+        temperature: 0.0
+        max_tokens: 4000
+        instructions: |-
+          Extract material legal proceedings, investigations, commitments, and contingencies into JSON.
+          Output [{matter, status, potential_impact?, evidence_snippet}].
+
+    - id: agent-outlook
+      name: "Agent: Guidance / Outlook"
+      type: azure_openai_agent
+      position: { x: 720, y: 1050 }
+      description: "Extract guidance, outlook, and strategic initiatives"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1-mini"
+        input_field: "text"
+        output_field: "guidance_outlook"
+        temperature: 0.1
+        max_tokens: 4000
+        instructions: |-
+          Extract forward-looking guidance, key initiatives, and watch items into JSON.
+          Output {guidance:[{metric, range_or_target?, period, evidence_snippet}], initiatives[], watch_items[]}.
+
+    - id: agent-brief
+      name: "Agent: Executive Brief"
+      type: azure_openai_agent
+      position: { x: 250, y: 1080 }
+      description: "Synthesize into executive brief"
+      settings:
+        endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
+        deployment_name: "gpt-4.1"
+        input_field: "text"
+        output_field: "executive_brief"
+        temperature: 0.2
+        max_tokens: 8000
+        instructions: |-
+          Produce a concise brief JSON: highlights, concerns, open_questions, confidence.
+          Cite evidence_snippets from merged findings.
+          Output {highlights[], concerns[], open_questions[], confidence}.
+
+    - id: blob-output-1
+      name: "Save Results"
+      type: azure_blob_output
+      position: { x: 250, y: 1220 }
+      description: "Save extracted KPIs and brief"
+
+  edges:
+    - from: blob-discovery-1
+      to: blob-content-retrieval-1
+      type: sequential
+    - from: field-mapper-1
+      to: agent-cashflow
+      type: sequential
+    - from: agent-brief
+      to: blob-output-1
+      type: sequential
+    - from: blob-content-retrieval-1
+      to: pdf_extractor-1
+      type: sequential
+    - from: pdf_extractor-1
+      to: field-mapper-1
+      type: sequential
+    - from: agent-cashflow
+      to: agent-kpi
+      type: sequential
+    - from: agent-kpi
+      to: agent-risks
+      type: sequential
+    - from: agent-risks
+      to: agent-nongaap
+      type: sequential
+    - from: agent-nongaap
+      to: agent-accounting
+      type: sequential
+    - from: agent-esg
+      to: agent-capalloc
+      type: sequential
+    - from: agent-capalloc
+      to: agent-segments
+      type: sequential
+    - from: agent-segments
+      to: agent-footnotes
+      type: sequential
+    - from: agent-footnotes
+      to: agent-legal
+      type: sequential
+    - from: agent-legal
+      to: agent-outlook
+      type: sequential
+    - from: agent-accounting
+      to: agent-esg
+      type: sequential
+    - from: agent-outlook
+      to: agent-brief
+      type: sequential
+`;
+
 
 // Export templates with YAML
 export const pipelineTemplates: PipelineTemplate[] = [
@@ -1486,5 +1866,27 @@ export const pipelineTemplates: PipelineTemplate[] = [
     ],
     yaml: translationYaml,
     ...createPipelineFromYaml(translationYaml),
+  },
+  {
+    id: "financial-annual-report-extraction",
+    name: "Financial Annual Report KPI + Risk Extraction (Agent Teams)",
+    description: "Analyze long-form annual/quarterly reports by splitting responsibilities across specialist agents (KPIs, segments, cash flow, non-GAAP adjustments, accounting policies/estimates, risks, legal contingencies, ESG, and outlook) under a lead coordinator that produces a single evidence-backed executive brief.",
+    category: "analysis",
+    steps: 18,
+    estimatedTime: "5-6 min",
+    useCases: [
+      "Equity research KPI extraction and summarization",
+      "Compliance monitoring of risk disclosures",
+      "Corporate strategy competitive benchmarking",
+      "Knowledge management (turn narrative reports into structured datasets)",
+    ],
+    features: [
+      "Long-document content understanding",
+      "Specialist agent teams for focused extraction tasks",
+      "Evidence-backed executive brief synthesis",
+      "Azure OpenAI and Content Understanding integration",
+    ],
+    yaml: financialAnnualReportYaml,
+    ...createPipelineFromYaml(financialAnnualReportYaml),
   },
 ];

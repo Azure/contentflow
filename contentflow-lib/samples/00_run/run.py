@@ -61,7 +61,7 @@ async def run_pipeline():
         documents = []
         
         # load documents from  local path
-        local_path = Path('/Users/nadeemis/temp/test_files')
+        local_path = Path(f"{samples_dir}/99-assets/")
         for file in local_path.glob('*.pdf'):
             print(f"  Found file: {file}")
             

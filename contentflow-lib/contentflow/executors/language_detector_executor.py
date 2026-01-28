@@ -139,6 +139,7 @@ class LanguageDetectorExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["response_as_json"] = True # Ensure JSON response
         
         # Call parent constructor
         super().__init__(
@@ -156,30 +157,5 @@ class LanguageDetectorExecutor(AzureOpenAIAgentExecutor):
     async def process_content_item(self, content: Content) -> Content:
         """Process content and parse JSON language output."""
         content = await super().process_content_item(content)
-        
-        # Try to parse JSON response
-        if self.output_field in content.data:
-            try:
-                response_text = content.data[self.output_field]
-                if isinstance(response_text, str):
-                    # Look for JSON block in the response
-                    start = response_text.find('{')
-                    end = response_text.rfind('}')
-                    if start != -1 and end != -1:
-                        json_str = response_text[start:end+1]
-                        parsed = json.loads(json_str)
-                        content.data[self.output_field] = parsed
-                        
-                        # Add primary language to summary
-                        if "language" in parsed:
-                            content.summary_data['detected_language'] = parsed["language"]
-                        elif "primary_language" in parsed:
-                            content.summary_data['detected_language'] = parsed["primary_language"]
-                        elif "languages" in parsed and len(parsed["languages"]) > 0:
-                            content.summary_data['detected_language'] = parsed["languages"][0].get("language", "unknown")
-                            
-            except json.JSONDecodeError:
-                if self.debug_mode:
-                    logger.debug(f"Could not parse language detection as JSON for {content.id}")
         
         return content
