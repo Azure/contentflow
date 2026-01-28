@@ -1,5 +1,6 @@
 """AI Agent executor using AzureOpenAIResponsesClient from agent-framework."""
 
+import asyncio
 import logging
 from typing import Dict, Any, Optional
 
@@ -48,6 +49,14 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
           Default: None (uses model default)
         - max_tokens (int): Maximum tokens in response
           Default: None (uses model default)
+        - parse_response_as_json (bool): Parse response as JSON
+          Default: False
+        - max_retries (int): Max retries on transient errors
+          Default: 3
+        - retry_backoff_seconds (int): Initial backoff seconds for retries
+          Default: 1
+        - retry_backoff_factor (int): Backoff multiplier for retries
+          Default: 2
 
         Also setting from ParallelExecutor and BaseExecutor apply.
     
@@ -99,6 +108,11 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         self.include_full_response = self.get_setting("include_full_response", default=False)
         self.temperature = self.get_setting("temperature", default=None)
         self.max_tokens = self.get_setting("max_tokens", default=None)
+        self.parse_response_as_json = self.get_setting("parse_response_as_json", default=False)
+        
+        self.max_retries = self.get_setting("max_retries", default=3)
+        self.retry_backoff_seconds = self.get_setting("retry_backoff_seconds", default=1)
+        self.retry_backoff_factor = self.get_setting("retry_backoff_factor", default=2)
         
         # Initialize credential
         if self.credential_type == "default_azure_credential":
@@ -168,6 +182,11 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             
             # Execute agent
             response_text, full_response = await self._run_agent(query)
+            # Parse response as JSON if needed
+            if self.parse_response_as_json:
+                parsed_response = self._parse_agent_response_as_json(response_text)
+                if parsed_response is not None:
+                    response_text = parsed_response
             
             # Store response
             content.data[self.output_field] = response_text
@@ -205,9 +224,42 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         Returns:
             Tuple of (response_text, full_response)
         """
-        result = await self.agent.run(query, store=False)
+        retries = 0
+        backoff = self.retry_backoff_seconds
+        result = None
+        
+        while True:
+            try:
+                result = await self.agent.run(query, store=False)
+                break
+            except Exception as e:
+                if retries >= self.max_retries:
+                    raise
+                else:
+                    logger.warning(f"Retry {retries + 1}/{self.max_retries} after error: {e}")
+                    await asyncio.sleep(backoff)
+                    backoff *= self.retry_backoff_factor
+                    retries += 1
         
         response_text = result.text if hasattr(result, 'text') else str(result)
         
         return response_text, result
     
+    def _parse_agent_response_as_json(
+        self,
+        response_text: str
+    ) -> Any:
+        """Parse agent response text as JSON."""
+        import json
+        try:
+            if isinstance(response_text, str):
+                # Look for JSON block in the response
+                start = response_text.find('{')
+                end = response_text.rfind('}')
+                if start != -1 and end != -1:
+                    json_str = response_text[start:end+1]
+                    parsed = json.loads(json_str)
+                    return parsed
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse agent response as JSON: {e}")
+            return None

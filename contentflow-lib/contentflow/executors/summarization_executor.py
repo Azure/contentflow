@@ -3,6 +3,7 @@
 import logging
 from typing import Dict, Any, Optional
 
+from contentflow.models._content import Content
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 
 logger = logging.getLogger("contentflow.executors.summarization_executor")
@@ -106,6 +107,7 @@ class SummarizationExecutor(AzureOpenAIAgentExecutor):
         
         # Override instructions
         settings["instructions"] = instructions
+        settings["parse_response_as_json"] = False  # Summaries are plain text
         
         # Call parent constructor
         super().__init__(
@@ -119,3 +121,8 @@ class SummarizationExecutor(AzureOpenAIAgentExecutor):
                 f"SummarizationExecutor initialized with length={summary_length}, "
                 f"style={summary_style}"
             )
+
+    async def process_content_item(self, content: Content) -> Content:
+        """Process content and parse JSON sentiment output."""
+        content = await super().process_content_item(content)
+        return content

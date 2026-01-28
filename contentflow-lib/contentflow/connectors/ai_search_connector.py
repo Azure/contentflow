@@ -112,7 +112,7 @@ class AISearchConnector(ConnectorBase):
             
             # Try to get index definition
             headers = await self._get_auth_header()
-            url = f"{self.endpoint}/indexes/{self.index_name}?api-version={self.api_version}"
+            url = f"{self.endpoint}/indexes('{self.index_name}')?api-version={self.api_version}"
             
             async with self._session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -147,8 +147,8 @@ class AISearchConnector(ConnectorBase):
         headers = await self._get_auth_header()
         headers["Content-Type"] = "application/json"
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/index?api-version={self.api_version}"
-        
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/search.index?api-version={self.api_version}"
+                                
         # Prepare batch payload
         actions = []
         for doc in documents:
@@ -161,12 +161,21 @@ class AISearchConnector(ConnectorBase):
         payload = {"value": actions}
         
         async with self._session.post(url, headers=headers, json=payload) as response:
-            result = await response.json()
-            
+            returned_text = await response.text()
+            if response.status == 403:
+                # Log the actual text content of the response
+                logger.debug(f"Indexing failed with 403: {returned_text}")
+                raise Exception(f"Indexing failed: Status {response.status}. {returned_text if returned_text else ''} "
+                                "Make sure the the Azure Search resource is configured for RBAC authentication and "
+                                "that the user issuing the requests has the correct permissions on the Azure Search index.")
+
             if response.status not in [200, 201]:
-                logger.error(f"Indexing failed: {response.status} - {result}")
-                raise Exception(f"Indexing failed: {result}")
+                logger.error(f"Indexing failed: {response.status} - {returned_text}")
+                logger.debug(f"Indexing URL: {url}")
+                logger.debug(f"Indexing payload: {payload}")
+                raise Exception(f"Indexing failed: {response.status} - {returned_text}")
             
+            result = await response.json()
             logger.debug(f"Indexed {len(documents)} documents to '{self.index_name}'")
             return result
     
@@ -197,8 +206,8 @@ class AISearchConnector(ConnectorBase):
         headers = await self._get_auth_header()
         headers["Content-Type"] = "application/json"
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/search?api-version={self.api_version}"
-        
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/search.post.search?api-version={self.api_version}"
+
         payload = {
             "search": query,
             "top": top
@@ -240,8 +249,8 @@ class AISearchConnector(ConnectorBase):
         headers = await self._get_auth_header()
         headers["Content-Type"] = "application/json"
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/index?api-version={self.api_version}"
-        
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/search.index?api-version={self.api_version}"
+
         actions = [
             {"@search.action": "delete", key_field: doc_id}
             for doc_id in document_ids
@@ -270,7 +279,7 @@ class AISearchConnector(ConnectorBase):
             await self.initialize()
         
         headers = await self._get_auth_header()
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/$count?api-version={self.api_version}"
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/$count?api-version={self.api_version}"
         
         async with self._session.get(url, headers=headers) as response:
             if response.status != 200:
@@ -306,7 +315,7 @@ class AISearchConnector(ConnectorBase):
         from urllib.parse import quote
         encoded_key = quote(str(key), safe='')
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs('{encoded_key}')?api-version={self.api_version}"
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs('{encoded_key}')?api-version={self.api_version}"
         
         if select_fields:
             url += f"&$select={','.join(select_fields)}"
@@ -350,7 +359,7 @@ class AISearchConnector(ConnectorBase):
         headers = await self._get_auth_header()
         headers["Content-Type"] = "application/json"
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/search.post.suggest?api-version={self.api_version}"
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/search.post.suggest?api-version={self.api_version}"
         
         payload = {
             "search": search_text,
@@ -406,7 +415,7 @@ class AISearchConnector(ConnectorBase):
         headers = await self._get_auth_header()
         headers["Content-Type"] = "application/json"
         
-        url = f"{self.endpoint}/indexes/{self.index_name}/docs/search.post.autocomplete?api-version={self.api_version}"
+        url = f"{self.endpoint}/indexes('{self.index_name}')/docs/search.post.autocomplete?api-version={self.api_version}"
         
         payload = {
             "search": search_text,

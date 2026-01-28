@@ -281,13 +281,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -376,25 +385,6 @@ executor_catalog:
         default: "./tmp/contentflow"
         ui_component: "input"
 
-      max_concurrent:
-        type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
-        required: false
-        default: 3
-        min: 1
-        max: 10
-        increment: 1
-        ui_component: "number"
-
-      continue_on_error:
-        type: boolean
-        title: "Continue On Error"
-        description: "Continue processing other content items if retrieval fails for one"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
       blob_storage_account:
         type: string
         title: "Blob Storage Account"
@@ -429,6 +419,34 @@ executor_catalog:
         required: false
         default: null
         ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
+        ui_component: "number"
+        
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
 
     # UI metadata
     ui_metadata:
@@ -506,25 +524,6 @@ executor_catalog:
         required: false
         default: "doc_intell_output"
         ui_component: "input"
-
-      max_concurrent:
-        type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
-        required: false
-        default: 3
-        min: 1
-        max: 10
-        increment: 1
-        ui_component: "number"
-
-      continue_on_error:
-        type: boolean
-        title: "Continue On Error"
-        description: "Continue processing other content items if extraction fails for one"
-        required: false
-        default: true
-        ui_component: "checkbox"
 
       model_id:
         type: string
@@ -634,6 +633,34 @@ executor_catalog:
         required: false
         default: null
         ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
+        ui_component: "number"
+        
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
 
     # UI metadata
     ui_metadata:
@@ -797,8 +824,8 @@ executor_catalog:
       
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
@@ -891,25 +918,6 @@ executor_catalog:
         default: "pdf_output"
         ui_component: "input"
 
-      max_concurrent:
-        type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
-        required: false
-        default: 3
-        min: 1
-        max: 10
-        increment: 1
-        ui_component: "number"
-
-      continue_on_error:
-        type: boolean
-        title: "Continue On Error"
-        description: "Continue processing other content items if extraction fails for one"
-        required: false
-        default: true
-        ui_component: "checkbox"
-
       extract_text:
         type: boolean
         title: "Extract Text"
@@ -968,6 +976,34 @@ executor_catalog:
         required: false
         default: "\n\n---\n\n"
         ui_component: "input"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
+        ui_component: "number"
+        
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if retrieval fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
 
     # UI metadata
     ui_metadata:
@@ -1048,13 +1084,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -1209,13 +1254,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -1449,13 +1503,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -1545,13 +1608,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -1989,6 +2061,7 @@ executor_catalog:
         default: null
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -2000,15 +2073,63 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      parse_response_as_json:
+        type: boolean
+        title: "Parse Response As JSON"
+        description: "Attempt to parse agent response as JSON"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_factor:
+        type: number
+        title: "Retry Backoff Factor"
+        description: "Factor to multiply backoff time for each retry"
+        required: false
+        default: 2.0
+        min: 1.0
+        increment: 0.1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -2140,13 +2261,22 @@ executor_catalog:
 
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -2308,6 +2438,7 @@ executor_catalog:
         default: 0.3
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -2319,15 +2450,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
       
       continue_on_error:
@@ -2487,6 +2648,7 @@ executor_catalog:
         default: 0.1
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -2498,15 +2660,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -2675,6 +2867,7 @@ executor_catalog:
         default: 0.2
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -2686,15 +2879,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -2871,6 +3094,7 @@ executor_catalog:
         default: 0.2
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -2882,15 +3106,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -3068,6 +3322,7 @@ executor_catalog:
         default: 0.2
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -3079,15 +3334,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -3268,6 +3553,7 @@ executor_catalog:
         default: 0.2
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -3279,15 +3565,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -3465,6 +3781,7 @@ executor_catalog:
         default: 0.1
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -3476,15 +3793,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -3668,6 +4015,7 @@ executor_catalog:
         default: 0.3
         min: 0.0
         max: 2.0
+        increment: 0.1
         ui_component: "number"
 
       max_tokens:
@@ -3679,15 +4027,45 @@ executor_catalog:
         min: 16
         ui_component: "number"
 
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum number of retries for failed agent executions"
+        required: false
+        default: 3
+        min: 0
+        max: 5
+        increment: 1
+        ui_component: "number"
+
+      retry_backoff_seconds:
+        type: integer
+        title: "Retry Backoff Seconds"
+        description: "Seconds to wait between retries"
+        required: false
+        default: 1
+        min: 0
+        increment: 1
+        ui_component: "number"
+
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
         max: 10
         increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
         ui_component: "number"
 
       continue_on_error:
@@ -3915,8 +4293,8 @@ executor_catalog:
       
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
@@ -3927,7 +4305,7 @@ executor_catalog:
       timeout_secs:
         type: number
         title: "Timeout Seconds"
-        description: "Timeout for indexing operations in seconds"
+        description: "Timeout for executor execution in seconds"
         required: false
         default: 30.0
         min: 1.0
@@ -4095,8 +4473,8 @@ executor_catalog:
             
       max_concurrent:
         type: integer
-        title: "Max Concurrent Parallel Retrievals"
-        description: "Maximum number of concurrent content retrievals"
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
         required: false
         default: 3
         min: 1
@@ -4107,7 +4485,7 @@ executor_catalog:
       timeout_secs:
         type: integer
         title: "Timeout Seconds"
-        description: "Timeout per blob write in seconds"
+        description: "Timeout per executor execution in seconds"
         required: false
         default: 60
         min: 1
@@ -4117,7 +4495,7 @@ executor_catalog:
       continue_on_error:
         type: boolean
         title: "Continue on Error"
-        description: "Continue processing if a blob write fails"
+        description: "Continue processing if an executor execution fails"
         required: false
         default: true
         ui_component: "checkbox"

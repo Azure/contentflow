@@ -407,7 +407,7 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             "metadata_storage_last_modified": content.id.metadata["last_modified"] if (content.id and hasattr(content.id, "metadata") and content.id.metadata and "last_modified" in content.id.metadata) else "",
             "metadata_security_group_ids": [],
             "metadata_security_user_ids": [],
-            "metadata_security_rbac_scopes": "",
+            "metadata_security_rbac_scope": [],
             "chunk_id": chunk_index,
             "content": chunk_content or "",
             "imageCaptions": "",
@@ -419,8 +419,8 @@ class GPTRAGSearchIndexDocumentGeneratorExecutor(ParallelExecutor):
             "filepath": (f"/{content.id.container}/{content.id.path}" if content.id else ""),
             "url": url or "",
             "summary": summary or "",
-            "related_images": related_images,
-            "related_files": related_files,
+            "relatedImages": related_images,
+            "relatedFiles": related_files,
             "source": self.source_value or (content.id.source_type if content.id else ""),
         }
         

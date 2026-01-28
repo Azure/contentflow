@@ -247,7 +247,7 @@ class RecursiveTextChunkerExecutor(ParallelExecutor):
             
             # Update summary
             if chunk_objects:
-                avg_size = sum(len(c['content']) for c in chunk_objects) / len(chunk_objects)
+                avg_size = sum(len(c['text']) for c in chunk_objects) / len(chunk_objects)
                 content.summary_data['chunks_created'] = len(chunk_objects)
                 content.summary_data['avg_chunk_size'] = int(avg_size)
                 content.summary_data['chunking_method'] = "recursive"
