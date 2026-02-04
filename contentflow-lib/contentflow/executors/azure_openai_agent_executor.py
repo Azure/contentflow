@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 try:
     from agent_framework.azure import AzureOpenAIResponsesClient
     from agent_framework import ChatAgent, AgentRunResponse
+    from agent_framework.exceptions import ServiceResponseException
 except ImportError:
     raise ImportError(
         "agent-framework and azure-identity are required for AI Agent execution. "
@@ -114,21 +115,33 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         self.retry_backoff_seconds = self.get_setting("retry_backoff_seconds", default=1)
         self.retry_backoff_factor = self.get_setting("retry_backoff_factor", default=2)
         
-        # Initialize credential
-        if self.credential_type == "default_azure_credential":
-            credential = get_azure_credential()
-        elif self.credential_type == "azure_key_credential":
+        # validate credential
+        if self.credential_type not in ["default_azure_credential", "azure_key_credential"]:
+            raise ValueError(f"{self.id}: Invalid credential_type '{self.credential_type}'")
+        
+        if self.credential_type == "azure_key_credential":
             if not self.api_key:
                 raise ValueError(f"{self.id}: api_key must be provided for azure_key_credential")
+        
+        self.agent: Optional[ChatAgent] = None
+        
+        if self.debug_mode:
+            logger.debug(
+                f"AIAgentExecutor {self.id} initialized: "
+                f"instructions='{self.instructions[:50]}...', deployment_name={self.deployment_name}"
+            )
+    
+    def __init_agent(self) -> ChatAgent:
+        """Initialize the AI agent."""
         
         # Initialize Azure OpenAI Responses Client
         client_kwargs = {}
         client_kwargs['deployment_name'] = self.deployment_name
         client_kwargs['endpoint'] = self.endpoint
-        client_kwargs["credential"] = credential if self.credential_type == "default_azure_credential" else None
+        client_kwargs["credential"] = get_azure_credential() if self.credential_type == "default_azure_credential" else None
         client_kwargs["api_key"] = self.api_key if self.credential_type == "azure_key_credential" else None
         
-        self.client = AzureOpenAIResponsesClient(**client_kwargs)
+        client = AzureOpenAIResponsesClient(**client_kwargs)
         
         # Create agent
         agent_kwargs = {
@@ -139,13 +152,8 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             'instructions': self.instructions
         }
         
-        self.agent: ChatAgent = self.client.create_agent(**agent_kwargs)
-        
-        if self.debug_mode:
-            logger.debug(
-                f"AIAgentExecutor {self.id} initialized: "
-                f"instructions='{self.instructions[:50]}...', deployment_name={self.deployment_name}"
-            )
+        self.agent: ChatAgent = client.create_agent(**agent_kwargs)
+    
     
     async def process_content_item(
         self,
@@ -228,6 +236,10 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         backoff = self.retry_backoff_seconds
         result = None
         
+        # Initialize agent if not already done
+        if self.agent is None:
+            self.__init_agent()
+        
         while True:
             try:
                 result = await self.agent.run(query, store=False)
@@ -236,7 +248,14 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
                 if retries >= self.max_retries:
                     raise
                 else:
-                    logger.warning(f"Retry {retries + 1}/{self.max_retries} after error: {e}")
+                    logger.warning(f"{self.id} - Retry {retries + 1}/{self.max_retries} after error: {e}")
+                    
+                    # handle when error code is 401, could be the credential token expired
+                    if (hasattr(e, "statusCode") and e.statusCode == 401) or (hasattr(e, "message") and str(e.message).find("Unauthorized") != -1):
+                        logger.error(f"{self.id} - Unauthorized access error: {e}")
+                        logger.info(f"{self.id} - Re-initializing agent due to unauthorized error.")
+                        self.__init_agent()
+                    
                     await asyncio.sleep(backoff)
                     backoff *= self.retry_backoff_factor
                     retries += 1
@@ -261,5 +280,5 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
                     parsed = json.loads(json_str)
                     return parsed
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse agent response as JSON: {e}")
+            logger.error(f"{self.id}: Failed to parse agent response as JSON: {e}")
             return None

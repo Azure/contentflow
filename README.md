@@ -26,7 +26,15 @@
 - 📦 **Modular Executors** - 40+ pre-built processors for PDF, Word, Excel, PowerPoint, and more
 - 🌐 **Cloud-Native Architecture** - Deployed on Azure Container Apps with distributed processing
 - 💻 **Intuitive Web UI** - React-based interface for pipeline design and monitoring
-- ⚡ **Scalable & Distributed** - Multi-worker architecture for processing at scale
+- ⚡ **Scalable & Distributed** - Multi-worker architecture for processing at scale  
+
+---
+
+<p align="center">
+    <picture>
+      <img src="./assets/ContentFlow-Intro.gif" alt="ContentFlow Intro" style="width:800px;height:auto;" />
+    </picture>
+</p>
 
 ---
 
