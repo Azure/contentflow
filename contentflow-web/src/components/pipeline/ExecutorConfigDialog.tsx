@@ -272,6 +272,7 @@ export const ExecutorConfigDialog = ({
               onChange={(e) => handleFieldChange(key, e.target.value ? Number(e.target.value.trim()) : "")}
               min={setting.min}
               max={setting.max ? setting.max : undefined}
+              step={setting.increment ? setting.increment : undefined}
               placeholder={setting.placeholder || setting.description}
               className={error ? "border-red-500 h-8 text-sm" : "h-8 text-sm"}
             />

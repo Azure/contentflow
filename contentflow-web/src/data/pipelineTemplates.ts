@@ -1344,7 +1344,7 @@ pipeline:
       settings:
         mappings: |-
           {
-            ""pdf_output.text": "text"
+            "pdf_output.text": "text"
           }
         join_separator: "---"
 
@@ -1358,12 +1358,76 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "cash_flow_liquidity"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
+        timeout_secs: 600
         max_tokens: 4000
         instructions: |-
-          Extract cash flow and liquidity facts into JSON.
-          Output {period, operating_cash_flow, capex, free_cash_flow?, working_capital_notes?,
-          liquidity:{cash, revolver?, covenants?, debt_maturities?, evidence_snippets[]}}.
+          You are a financial analyst specializing in cash flow and liquidity analysis. Extract all cash flow and liquidity information from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "reporting_period": "string (e.g., 'FY2024', 'Q4 2024')",
+            "currency": "string (e.g., 'USD', 'EUR')",
+            "operating_activities": {
+              "net_cash_from_operations": "number or null",
+              "net_income": "number or null",
+              "depreciation_amortization": "number or null",
+              "stock_based_compensation": "number or null",
+              "working_capital_changes": "number or null",
+              "other_adjustments": "number or null",
+              "yoy_change_percent": "number or null"
+            },
+            "investing_activities": {
+              "capital_expenditures": "number or null",
+              "acquisitions": "number or null",
+              "asset_sales": "number or null",
+              "investment_purchases": "number or null",
+              "net_cash_from_investing": "number or null"
+            },
+            "financing_activities": {
+              "debt_issuance": "number or null",
+              "debt_repayment": "number or null",
+              "dividends_paid": "number or null",
+              "share_repurchases": "number or null",
+              "net_cash_from_financing": "number or null"
+            },
+            "free_cash_flow": "number or null",
+            "free_cash_flow_margin_percent": "number or null",
+            "liquidity_position": {
+              "cash_and_equivalents": "number or null",
+              "short_term_investments": "number or null",
+              "total_liquidity": "number or null",
+              "revolving_credit_facility": {
+                "total_capacity": "number or null",
+                "drawn_amount": "number or null",
+                "available_capacity": "number or null"
+              },
+              "current_ratio": "number or null",
+              "quick_ratio": "number or null"
+            },
+            "debt_profile": {
+              "total_debt": "number or null",
+              "net_debt": "number or null",
+              "debt_to_equity": "number or null",
+              "debt_to_ebitda": "number or null",
+              "interest_coverage_ratio": "number or null",
+              "maturities": [
+                {"year": "string", "amount": "number", "instrument": "string"}
+              ],
+              "weighted_avg_interest_rate": "number or null",
+              "credit_ratings": [
+                {"agency": "string", "rating": "string", "outlook": "string"}
+              ]
+            },
+            "covenants": [
+              {"covenant_type": "string", "required_ratio": "string", "actual_ratio": "string", "status": "compliant|non-compliant|waived"}
+            ],
+            "working_capital_notes": "string or null",
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Only include fields where data is found. Use null for missing numeric values. Always return valid JSON.
 
     - id: agent-kpi
       name: "Agent: KPI Extractor"
@@ -1375,11 +1439,78 @@ pipeline:
         deployment_name: "gpt-4.1"
         input_field: "text"
         output_field: "kpis"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract normalized KPIs with period alignment into JSON.
-          Output {company_name, period, kpis:{...}, evidence_snippets[]}.
+          You are a financial analyst specializing in KPI extraction. Extract all key performance indicators from the annual report with period-over-period comparisons.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "company_name": "string",
+            "ticker_symbol": "string or null",
+            "fiscal_year_end": "string (e.g., 'December 31, 2024')",
+            "reporting_period": "string",
+            "currency": "string",
+            "revenue_metrics": {
+              "total_revenue": "number or null",
+              "yoy_growth_percent": "number or null",
+              "organic_growth_percent": "number or null",
+              "recurring_revenue": "number or null",
+              "recurring_revenue_percent": "number or null",
+              "arpu": "number or null",
+              "revenue_by_type": [
+                {"type": "string", "amount": "number", "percent_of_total": "number"}
+              ]
+            },
+            "profitability_metrics": {
+              "gross_profit": "number or null",
+              "gross_margin_percent": "number or null",
+              "operating_income": "number or null",
+              "operating_margin_percent": "number or null",
+              "ebitda": "number or null",
+              "ebitda_margin_percent": "number or null",
+              "net_income": "number or null",
+              "net_margin_percent": "number or null",
+              "eps_basic": "number or null",
+              "eps_diluted": "number or null",
+              "eps_yoy_growth_percent": "number or null"
+            },
+            "balance_sheet_metrics": {
+              "total_assets": "number or null",
+              "total_liabilities": "number or null",
+              "shareholders_equity": "number or null",
+              "book_value_per_share": "number or null",
+              "return_on_equity_percent": "number or null",
+              "return_on_assets_percent": "number or null",
+              "return_on_invested_capital_percent": "number or null"
+            },
+            "operational_metrics": {
+              "headcount": "number or null",
+              "revenue_per_employee": "number or null",
+              "customer_count": "number or null",
+              "customer_retention_rate_percent": "number or null",
+              "net_promoter_score": "number or null",
+              "market_share_percent": "number or null"
+            },
+            "per_share_data": {
+              "dividends_per_share": "number or null",
+              "dividend_yield_percent": "number or null",
+              "payout_ratio_percent": "number or null",
+              "shares_outstanding_basic": "number or null",
+              "shares_outstanding_diluted": "number or null"
+            },
+            "historical_comparison": [
+              {"period": "string", "revenue": "number", "net_income": "number", "eps": "number"}
+            ],
+            "guidance_vs_actual": [
+              {"metric": "string", "guidance_range": "string", "actual": "number", "status": "beat|met|missed"}
+            ],
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Only include fields where data is found. Use null for missing numeric values. Always return valid JSON.
 
     - id: agent-risks
       name: "Agent: Risk Factors"
@@ -1392,10 +1523,57 @@ pipeline:
         input_field: "text"
         output_field: "risk_factors"
         temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract risk factors with materiality and evidence_snippet into JSON.
-            Output [{risk, materiality_rank, change_vs_prior?, evidence_snippet}].
+          You are a risk analyst specializing in corporate risk assessment. Extract and categorize all risk factors disclosed in the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "risk_summary": {
+              "total_risks_identified": "number",
+              "new_risks_this_period": "number or null",
+              "removed_risks_from_prior": "number or null",
+              "highest_materiality_category": "string"
+            },
+            "risk_factors": [
+              {
+                "risk_id": "string (e.g., 'R001')",
+                "risk_title": "string",
+                "risk_category": "strategic|operational|financial|compliance|reputational|cybersecurity|market|credit|liquidity|technology|regulatory|environmental|geopolitical|supply_chain|human_capital",
+                "description": "string",
+                "materiality_rank": "number (1=highest risk)",
+                "likelihood": "high|medium|low|not_specified",
+                "potential_impact": "high|medium|low|not_specified",
+                "trend_vs_prior_year": "increased|decreased|unchanged|new|not_specified",
+                "mitigation_strategies": ["array of mitigation measures mentioned"],
+                "quantified_exposure": "string or null (e.g., '$50M maximum loss')",
+                "affected_business_areas": ["array of business segments affected"],
+                "regulatory_references": ["array of relevant regulations mentioned"],
+                "evidence_snippet": "string"
+              }
+            ],
+            "risk_categories_breakdown": [
+              {"category": "string", "count": "number", "top_risk": "string"}
+            ],
+            "emerging_risks": [
+              {"risk": "string", "description": "string", "first_disclosed": "string"}
+            ],
+            "risk_management_framework": {
+              "governance_structure": "string or null",
+              "risk_committee": "boolean",
+              "enterprise_risk_management": "boolean",
+              "internal_audit_function": "boolean"
+            },
+            "insurance_coverage": {
+              "types_of_coverage": ["array of insurance types"],
+              "adequacy_statement": "string or null"
+            },
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Rank risks by materiality based on language emphasis and quantified impacts. Always return valid JSON.
 
     - id: agent-nongaap
       name: "Agent: Non-GAAP & Adjustments"
@@ -1407,11 +1585,86 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "non_gaap_adjustments"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Identify non-GAAP measures and the largest adjustments/reconciliation cues into JSON.
-          Output {measures:[{name, value?, period?, adjustments:[{label, amount?, evidence_snippet}], evidence_snippet}], caveats[]}.
+          You are a financial analyst specializing in non-GAAP metrics and earnings quality analysis. Extract all non-GAAP measures and reconciliation details from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "non_gaap_measures": [
+              {
+                "measure_name": "string (e.g., 'Adjusted EBITDA', 'Non-GAAP EPS')",
+                "gaap_equivalent": "string (e.g., 'Net Income', 'GAAP EPS')",
+                "non_gaap_value": "number or null",
+                "gaap_value": "number or null",
+                "difference": "number or null",
+                "difference_percent": "number or null",
+                "period": "string",
+                "prior_period_value": "number or null",
+                "yoy_change_percent": "number or null",
+                "adjustments": [
+                  {
+                    "adjustment_label": "string",
+                    "amount": "number",
+                    "direction": "add|subtract",
+                    "recurring": "boolean",
+                    "explanation": "string or null"
+                  }
+                ],
+                "management_rationale": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "reconciliation_tables": [
+              {
+                "from_metric": "string",
+                "to_metric": "string",
+                "starting_value": "number",
+                "ending_value": "number",
+                "line_items": [
+                  {"description": "string", "amount": "number"}
+                ]
+              }
+            ],
+            "adjusted_metrics_summary": {
+              "adjusted_revenue": "number or null",
+              "adjusted_gross_profit": "number or null",
+              "adjusted_operating_income": "number or null",
+              "adjusted_ebitda": "number or null",
+              "adjusted_net_income": "number or null",
+              "adjusted_eps": "number or null",
+              "adjusted_free_cash_flow": "number or null"
+            },
+            "stock_based_compensation": {
+              "total_expense": "number or null",
+              "percent_of_revenue": "number or null",
+              "breakdown_by_type": [
+                {"type": "string", "amount": "number"}
+              ]
+            },
+            "restructuring_charges": {
+              "total_charges": "number or null",
+              "components": [
+                {"type": "string", "amount": "number", "expected_completion": "string or null"}
+              ]
+            },
+            "acquisition_related_costs": {
+              "total_costs": "number or null",
+              "amortization_of_intangibles": "number or null",
+              "integration_costs": "number or null",
+              "transaction_costs": "number or null"
+            },
+            "quality_of_earnings_flags": [
+              {"concern": "string", "description": "string", "severity": "high|medium|low"}
+            ],
+            "caveats_and_limitations": ["array of disclosed limitations of non-GAAP measures"],
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Flag significant adjustments that may warrant investor scrutiny. Always return valid JSON.
 
     - id: agent-accounting
       name: "Agent: Critical Estimates & Accounting Changes"
@@ -1423,11 +1676,98 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "accounting_estimates_changes"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract critical accounting estimates and accounting policy changes into JSON.
-          Output [{topic, why_it_matters, period_impact?, evidence_snippet}].
+          You are a financial analyst specializing in accounting policy analysis and critical estimates. Extract all critical accounting estimates, policy changes, and significant judgments from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "accounting_standards": {
+              "framework": "string (e.g., 'US GAAP', 'IFRS')",
+              "new_standards_adopted": [
+                {
+                  "standard": "string (e.g., 'ASC 842', 'IFRS 16')",
+                  "description": "string",
+                  "adoption_date": "string",
+                  "adoption_method": "string (e.g., 'modified retrospective')",
+                  "financial_impact": {
+                    "assets_impact": "number or null",
+                    "liabilities_impact": "number or null",
+                    "equity_impact": "number or null",
+                    "income_statement_impact": "string or null"
+                  },
+                  "evidence_snippet": "string"
+                }
+              ],
+              "upcoming_standards": [
+                {
+                  "standard": "string",
+                  "effective_date": "string",
+                  "expected_impact": "material|immaterial|under_evaluation",
+                  "description": "string"
+                }
+              ]
+            },
+            "critical_accounting_estimates": [
+              {
+                "estimate_area": "string (e.g., 'Goodwill Impairment', 'Revenue Recognition', 'Allowance for Credit Losses')",
+                "description": "string",
+                "key_assumptions": ["array of key assumptions used"],
+                "sensitivity_analysis": {
+                  "variable": "string",
+                  "change_tested": "string",
+                  "impact_on_results": "string"
+                },
+                "management_judgment_level": "high|medium|low",
+                "year_over_year_change": "string or null",
+                "quantified_amount": "number or null",
+                "audit_risk_area": "boolean",
+                "evidence_snippet": "string"
+              }
+            ],
+            "accounting_policy_changes": [
+              {
+                "policy_area": "string",
+                "nature_of_change": "string",
+                "reason_for_change": "string",
+                "effective_date": "string",
+                "retrospective_application": "boolean",
+                "financial_impact": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "significant_judgments": [
+              {
+                "judgment_area": "string",
+                "description": "string",
+                "alternatives_considered": "string or null",
+                "rationale": "string",
+                "evidence_snippet": "string"
+              }
+            ],
+            "error_corrections": [
+              {
+                "nature_of_error": "string",
+                "periods_affected": ["array of affected periods"],
+                "correction_method": "string",
+                "financial_impact": "string",
+                "evidence_snippet": "string"
+              }
+            ],
+            "auditor_concerns": {
+              "critical_audit_matters": [
+                {"matter": "string", "auditor_response": "string"}
+              ],
+              "emphasis_of_matter": "string or null",
+              "audit_opinion_type": "unqualified|qualified|adverse|disclaimer"
+            },
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Focus on areas with high estimation uncertainty and potential earnings management. Always return valid JSON.
 
     - id: agent-esg
       name: "Agent: ESG / Sustainability"
@@ -1439,11 +1779,127 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "esg_disclosures"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract ESG disclosures only if present (otherwise return []) into JSON.
-          Output [{area, metric_or_claim, target?, timeframe?, evidence_snippet}].
+          You are an ESG analyst specializing in sustainability disclosures and corporate responsibility. Extract all ESG-related information from the annual report.
+          
+          Return a valid JSON object with the following structure (return empty arrays if no ESG content is present):
+          {
+            "esg_overview": {
+              "has_dedicated_esg_section": "boolean",
+              "reporting_frameworks": ["array (e.g., 'GRI', 'SASB', 'TCFD', 'CDP', 'UN SDGs')"],
+              "third_party_assurance": "boolean",
+              "assurance_provider": "string or null",
+              "materiality_assessment_conducted": "boolean"
+            },
+            "environmental": {
+              "climate_strategy": {
+                "net_zero_commitment": "boolean",
+                "target_year": "string or null",
+                "science_based_targets": "boolean",
+                "carbon_neutral_status": "string or null"
+              },
+              "emissions": {
+                "scope_1": {"value": "number or null", "unit": "string", "yoy_change_percent": "number or null"},
+                "scope_2": {"value": "number or null", "unit": "string", "yoy_change_percent": "number or null"},
+                "scope_3": {"value": "number or null", "unit": "string", "categories_included": ["array"]},
+                "emissions_intensity": {"value": "number or null", "unit": "string"},
+                "reduction_target": {"target_percent": "number or null", "baseline_year": "string", "target_year": "string"}
+              },
+              "energy": {
+                "total_consumption": {"value": "number or null", "unit": "string"},
+                "renewable_percent": "number or null",
+                "renewable_target": {"target_percent": "number or null", "target_year": "string or null"}
+              },
+              "water": {
+                "total_withdrawal": {"value": "number or null", "unit": "string"},
+                "recycled_percent": "number or null",
+                "water_stress_areas": "boolean"
+              },
+              "waste": {
+                "total_generated": {"value": "number or null", "unit": "string"},
+                "recycling_rate_percent": "number or null",
+                "zero_waste_target": "boolean"
+              },
+              "environmental_investments": "number or null",
+              "environmental_incidents": "number or null",
+              "evidence_snippets": ["array of relevant quotes"]
+            },
+            "social": {
+              "workforce": {
+                "total_employees": "number or null",
+                "diversity_metrics": {
+                  "women_total_percent": "number or null",
+                  "women_leadership_percent": "number or null",
+                  "minorities_percent": "number or null",
+                  "diversity_targets": ["array of targets"]
+                },
+                "employee_turnover_percent": "number or null",
+                "employee_engagement_score": "number or null",
+                "training_hours_per_employee": "number or null",
+                "training_investment": "number or null"
+              },
+              "health_and_safety": {
+                "injury_rate": "number or null",
+                "fatalities": "number or null",
+                "safety_certifications": ["array of certifications"]
+              },
+              "human_rights": {
+                "policy_in_place": "boolean",
+                "supply_chain_audits": "boolean",
+                "incidents_reported": "number or null"
+              },
+              "community": {
+                "charitable_contributions": "number or null",
+                "volunteer_hours": "number or null",
+                "community_programs": ["array of programs"]
+              },
+              "evidence_snippets": ["array of relevant quotes"]
+            },
+            "governance": {
+              "board_composition": {
+                "total_members": "number or null",
+                "independent_percent": "number or null",
+                "women_percent": "number or null",
+                "average_tenure_years": "number or null",
+                "average_age": "number or null",
+                "diversity_policy": "boolean"
+              },
+              "executive_compensation": {
+                "ceo_total_compensation": "number or null",
+                "ceo_pay_ratio": "number or null",
+                "esg_linked_compensation": "boolean",
+                "esg_metrics_in_pay": ["array of ESG metrics tied to exec pay"]
+              },
+              "ethics_and_compliance": {
+                "code_of_conduct": "boolean",
+                "whistleblower_policy": "boolean",
+                "anti_corruption_training_percent": "number or null",
+                "ethics_violations": "number or null"
+              },
+              "cybersecurity": {
+                "board_oversight": "boolean",
+                "incidents_disclosed": "number or null",
+                "security_certifications": ["array of certifications"]
+              },
+              "evidence_snippets": ["array of relevant quotes"]
+            },
+            "esg_ratings": [
+              {"agency": "string", "rating": "string", "date": "string or null"}
+            ],
+            "controversies": [
+              {"issue": "string", "status": "string", "response": "string"}
+            ],
+            "sdg_alignment": [
+              {"sdg_number": "number", "sdg_name": "string", "initiatives": ["array"]}
+            ],
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Only include sections where data is present. Always return valid JSON.
 
     - id: agent-capalloc
       name: "Agent: Capital Allocation"
@@ -1455,11 +1911,115 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "capital_allocation"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract capital allocation details into JSON.
-          Output {dividends, buybacks, mna, debt_actions, capex_plans, stated_priorities, evidence_snippets[]}.
+          You are a financial analyst specializing in capital allocation and shareholder returns. Extract all capital allocation information from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "capital_allocation_philosophy": "string or null",
+            "stated_priorities": [
+              {"priority": "string", "rank": "number", "allocation_percent": "number or null"}
+            ],
+            "dividends": {
+              "dividend_policy": "string or null",
+              "current_quarterly_dividend": "number or null",
+              "annual_dividend_per_share": "number or null",
+              "dividend_yield_percent": "number or null",
+              "total_dividends_paid": "number or null",
+              "payout_ratio_percent": "number or null",
+              "yoy_dividend_growth_percent": "number or null",
+              "consecutive_years_increased": "number or null",
+              "dividend_aristocrat_status": "boolean",
+              "special_dividends": {"amount": "number or null", "date": "string or null"},
+              "evidence_snippet": "string"
+            },
+            "share_repurchases": {
+              "buyback_program_authorized": "number or null",
+              "authorization_date": "string or null",
+              "authorization_expiry": "string or null",
+              "remaining_authorization": "number or null",
+              "shares_repurchased_current_period": "number or null",
+              "amount_spent_current_period": "number or null",
+              "average_price_paid": "number or null",
+              "total_shares_repurchased_historical": "number or null",
+              "shares_outstanding_reduction_percent": "number or null",
+              "repurchase_method": "open_market|accelerated|tender_offer|mixed",
+              "evidence_snippet": "string"
+            },
+            "capital_expenditures": {
+              "total_capex": "number or null",
+              "maintenance_capex": "number or null",
+              "growth_capex": "number or null",
+              "capex_to_revenue_percent": "number or null",
+              "capex_to_depreciation_ratio": "number or null",
+              "major_projects": [
+                {"project": "string", "investment": "number or null", "timeline": "string or null", "expected_return": "string or null"}
+              ],
+              "capex_guidance_next_year": "string or null",
+              "evidence_snippet": "string"
+            },
+            "mergers_and_acquisitions": {
+              "acquisitions_completed": [
+                {
+                  "target": "string",
+                  "acquisition_date": "string",
+                  "purchase_price": "number or null",
+                  "payment_method": "cash|stock|mixed",
+                  "strategic_rationale": "string",
+                  "expected_synergies": "number or null",
+                  "synergy_timeline": "string or null",
+                  "goodwill_recognized": "number or null",
+                  "revenue_contribution": "number or null"
+                }
+              ],
+              "divestitures_completed": [
+                {
+                  "asset_divested": "string",
+                  "sale_date": "string",
+                  "proceeds": "number or null",
+                  "gain_loss": "number or null",
+                  "strategic_rationale": "string"
+                }
+              ],
+              "pending_transactions": [
+                {"target": "string", "status": "string", "expected_close": "string or null", "value": "number or null"}
+              ],
+              "total_ma_spending": "number or null",
+              "evidence_snippet": "string"
+            },
+            "debt_management": {
+              "debt_issuances": [
+                {"instrument": "string", "amount": "number", "rate": "string", "maturity": "string", "use_of_proceeds": "string"}
+              ],
+              "debt_repayments": [
+                {"instrument": "string", "amount": "number", "early_repayment": "boolean"}
+              ],
+              "refinancing_activities": "string or null",
+              "target_leverage_ratio": "string or null",
+              "evidence_snippet": "string"
+            },
+            "rd_investment": {
+              "total_rd_spending": "number or null",
+              "rd_to_revenue_percent": "number or null",
+              "yoy_rd_growth_percent": "number or null",
+              "major_rd_initiatives": ["array of key R&D focus areas"],
+              "evidence_snippet": "string"
+            },
+            "capital_returns_summary": {
+              "total_returned_to_shareholders": "number or null",
+              "dividends_amount": "number or null",
+              "buybacks_amount": "number or null",
+              "return_yield_percent": "number or null",
+              "three_year_total_returned": "number or null"
+            },
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Prioritize quantified allocations and forward guidance. Always return valid JSON.
 
     - id: agent-segments
       name: "Agent: Segments & Geography"
@@ -1471,12 +2031,122 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "segments_geography"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract segment and geographic disclosures into JSON.
-          Output {segments:[{name, metrics:{revenue, operating_income, growth}, notes, evidence_snippet}],
-          geographies:[{region, revenue, growth, evidence_snippet}], customer_concentration:{top_customers?, evidence_snippet?}}.
+          You are a financial analyst specializing in segment analysis and geographic revenue breakdown. Extract all business segment and geographic information from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "reporting_segments_overview": {
+              "number_of_segments": "number",
+              "segment_basis": "string (e.g., 'product lines', 'geographic regions', 'customer types')",
+              "intersegment_eliminations": "number or null",
+              "segment_changes_from_prior_year": "string or null"
+            },
+            "business_segments": [
+              {
+                "segment_name": "string",
+                "segment_description": "string or null",
+                "revenue": "number or null",
+                "revenue_percent_of_total": "number or null",
+                "yoy_revenue_growth_percent": "number or null",
+                "organic_growth_percent": "number or null",
+                "operating_income": "number or null",
+                "operating_margin_percent": "number or null",
+                "yoy_operating_income_growth_percent": "number or null",
+                "depreciation_amortization": "number or null",
+                "capital_expenditures": "number or null",
+                "total_assets": "number or null",
+                "goodwill": "number or null",
+                "headcount": "number or null",
+                "key_products_services": ["array of main offerings"],
+                "key_customers": ["array of major customers if disclosed"],
+                "competitive_position": "string or null",
+                "market_trends": "string or null",
+                "growth_drivers": ["array of growth factors"],
+                "challenges": ["array of headwinds"],
+                "management_outlook": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "geographic_breakdown": {
+              "domestic": {
+                "region_name": "string (e.g., 'United States', 'Home Country')",
+                "revenue": "number or null",
+                "revenue_percent_of_total": "number or null",
+                "yoy_growth_percent": "number or null",
+                "long_lived_assets": "number or null",
+                "evidence_snippet": "string"
+              },
+              "international_total": {
+                "revenue": "number or null",
+                "revenue_percent_of_total": "number or null",
+                "yoy_growth_percent": "number or null"
+              },
+              "regions": [
+                {
+                  "region_name": "string (e.g., 'EMEA', 'Asia Pacific', 'Latin America')",
+                  "revenue": "number or null",
+                  "revenue_percent_of_total": "number or null",
+                  "yoy_growth_percent": "number or null",
+                  "constant_currency_growth_percent": "number or null",
+                  "fx_impact": "number or null",
+                  "long_lived_assets": "number or null",
+                  "key_markets": ["array of specific countries"],
+                  "regional_trends": "string or null",
+                  "evidence_snippet": "string"
+                }
+              ],
+              "countries": [
+                {
+                  "country": "string",
+                  "revenue": "number or null",
+                  "revenue_percent_of_total": "number or null",
+                  "yoy_growth_percent": "number or null",
+                  "material_operations": "boolean"
+                }
+              ]
+            },
+            "customer_concentration": {
+              "top_customer_percent": "number or null",
+              "top_5_customers_percent": "number or null",
+              "top_10_customers_percent": "number or null",
+              "named_major_customers": [
+                {"customer": "string", "revenue_percent": "number or null", "relationship_tenure": "string or null"}
+              ],
+              "government_revenue_percent": "number or null",
+              "customer_diversification_trend": "improving|stable|worsening|not_specified",
+              "evidence_snippet": "string"
+            },
+            "product_revenue_breakdown": [
+              {
+                "product_category": "string",
+                "revenue": "number or null",
+                "revenue_percent_of_total": "number or null",
+                "yoy_growth_percent": "number or null",
+                "gross_margin_percent": "number or null"
+              }
+            ],
+            "channel_breakdown": [
+              {
+                "channel": "string (e.g., 'Direct', 'Distributor', 'OEM', 'Online')",
+                "revenue_percent": "number or null",
+                "trend": "string or null"
+              }
+            ],
+            "currency_exposure": {
+              "primary_currencies": ["array of major currencies"],
+              "natural_hedges": "string or null",
+              "hedging_strategy": "string or null",
+              "fx_sensitivity": "string or null"
+            },
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Include all quantified segment and geographic data. Always return valid JSON.
 
     - id: agent-footnotes
       name: "Agent: Footnotes"
@@ -1489,10 +2159,148 @@ pipeline:
         input_field: "text"
         output_field: "footnotes"
         temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Summarize key policies/footnotes with evidence_snippet into JSON.
-          Output [{topic, summary, evidence_snippet}].
+          You are a financial analyst specializing in financial statement footnote analysis. Extract and summarize all material footnote disclosures from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "footnotes_summary": {
+              "total_footnotes_identified": "number",
+              "most_significant_footnotes": ["array of footnote topics with highest materiality"]
+            },
+            "significant_accounting_policies": [
+              {
+                "policy_area": "string",
+                "description": "string",
+                "key_assumptions": ["array of assumptions"],
+                "changes_from_prior_year": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "revenue_recognition": {
+              "policy_summary": "string",
+              "performance_obligations": ["array of identified performance obligations"],
+              "timing_of_recognition": "string",
+              "variable_consideration": "string or null",
+              "contract_assets": "number or null",
+              "contract_liabilities": "number or null",
+              "remaining_performance_obligations": "number or null",
+              "expected_recognition_timeline": "string or null",
+              "evidence_snippet": "string"
+            },
+            "leases": {
+              "operating_lease_rou_assets": "number or null",
+              "operating_lease_liabilities": "number or null",
+              "finance_lease_assets": "number or null",
+              "finance_lease_liabilities": "number or null",
+              "weighted_avg_remaining_term_years": "number or null",
+              "weighted_avg_discount_rate_percent": "number or null",
+              "future_minimum_payments": [
+                {"year": "string", "amount": "number"}
+              ],
+              "evidence_snippet": "string"
+            },
+            "goodwill_and_intangibles": {
+              "goodwill_balance": "number or null",
+              "goodwill_by_segment": [
+                {"segment": "string", "amount": "number"}
+              ],
+              "impairment_testing_approach": "string or null",
+              "impairment_charges_current_period": "number or null",
+              "intangible_assets": [
+                {"type": "string", "gross_amount": "number", "accumulated_amortization": "number", "useful_life_years": "string"}
+              ],
+              "annual_amortization_expense": "number or null",
+              "evidence_snippet": "string"
+            },
+            "income_taxes": {
+              "effective_tax_rate_percent": "number or null",
+              "statutory_rate_percent": "number or null",
+              "rate_reconciliation_items": [
+                {"item": "string", "impact_percent": "number"}
+              ],
+              "deferred_tax_assets": "number or null",
+              "valuation_allowance": "number or null",
+              "deferred_tax_liabilities": "number or null",
+              "unrecognized_tax_benefits": "number or null",
+              "tax_jurisdictions": ["array of key jurisdictions"],
+              "tax_audits_status": "string or null",
+              "evidence_snippet": "string"
+            },
+            "debt_and_borrowings": {
+              "debt_instruments": [
+                {
+                  "instrument": "string",
+                  "principal_amount": "number",
+                  "interest_rate": "string",
+                  "maturity_date": "string",
+                  "fair_value": "number or null",
+                  "covenants": ["array of key covenants"]
+                }
+              ],
+              "debt_maturities_schedule": [
+                {"year": "string", "amount": "number"}
+              ],
+              "interest_expense": "number or null",
+              "evidence_snippet": "string"
+            },
+            "pension_and_benefits": {
+              "defined_benefit_obligation": "number or null",
+              "plan_assets_fair_value": "number or null",
+              "funded_status": "number or null",
+              "net_periodic_cost": "number or null",
+              "discount_rate_percent": "number or null",
+              "expected_return_on_assets_percent": "number or null",
+              "contribution_next_year": "number or null",
+              "evidence_snippet": "string"
+            },
+            "stock_compensation": {
+              "total_expense": "number or null",
+              "unrecognized_compensation_cost": "number or null",
+              "weighted_avg_recognition_period_years": "number or null",
+              "options_outstanding": "number or null",
+              "rsus_outstanding": "number or null",
+              "fair_value_assumptions": {
+                "expected_volatility_percent": "number or null",
+                "risk_free_rate_percent": "number or null",
+                "expected_term_years": "number or null"
+              },
+              "evidence_snippet": "string"
+            },
+            "fair_value_measurements": {
+              "level_1_assets": "number or null",
+              "level_2_assets": "number or null",
+              "level_3_assets": "number or null",
+              "level_3_rollforward": "string or null",
+              "significant_level_3_inputs": ["array of key unobservable inputs"],
+              "evidence_snippet": "string"
+            },
+            "related_party_transactions": [
+              {
+                "related_party": "string",
+                "nature_of_relationship": "string",
+                "transaction_type": "string",
+                "amount": "number or null",
+                "terms": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "subsequent_events": [
+              {
+                "event": "string",
+                "date": "string",
+                "financial_impact": "string or null",
+                "recognized_vs_disclosed": "recognized|disclosed",
+                "evidence_snippet": "string"
+              }
+            ],
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Focus on material disclosures and quantified impacts. Always return valid JSON.
 
     - id: agent-legal
       name: "Agent: Legal / Commitments / Contingencies"
@@ -1504,11 +2312,139 @@ pipeline:
         deployment_name: "gpt-4.1-mini"
         input_field: "text"
         output_field: "legal_commitments_contingencies"
-        temperature: 0.0
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract material legal proceedings, investigations, commitments, and contingencies into JSON.
-          Output [{matter, status, potential_impact?, evidence_snippet}].
+          You are a legal and financial analyst specializing in litigation, regulatory matters, and contingent liabilities. Extract all legal, commitment, and contingency disclosures from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "litigation_summary": {
+              "total_pending_matters": "number or null",
+              "material_matters_count": "number or null",
+              "aggregate_contingent_liability": "number or null",
+              "accrued_liabilities_for_litigation": "number or null",
+              "insurance_coverage_available": "boolean"
+            },
+            "legal_proceedings": [
+              {
+                "case_id": "string (e.g., 'L001')",
+                "case_name_or_description": "string",
+                "case_type": "class_action|individual|regulatory|patent|antitrust|environmental|employment|securities|product_liability|contract|other",
+                "jurisdiction": "string or null",
+                "filing_date": "string or null",
+                "parties_involved": ["array of party names"],
+                "allegations_summary": "string",
+                "current_status": "pending|discovery|trial|appeal|settled|dismissed|ongoing",
+                "potential_exposure": {
+                  "minimum": "number or null",
+                  "maximum": "number or null",
+                  "management_estimate": "number or null",
+                  "reasonably_possible_loss": "number or null"
+                },
+                "accrual_recorded": "number or null",
+                "probability_assessment": "probable|reasonably_possible|remote|not_specified",
+                "expected_resolution_timeline": "string or null",
+                "insurance_recovery_expected": "number or null",
+                "management_assessment": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "regulatory_matters": [
+              {
+                "matter_description": "string",
+                "regulatory_body": "string",
+                "nature_of_inquiry": "investigation|audit|examination|enforcement|consent_order",
+                "status": "ongoing|resolved|pending",
+                "potential_penalties": "number or null",
+                "remediation_required": "string or null",
+                "compliance_programs_implemented": ["array of programs"],
+                "evidence_snippet": "string"
+              }
+            ],
+            "government_investigations": [
+              {
+                "investigating_agency": "string",
+                "subject_matter": "string",
+                "status": "ongoing|resolved|pending",
+                "potential_impact": "string",
+                "evidence_snippet": "string"
+              }
+            ],
+            "commitments": {
+              "purchase_commitments": {
+                "total_amount": "number or null",
+                "schedule": [
+                  {"year": "string", "amount": "number"}
+                ],
+                "major_suppliers": ["array of suppliers if disclosed"],
+                "evidence_snippet": "string"
+              },
+              "lease_commitments": {
+                "operating_lease_total": "number or null",
+                "finance_lease_total": "number or null",
+                "schedule": [
+                  {"year": "string", "operating": "number", "finance": "number"}
+                ],
+                "evidence_snippet": "string"
+              },
+              "capital_commitments": {
+                "total_committed": "number or null",
+                "major_projects": ["array of committed projects"],
+                "evidence_snippet": "string"
+              },
+              "other_commitments": [
+                {"type": "string", "amount": "number or null", "description": "string", "evidence_snippet": "string"}
+              ]
+            },
+            "contingencies": [
+              {
+                "contingency_type": "string",
+                "description": "string",
+                "probability": "probable|reasonably_possible|remote",
+                "estimated_loss_range": {
+                  "minimum": "number or null",
+                  "maximum": "number or null"
+                },
+                "accrual_amount": "number or null",
+                "factors_affecting_outcome": ["array of key factors"],
+                "evidence_snippet": "string"
+              }
+            ],
+            "guarantees_and_indemnifications": [
+              {
+                "type": "string",
+                "beneficiary": "string or null",
+                "maximum_exposure": "number or null",
+                "current_liability": "number or null",
+                "expiration": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "environmental_liabilities": {
+              "total_accrued": "number or null",
+              "remediation_sites": "number or null",
+              "superfund_sites": "number or null",
+              "estimated_future_costs": "number or null",
+              "insurance_recoveries_expected": "number or null",
+              "evidence_snippet": "string"
+            },
+            "product_warranties": {
+              "warranty_liability": "number or null",
+              "warranty_expense": "number or null",
+              "warranty_period": "string or null",
+              "evidence_snippet": "string"
+            },
+            "letters_of_credit": {
+              "outstanding_amount": "number or null",
+              "purpose": "string or null"
+            },
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Quantify exposures where disclosed. Use probability language from the document. Always return valid JSON.
 
     - id: agent-outlook
       name: "Agent: Guidance / Outlook"
@@ -1521,10 +2457,119 @@ pipeline:
         input_field: "text"
         output_field: "guidance_outlook"
         temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 4000
+        timeout_secs: 600
         instructions: |-
-          Extract forward-looking guidance, key initiatives, and watch items into JSON.
-          Output {guidance:[{metric, range_or_target?, period, evidence_snippet}], initiatives[], watch_items[]}.
+          You are a financial analyst specializing in forward guidance and strategic analysis. Extract all forward-looking guidance, outlook, and strategic initiatives from the annual report.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "guidance_summary": {
+              "guidance_provided": "boolean",
+              "guidance_period": "string (e.g., 'FY2025', 'Q1 2025')",
+              "guidance_style": "annual|quarterly|long_term|range|point_estimate",
+              "guidance_basis": "GAAP|non-GAAP|both"
+            },
+            "financial_guidance": [
+              {
+                "metric": "string (e.g., 'Revenue', 'EPS', 'Operating Margin')",
+                "guidance_type": "range|point_estimate|directional|growth_rate",
+                "low_estimate": "number or null",
+                "high_estimate": "number or null",
+                "point_estimate": "number or null",
+                "growth_rate_percent": "number or null",
+                "vs_prior_year_actual": "string or null",
+                "vs_prior_guidance": "raised|maintained|lowered|new",
+                "currency_assumption": "string or null",
+                "key_assumptions": ["array of assumptions underlying the guidance"],
+                "confidence_level": "high|medium|low|not_specified",
+                "evidence_snippet": "string"
+              }
+            ],
+            "segment_guidance": [
+              {
+                "segment": "string",
+                "revenue_growth_expectation": "string or null",
+                "margin_expectation": "string or null",
+                "key_drivers": ["array of growth drivers"],
+                "evidence_snippet": "string"
+              }
+            ],
+            "capital_allocation_guidance": {
+              "capex_guidance": "string or null",
+              "dividend_guidance": "string or null",
+              "buyback_guidance": "string or null",
+              "ma_appetite": "string or null",
+              "evidence_snippet": "string"
+            },
+            "operational_guidance": {
+              "headcount_plans": "string or null",
+              "facility_plans": "string or null",
+              "cost_reduction_targets": "string or null",
+              "efficiency_initiatives": ["array of initiatives"],
+              "evidence_snippet": "string"
+            },
+            "strategic_initiatives": [
+              {
+                "initiative_name": "string",
+                "description": "string",
+                "strategic_priority": "high|medium|low",
+                "investment_required": "number or null",
+                "expected_timeline": "string or null",
+                "expected_benefits": "string or null",
+                "progress_status": "planning|in_progress|completed|ongoing",
+                "key_milestones": ["array of milestones"],
+                "risks_to_execution": ["array of risks"],
+                "evidence_snippet": "string"
+              }
+            ],
+            "long_term_targets": [
+              {
+                "metric": "string",
+                "target_value": "string",
+                "target_year": "string",
+                "baseline_value": "string or null",
+                "progress_to_date": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "market_outlook": {
+              "industry_growth_expectation": "string or null",
+              "market_size_estimate": "string or null",
+              "competitive_dynamics": "string or null",
+              "demand_drivers": ["array of demand factors"],
+              "headwinds": ["array of challenges"],
+              "evidence_snippet": "string"
+            },
+            "macroeconomic_assumptions": {
+              "gdp_growth_assumption": "string or null",
+              "interest_rate_assumption": "string or null",
+              "inflation_assumption": "string or null",
+              "currency_assumptions": ["array of FX assumptions"],
+              "commodity_price_assumptions": ["array of commodity assumptions"],
+              "evidence_snippet": "string"
+            },
+            "watch_items": [
+              {
+                "item": "string",
+                "description": "string",
+                "potential_impact": "positive|negative|uncertain",
+                "management_response": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "management_tone": {
+              "overall_sentiment": "bullish|cautiously_optimistic|neutral|cautious|bearish",
+              "key_positive_themes": ["array of positive themes emphasized"],
+              "key_concerns_acknowledged": ["array of concerns mentioned"],
+              "notable_language_changes": "string or null"
+            },
+            "analyst_focus_areas": ["array of topics likely to draw analyst attention"],
+            "evidence_snippets": ["array of relevant quotes from the document"]
+          }
+          
+          Capture both quantitative guidance and qualitative outlook statements. Always return valid JSON.
 
     - id: agent-brief
       name: "Agent: Executive Brief"
@@ -1536,12 +2581,120 @@ pipeline:
         deployment_name: "gpt-4.1"
         input_field: "text"
         output_field: "executive_brief"
-        temperature: 0.2
+        temperature: 0.1
+        parse_response_as_json: true
         max_tokens: 8000
+        timeout_secs: 600
         instructions: |-
-          Produce a concise brief JSON: highlights, concerns, open_questions, confidence.
-          Cite evidence_snippets from merged findings.
-          Output {highlights[], concerns[], open_questions[], confidence}.
+          You are a senior financial analyst preparing an executive briefing for institutional investors. Synthesize all extracted information into a comprehensive executive brief.
+          
+          Return a valid JSON object with the following structure:
+          {
+            "executive_summary": {
+              "company_name": "string",
+              "reporting_period": "string",
+              "report_date": "string",
+              "one_liner": "string (single sentence capturing the key takeaway)",
+              "investment_thesis_summary": "string (2-3 sentences on investment case)"
+            },
+            "key_highlights": [
+              {
+                "category": "financial_performance|strategic|operational|capital_allocation|risk|esg",
+                "highlight": "string",
+                "significance": "positive|negative|neutral",
+                "quantification": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "financial_scorecard": {
+              "revenue": {"value": "number or null", "yoy_change_percent": "number or null", "vs_guidance": "beat|met|missed|na"},
+              "operating_income": {"value": "number or null", "margin_percent": "number or null", "yoy_change_percent": "number or null"},
+              "eps": {"value": "number or null", "yoy_change_percent": "number or null", "vs_consensus": "beat|met|missed|na"},
+              "free_cash_flow": {"value": "number or null", "yoy_change_percent": "number or null"},
+              "roic_percent": "number or null",
+              "net_debt_to_ebitda": "number or null"
+            },
+            "strategic_assessment": {
+              "business_model_strength": "strong|adequate|weak",
+              "competitive_position": "leader|strong_competitor|average|challenged",
+              "growth_trajectory": "accelerating|stable|decelerating|declining",
+              "management_execution": "excellent|good|mixed|poor",
+              "capital_allocation_quality": "excellent|good|adequate|poor",
+              "key_strategic_moves": ["array of significant strategic actions"]
+            },
+            "concerns_and_risks": [
+              {
+                "concern": "string",
+                "category": "financial|operational|competitive|regulatory|macro|execution",
+                "severity": "high|medium|low",
+                "probability": "high|medium|low",
+                "potential_impact": "string",
+                "management_mitigation": "string or null",
+                "evidence_snippet": "string"
+              }
+            ],
+            "open_questions": [
+              {
+                "question": "string",
+                "context": "string",
+                "importance": "high|medium|low",
+                "suggested_follow_up": "string or null"
+              }
+            ],
+            "guidance_assessment": {
+              "guidance_quality": "specific|vague|no_guidance",
+              "achievability": "conservative|realistic|aggressive|uncertain",
+              "key_swing_factors": ["array of factors that could move results"],
+              "upside_scenario": "string or null",
+              "downside_scenario": "string or null"
+            },
+            "peer_comparison_indicators": {
+              "relative_valuation_signals": "string or null",
+              "margin_vs_industry": "above|inline|below|unknown",
+              "growth_vs_industry": "above|inline|below|unknown"
+            },
+            "esg_assessment": {
+              "esg_maturity": "leader|developing|nascent|none",
+              "material_esg_issues": ["array of material ESG topics"],
+              "notable_esg_progress": "string or null",
+              "esg_risks": ["array of ESG-related risks"]
+            },
+            "catalysts_and_events": {
+              "upcoming_catalysts": [
+                {"event": "string", "expected_date": "string or null", "potential_impact": "positive|negative|uncertain"}
+              ],
+              "key_dates": [
+                {"event": "string", "date": "string"}
+              ]
+            },
+            "action_items": [
+              {
+                "action": "string",
+                "priority": "high|medium|low",
+                "audience": "investors|analysts|management|board"
+              }
+            ],
+            "confidence_assessment": {
+              "data_quality": "high|medium|low",
+              "completeness": "comprehensive|adequate|limited",
+              "areas_of_uncertainty": ["array of areas where information was limited"],
+              "reliability_score": "number (1-10 scale)"
+            },
+            "appendix": {
+              "key_metrics_table": [
+                {"metric": "string", "current_period": "string", "prior_period": "string", "change": "string"}
+              ],
+              "segment_summary": [
+                {"segment": "string", "revenue": "number or null", "growth_percent": "number or null", "margin_percent": "number or null"}
+              ],
+              "guidance_summary": [
+                {"metric": "string", "guidance_range": "string", "prior_guidance": "string or null"}
+              ]
+            },
+            "evidence_snippets": ["array of key quotes supporting the analysis"]
+          }
+          
+          Prioritize actionable insights. Be direct about concerns. Always return valid JSON.
 
     - id: blob-output-1
       name: "Save Results"
