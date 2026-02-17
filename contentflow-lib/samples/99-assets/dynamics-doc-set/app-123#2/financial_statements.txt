@@ -1,0 +1,112 @@
+FINANCIAL STATEMENT SUMMARY
+CloudFirst Consulting Inc.
+Fiscal Year Ending December 31, 2023
+
+Prepared by: Lakeside Accounting LLP
+Engagement Type: Compiled Financial Statements (no assurance provided)
+
+=============================================================
+INCOME STATEMENT (FY2023)
+=============================================================
+
+Revenue
+  Consulting Revenue:           $8,400,000
+  Managed Services Revenue:     $1,200,000
+  Training Revenue:             $200,000
+  -------------------------------------------
+  Total Revenue:                $9,800,000
+
+Cost of Revenue
+  Direct Labor:                 $4,900,000
+  Subcontractors:               $1,470,000
+  Cloud Costs (pass-through):   $490,000
+  -------------------------------------------
+  Total Cost of Revenue:        $6,860,000
+
+Gross Profit:                   $2,940,000
+Gross Margin:                   30.0%
+
+Operating Expenses
+  Sales & Marketing:            $980,000
+  Research & Development:       $490,000
+  General & Administrative:     $1,176,000
+  Depreciation & Amortization:  $98,000
+  -------------------------------------------
+  Total Operating Expenses:     $2,744,000
+
+Operating Income:               $196,000
+Operating Margin:               2.0%
+
+Other Income / (Expense)
+  Interest Expense:             ($85,000)
+  Other Income:                 $12,000
+
+Net Income Before Tax:          $123,000
+Income Tax Provision:           $31,000
+Net Income:                     $92,000
+Net Margin:                     0.9%
+
+=============================================================
+BALANCE SHEET (as of 12/31/2023)
+=============================================================
+
+ASSETS
+Current Assets
+  Cash & Equivalents:           $820,000
+  Accounts Receivable:          $2,100,000
+  Unbilled Revenue:             $580,000
+  Prepaid Expenses:             $95,000
+  -------------------------------------------
+  Total Current Assets:         $3,595,000
+
+Non-Current Assets
+  Property & Equipment (net):   $210,000
+  Intangible Assets:            $45,000
+  Right-of-Use Assets:          $380,000
+  -------------------------------------------
+  Total Non-Current Assets:     $635,000
+
+TOTAL ASSETS:                   $4,230,000
+
+LIABILITIES
+Current Liabilities
+  Accounts Payable:             $890,000
+  Accrued Liabilities:          $620,000
+  Line of Credit:               $500,000
+  Deferred Revenue:             $280,000
+  Lease Obligations (current):  $120,000
+  -------------------------------------------
+  Total Current Liabilities:    $2,410,000
+
+Non-Current Liabilities
+  Lease Obligations:            $275,000
+  -------------------------------------------
+  Total Non-Current Liabilities:$275,000
+
+TOTAL LIABILITIES:              $2,685,000
+
+EQUITY
+  Common Stock:                 $100,000
+  Retained Earnings:            $1,445,000
+
+TOTAL LIABILITIES & EQUITY:     $4,230,000
+
+=============================================================
+KEY FINANCIAL RATIOS
+=============================================================
+
+Current Ratio:                  1.49
+Quick Ratio:                    1.21
+Debt-to-Equity:                 0.32
+Revenue Growth (YoY):           24.1%
+EBITDA:                         $294,000
+EBITDA Margin:                  3.0%
+Days Sales Outstanding (DSO):   78 days
+
+=============================================================
+NOTES
+=============================================================
+
+- Company in growth phase; margins expected to improve with scale
+- Line of credit ($500K drawn of $750K available)
+- Revenue concentration risk: top 3 clients = 58% of revenue

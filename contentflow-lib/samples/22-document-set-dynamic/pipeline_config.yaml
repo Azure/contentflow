@@ -1,0 +1,86 @@
+# Sample 22: Dynamic Document Set Processing - Vendor Application Review
+#
+# Demonstrates the dynamic document set pattern where each application
+# folder under 99-assets/dynamics-doc-set/ is processed independently.
+#
+# Folder structure:
+#   dynamics-doc-set/
+#     app-123#1/
+#       application_form.txt
+#       insurance_certificate.txt
+#       financial_statements.txt
+#     app-123#2/
+#       application_form.txt
+#       insurance_certificate.txt
+#       financial_statements.txt
+#
+# The run.py script discovers folders, reads files, parses fields,
+# and runs this pipeline once per application.
+#
+# No Azure services required — runs entirely locally.
+
+pipeline:
+  name: single_set_processing
+  executors:
+    # Step 1: Initialize document set metadata
+    # Each application folder becomes a document set; documents are
+    # ordered alphabetically and assigned roles by filename pattern.
+    - id: init_set
+      type: document_set_initializer
+      debug_mode: true
+      settings:
+        ordering_strategy: filename_alpha
+        role_mapping:
+          "application": "application_form"
+          "insurance": "insurance_certificate"
+          "financial": "financial_statement"
+
+    # Step 2: Collect all documents into consolidated set
+    - id: collect_set
+      type: document_set_collector
+      debug_mode: true
+      settings:
+        require_complete_set: false
+        fields_to_collect:
+          - "doc_type"
+          - "company_name"
+          - "annual_revenue"
+          - "employees"
+          - "total_revenue"
+          - "net_income"
+          - "net_margin"
+          - "total_assets"
+          - "total_liabilities"
+          - "current_ratio"
+          - "debt_to_equity"
+          - "ebitda_margin"
+          - "gl_each_occurrence"
+          - "gl_general_aggregate"
+          - "eo_each_claim"
+          - "cyber_each_incident"
+        output_key: "document_set"
+
+    # Step 3: Aggregate financial and insurance coverage fields
+    # across the documents in this application set.
+    - id: aggregate_fields
+      type: cross_document_field_aggregator
+      debug_mode: true
+      settings:
+        aggregations:
+          - field_path: "data.total_revenue"
+            operations: [sum, count, values]
+            output_key: "revenue_info"
+          - field_path: "data.annual_revenue"
+            operations: [sum, count, values]
+            output_key: "stated_revenue_info"
+          - field_path: "data.gl_each_occurrence"
+            operations: [sum, min, max, count, values]
+            output_key: "gl_coverage_info"
+          - field_path: "data.eo_each_claim"
+            operations: [sum, min, max, count, values]
+            output_key: "eo_coverage_info"
+          - field_path: "data.employees"
+            operations: [sum, count, values]
+            output_key: "headcount_info"
+
+  execution_sequence: [init_set, collect_set, aggregate_fields]

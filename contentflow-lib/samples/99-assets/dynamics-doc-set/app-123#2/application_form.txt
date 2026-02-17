@@ -1,0 +1,88 @@
+VENDOR ONBOARDING APPLICATION FORM
+Application ID: APP-123-002
+Submission Date: 2024-07-02
+
+=============================================================
+SECTION 1: COMPANY INFORMATION
+=============================================================
+
+Legal Entity Name:    CloudFirst Consulting Inc.
+DBA / Trade Name:     CloudFirst
+EIN / Tax ID:         91-6823405
+DUNS Number:          03-612-8754
+CAGE Code:            8N4P2
+
+Address:              2500 Lake Shore Boulevard, Floor 12
+City:                 Chicago
+State:                IL
+ZIP Code:             60614
+Country:              United States
+
+Year Established:     2020
+Number of Employees:  62
+Annual Revenue:       $9,800,000
+Primary NAICS Code:   541519 (Other Computer Related Services)
+
+=============================================================
+SECTION 2: PRIMARY CONTACT
+=============================================================
+
+Name:                 David Okafor
+Title:                Managing Director
+Email:                david.okafor@cloudfirst.example.com
+Phone:                (312) 555-0276
+Mobile:               (312) 555-0301
+
+=============================================================
+SECTION 3: PRODUCTS & SERVICES OFFERED
+=============================================================
+
+Category 1: Cloud Migration Services
+  - Assessment and planning
+  - Azure landing zone deployment
+  - Application refactoring (lift-and-shift, re-platform)
+  - Post-migration optimization
+
+Category 2: Managed Cloud Operations
+  - 24/7 cloud infrastructure monitoring
+  - Cost optimization and FinOps
+  - Security posture management
+  - Compliance automation (HIPAA, PCI-DSS)
+
+=============================================================
+SECTION 4: CERTIFICATIONS & COMPLIANCE
+=============================================================
+
+- ISO 27001:2022 (Information Security) - Valid through 2025-11
+- SOC 2 Type I - Completed 2024-01 (Type II in progress)
+- Microsoft Solutions Partner - Infrastructure (Azure)
+- CMMI Level 3
+- NOTE: FedRAMP authorization not yet pursued
+
+=============================================================
+SECTION 5: REFERENCES
+=============================================================
+
+Reference 1:
+  Company:    Midwest Manufacturing Co.
+  Contact:    Lisa Fernandez, IT Director
+  Phone:      (312) 555-0488
+  Contract:   Cloud migration ($1.5M)
+  Duration:   2023-2024
+
+Reference 2:
+  Company:    Prairie State University
+  Contact:    Prof. Alan Richardson, CIO
+  Phone:      (217) 555-0632
+  Contract:   Managed cloud services ($720K/year)
+  Duration:   2023-present
+
+=============================================================
+SECTION 6: DECLARATIONS
+=============================================================
+
+Conflict of Interest:          No
+Debarment or Suspension:       No
+Pending Litigation:            Yes (minor contract dispute, expected resolution Q3 2024)
+Tax Delinquency:               No
+Previous Government Contracts: Yes (1 state-level contract, completed)

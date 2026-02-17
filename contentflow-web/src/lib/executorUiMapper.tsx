@@ -11,7 +11,8 @@ import {
   Smile, Folder,
   Shield, Key,
   ArrowRight,
-  TextSearch, Map
+  TextSearch, Map,
+  Repeat
 } from "lucide-react";
 import type { ExecutorCatalogDefinition } from "@/types/components";
 import { TableRow } from "@/components/ui/table";
@@ -61,6 +62,7 @@ const executorUIIconMap: Record<string, React.ReactNode> = {
   "filter": <Filter className="w-5 h-5" />,
   "link": <Link className="w-5 h-5" />,
   "combine": <Combine className="w-5 h-5" />,
+  "repeat": <Repeat className="w-5 h-5" />,
 };
 
 /**
@@ -77,6 +79,7 @@ const getCategoryDefaultUI = (category: string): { icon: React.ReactNode; color:
     output: { icon: <Save className="w-5 h-5" />, color: "bg-green-500" },
     utility: { icon: <Settings className="w-5 h-5" />, color: "bg-gray-500" },
     pipeline: { icon: <Network className="w-5 h-5" />, color: "bg-violet-500" },
+    control_flow: { icon: <Repeat className="w-5 h-5" />, color: "bg-amber-500" },
   };
   
   return categoryDefaults[category] || defaultUI;

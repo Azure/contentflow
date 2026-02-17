@@ -1,0 +1,73 @@
+ACME CORPORATION
+Q3 2024 QUARTERLY FINANCIAL REPORT
+Period: July 1 - September 30, 2024
+Prepared by: Finance Department
+
+=============================================================
+EXECUTIVE SUMMARY
+=============================================================
+
+As anticipated, Q3 experienced seasonal softness with revenue
+declining 3.6% quarter-over-quarter to $10.8 million. Operating
+expenses increased due to continued infrastructure investments
+and EMEA scaling costs, resulting in margin compression.
+
+=============================================================
+FINANCIAL HIGHLIGHTS
+=============================================================
+
+Revenue:              $10,800,000
+Cost of Goods Sold:   $4,536,000
+Gross Profit:         $6,264,000
+Operating Expenses:   $4,364,000
+EBITDA:               $2,800,000
+Net Income:           $1,900,000
+Profit Margin:        17.6%
+
+Headcount:            270 employees
+New Hires (Q3):       8
+Customer Count:       1,280
+
+=============================================================
+REVENUE BREAKDOWN BY SEGMENT
+=============================================================
+
+Enterprise Sales:     $6,156,000  (57%)
+Mid-Market:           $2,916,000  (27%)
+SMB / Self-Serve:     $1,728,000  (16%)
+
+=============================================================
+KEY INITIATIVES & MILESTONES
+=============================================================
+
+1. Infrastructure Modernization
+   - Migrated 80% of workloads to Azure cloud
+   - Reduced average API latency by 35%
+   - Achieved SOC 2 Type II certification
+
+2. Product Updates
+   - Mobile app GA release (Aug 1) - 2,100 active users
+   - AI-powered content suggestions feature (beta)
+   - 99.97% platform uptime
+
+3. Customer Dynamics
+   - Seasonal churn: lost 60 SMB accounts (expected)
+   - Enterprise retention remains strong at 97%
+   - Partner channel generating 8% of new revenue
+
+=============================================================
+RISK FACTORS
+=============================================================
+
+- Margin compression: 17.6% vs 24.1% in Q2 (warrants monitoring)
+- Increased competition; two new entrants in enterprise space
+- Hiring slowdown may impact Q4 capacity
+
+=============================================================
+OUTLOOK
+=============================================================
+
+Strong Q4 pipeline with $18M in qualified opportunities.
+Enterprise deal closures expected to drive recovery.
+Revenue guidance for Q4: $12.5M - $13.5M. Full-year guidance
+maintained at $44M - $46M.

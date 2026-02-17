@@ -1,6 +1,7 @@
 import { Node, Edge } from "reactflow";
 import yaml from "js-yaml";
 import type { ExecutorWithUI } from "./executorUiMapper";
+import { pipeline } from "stream";
 
 export interface PipelineYamlFormat {
   pipeline: {
@@ -133,6 +134,7 @@ export function nodesToYaml(
           executor.settings = {
             ...(executor.settings || {}),
             pipeline_id: node.data.selectedPipelineId || node.data.config?.selectedPipelineId,
+            pipeline: node.data.selectedPipelineName || node.data.config?.selectedPipelineName || "Unknown Pipeline",
           };
         }
 
@@ -177,7 +179,7 @@ export function yamlToNodes(
       const executorType = executorTypes.find((et) => et.id === executor.type);
 
       // Separate pipeline_id from regular settings for sub-pipelines
-      const { pipeline_id, ...regularSettings } = executor.settings || {};
+      const { pipeline_id, pipeline, ...regularSettings } = executor.settings || {};
       
       const nodeData: any = {
         label: executor.name,
@@ -200,11 +202,20 @@ export function yamlToNodes(
       if (executorType?.category === "pipeline" && pipeline_id) {
         nodeData.selectedPipelineId = pipeline_id;
         nodeData.config.selectedPipelineId = pipeline_id;
+        nodeData.selectedPipelineName = pipeline;
+        nodeData.config.selectedPipelineName = pipeline;
       }
+
+      // Determine node type based on category
+      const getNodeType = (et: typeof executorType): string => {
+        if (et?.category === "pipeline") return "subpipeline";
+        if (et?.category === "control_flow" || et?.id === "for_each_content") return "foreachcontent";
+        return "executor";
+      };
 
       return {
         id: executor.id,
-        type: executorType?.category === "pipeline" ? "subpipeline" : "executor",
+        type: getNodeType(executorType),
         position: executor.position || { x: 0, y: 0 },
         data: nodeData,
       };

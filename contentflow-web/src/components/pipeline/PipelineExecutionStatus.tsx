@@ -20,6 +20,7 @@ import {
   X,
   Activity,
   FileOutput,
+  Repeat,
 } from 'lucide-react';
 import type { PipelineExecution, ExecutorOutput, PipelineExecutionEvent } from '@/types/components';
 import { getExecutionStatus, streamExecutionEvents } from '@/lib/api/pipelinesApi';
@@ -272,29 +273,86 @@ export function PipelineExecutionStatus({ executionId, onClose }: PipelineExecut
                         No executor outputs yet
                       </p>
                     ) : (
-                      executorOutputs.map((output) => (
-                        <button
-                          key={output.executor_id}
-                          onClick={() => setSelectedExecutor(output.executor_id)}
-                          className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors text-left"
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            {statusIcons[output.status]}
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">
-                                {output.executor_id}
+                      executorOutputs.map((output) => {
+                        // Detect for_each_content per-item progress data
+                        const itemProgress = output.data?.item_progress as
+                          | { total: number; completed: number; failed: number; in_progress: number }
+                          | undefined;
+                        const isForEachContent =
+                          output.executor_id.includes('for_each_content') ||
+                          !!itemProgress;
+
+                        return (
+                          <button
+                            key={output.executor_id}
+                            onClick={() => setSelectedExecutor(output.executor_id)}
+                            className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors text-left"
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              {isForEachContent ? (
+                                <Repeat className="w-4 h-4 text-amber-500" />
+                              ) : (
+                                statusIcons[output.status]
+                              )}
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">
+                                  {output.executor_id}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(output.timestamp).toLocaleTimeString()}
+                                </div>
+                                {/* Per-item progress for for_each_content */}
+                                {isForEachContent && itemProgress && (
+                                  <div className="mt-1.5 space-y-1">
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-gray-600">
+                                        {itemProgress.completed + itemProgress.failed}/{itemProgress.total} items
+                                      </span>
+                                      {itemProgress.failed > 0 && (
+                                        <span className="text-red-500">
+                                          ({itemProgress.failed} failed)
+                                        </span>
+                                      )}
+                                      {itemProgress.in_progress > 0 && (
+                                        <span className="text-blue-500">
+                                          ({itemProgress.in_progress} in progress)
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Progress bar */}
+                                    <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                      <div className="h-full flex">
+                                        <div
+                                          className="bg-green-500 h-full transition-all"
+                                          style={{
+                                            width: `${(itemProgress.completed / itemProgress.total) * 100}%`,
+                                          }}
+                                        />
+                                        <div
+                                          className="bg-red-500 h-full transition-all"
+                                          style={{
+                                            width: `${(itemProgress.failed / itemProgress.total) * 100}%`,
+                                          }}
+                                        />
+                                        <div
+                                          className="bg-blue-500 h-full transition-all animate-pulse"
+                                          style={{
+                                            width: `${(itemProgress.in_progress / itemProgress.total) * 100}%`,
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(output.timestamp).toLocaleTimeString()}
-                              </div>
+                              <Badge className={`${statusColors[output.status]} text-xs`}>
+                                {output.status}
+                              </Badge>
                             </div>
-                            <Badge className={`${statusColors[output.status]} text-xs`}>
-                              {output.status}
-                            </Badge>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
-                        </button>
-                      ))
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </ScrollArea>

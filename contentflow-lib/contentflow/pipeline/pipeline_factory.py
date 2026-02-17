@@ -359,7 +359,7 @@ class PipelineFactory:
             subworkflow_name = None
             
             # Explicit subworkflow type with workflow setting
-            if executor_type == 'sub-pipeline' and 'pipeline' in exec_def.get('settings', {}):
+            if executor_type == 'subpipeline' and 'pipeline' in exec_def.get('settings', {}):
                 subworkflow_name = exec_def['settings']['pipeline']
 
             # If this is a subworkflow executor, create and wrap it
@@ -515,7 +515,6 @@ class PipelineFactory:
         - Sequential edges: from: step1, to: step2
         - Parallel fan-out: from: step1, to: [step2, step3, step4]
         - Join fan-in: from: [step1, step2], to: step3
-        - Conditional routing: from: step1, to: [{target: step2, condition: "..."}]
         
         Args:
             executor_factories: Dict of executor factory functions (lambdas)

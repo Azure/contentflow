@@ -118,6 +118,16 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
         self.file_extensions = self.get_setting("file_extensions", default="")
         self.max_depth = self.get_setting("max_depth", default=0)
         
+        # Document set discovery support
+        self.discover_mode = self.get_setting("discover_mode", default="files")
+        self.prefix_from_input_field = self.get_setting("prefix_from_input_field", default=None)
+        
+        if self.discover_mode not in ["files", "virtual_folders"]:
+            raise ValueError(
+                f"{self.id}: Invalid discover_mode '{self.discover_mode}'. "
+                f"Must be 'files' or 'virtual_folders'"
+            )
+        
         # Metadata and sorting
         self.include_metadata = self.get_setting("include_metadata", default=True)
         self.sort_by = self.get_setting("sort_by", default="name")
@@ -262,6 +272,18 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
         """
         start_time = datetime.now()
         
+        # Dynamic prefix from input content (for document set pipelines)
+        if self.prefix_from_input_field and isinstance(input, Content):
+            dynamic_prefix = self.try_extract_nested_field_from_content(
+                input, self.prefix_from_input_field
+            )
+            if dynamic_prefix:
+                self.prefix = dynamic_prefix
+                if self.debug_mode:
+                    logger.debug(
+                        f"{self.id}: Using dynamic prefix from input: '{self.prefix}'"
+                    )
+        
         try:
             # Use crawl_all to fetch all content with automatic pagination
             content_items = []
@@ -287,6 +309,10 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                 f"Discovered {len(content_items)} content items from "
                 f"container '{self.blob_container_name}' in {elapsed:.2f}s"
             )
+            
+            # Virtual folder discovery mode
+            if self.discover_mode == "virtual_folders":
+                return self._extract_virtual_folders(content_items)
             
             return content_items
             
@@ -474,3 +500,92 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
         ))
         
         return content
+    
+    def _extract_virtual_folders(self, content_items: List[Content]) -> List[Content]:
+        """
+        Extract unique immediate subfolders from discovered blobs.
+        
+        Groups discovered blobs by their immediate subfolder under the
+        configured prefix, returning one Content item per unique subfolder.
+        
+        Args:
+            content_items: List of discovered Content items (one per blob)
+            
+        Returns:
+            List[Content] — one per unique immediate subfolder, with:
+            - id.path: the subfolder prefix
+            - id.filename: the folder name
+            - data["folder_prefix"]: full prefix for the subfolder
+            - data["folder_name"]: folder name
+            - data["file_count"]: number of blobs in the subfolder
+            - data["container_name"]: container name
+        """
+        prefix = self.prefix or ""
+        folder_set: Dict[str, Dict[str, Any]] = {}
+        
+        for content in content_items:
+            blob_path = content.id.path or ""
+            
+            # Get relative path after prefix
+            if prefix and blob_path.startswith(prefix):
+                relative = blob_path[len(prefix):]
+            else:
+                relative = blob_path
+            
+            parts = relative.split("/")
+            if len(parts) > 1:
+                # Has a subfolder
+                folder_name = parts[0]
+                folder_prefix = f"{prefix}{folder_name}/"
+                if folder_prefix not in folder_set:
+                    folder_set[folder_prefix] = {
+                        "name": folder_name,
+                        "count": 0
+                    }
+                folder_set[folder_prefix]["count"] += 1
+        
+        # Create one Content per subfolder
+        result_items = []
+        for folder_prefix, info in sorted(folder_set.items()):
+            folder_content = Content(
+                id=ContentIdentifier(
+                    canonical_id=f"folder://{self.blob_container_name}/{folder_prefix}",
+                    unique_id=self.generate_sha1_hash(
+                        f"{self.blob_storage_account}/{self.blob_container_name}/{folder_prefix}"
+                    ),
+                    source_name=self.blob_storage_account,
+                    source_type="azure_blob_folder",
+                    container=self.blob_container_name,
+                    path=folder_prefix,
+                    filename=info["name"],
+                ),
+                data={
+                    "folder_prefix": folder_prefix,
+                    "folder_name": info["name"],
+                    "file_count": info["count"],
+                    "container_name": self.blob_container_name,
+                },
+            )
+            
+            # Add executor log entry
+            folder_content.executor_logs.append(ExecutorLogEntry(
+                executor_id=self.id,
+                start_time=datetime.now(),
+                end_time=datetime.now(),
+                status="completed",
+                details={
+                    "folder_discovered": folder_prefix,
+                    "file_count": info["count"],
+                    "container": self.blob_container_name,
+                },
+                errors=[]
+            ))
+            
+            result_items.append(folder_content)
+        
+        logger.info(
+            f"{self.id}: Discovered {len(result_items)} virtual folders "
+            f"under prefix '{prefix}'"
+        )
+        
+        return result_items

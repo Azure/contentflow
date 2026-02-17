@@ -1,0 +1,70 @@
+ACME CORPORATION
+Q1 2024 QUARTERLY FINANCIAL REPORT
+Period: January 1 - March 31, 2024
+Prepared by: Finance Department
+
+=============================================================
+EXECUTIVE SUMMARY
+=============================================================
+
+ACME Corporation delivered a strong start to fiscal year 2024.
+Revenue reached $10.5 million, representing a 12% year-over-year
+increase driven primarily by enterprise sales growth in the
+North American market.
+
+=============================================================
+FINANCIAL HIGHLIGHTS
+=============================================================
+
+Revenue:              $10,500,000
+Cost of Goods Sold:   $4,200,000
+Gross Profit:         $6,300,000
+Operating Expenses:   $4,000,000
+EBITDA:               $3,100,000
+Net Income:           $2,300,000
+Profit Margin:        21.9%
+
+Headcount:            245 employees
+New Hires (Q1):       12
+Customer Count:       1,250
+
+=============================================================
+REVENUE BREAKDOWN BY SEGMENT
+=============================================================
+
+Enterprise Sales:     $6,300,000  (60%)
+Mid-Market:           $2,625,000  (25%)
+SMB / Self-Serve:     $1,575,000  (15%)
+
+=============================================================
+KEY INITIATIVES & MILESTONES
+=============================================================
+
+1. EMEA Market Expansion
+   - Opened London office in February 2024
+   - Hired regional sales director and 3 account executives
+   - Pipeline of $2.1M generated in first 2 months
+
+2. Product Launches
+   - ContentFlow Pro v3.0 released (Jan 15)
+   - Analytics Dashboard v2.0 beta launched (Mar 1)
+
+3. Customer Wins
+   - Signed 3 enterprise contracts > $500K ARR
+   - Customer retention rate: 94.2%
+
+=============================================================
+RISK FACTORS
+=============================================================
+
+- Increasing competition in mid-market segment
+- EMEA expansion costs expected to impact Q2 margins
+- Supply chain delays affecting hardware procurement
+
+=============================================================
+OUTLOOK
+=============================================================
+
+Management expects continued growth in Q2 with revenue
+guidance of $11.0M - $11.5M. EMEA is expected to contribute
+10-15% of new revenue by end of Q2.

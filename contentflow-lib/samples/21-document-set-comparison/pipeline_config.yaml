@@ -1,0 +1,123 @@
+# Sample 21: Document Set with AI Cross-Document Comparison (Real Files)
+#
+# Full document set pipeline reading real quarterly financial report files
+# from 99-assets/doc-set/ and running AI-powered cross-document comparison.
+#
+# Doc-set folder: contentflow-lib/samples/99-assets/doc-set/
+#   - Q1_Financial_Report_2024.txt
+#   - Q2_Financial_Report_2024.txt
+#   - Q3_Financial_Report_2024.txt
+#   - Q4_Financial_Report_2024.txt
+#
+# Steps:
+# 1. Document set initialization with role mapping
+# 2. Per-document sub-pipeline (pass-through — data is pre-extracted by run.py)
+# 3. Document set collection
+# 4. Deterministic field aggregation
+# 5. AI-powered cross-document comparison (Azure OpenAI)
+#
+# Requires: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME
+
+pipelines:
+  # Sub-pipeline: per-document processing.
+  # In production this would include content_retriever → pdf_extractor → ai_analysis.
+  # Here the run.py script pre-extracts metrics from the .txt files, so we
+  # pass through without modification.
+  - name: per_document_analysis
+    executors:
+      - id: pass_through_extract
+        type: pass_through
+        debug_mode: true
+
+    execution_sequence: [pass_through_extract]
+
+  # Main pipeline: document set processing with AI comparison
+  - name: document_set_ai_comparison
+    executors:
+      # Step 1: Initialize document set metadata
+      - id: init_document_set
+        type: document_set_initializer
+        debug_mode: true
+        settings:
+          set_name: "ACME Corp FY2024 Quarterly Financial Reports"
+          ordering_strategy: filename_alpha
+          role_mapping:
+            "Q1": "Q1_2024"
+            "Q2": "Q2_2024"
+            "Q3": "Q3_2024"
+            "Q4": "Q4_2024"
+
+      # Step 2: Per-doc processing via sub-pipeline (pass-through for this demo)
+      - id: process_each_doc
+        type: sub-pipeline
+        settings:
+          pipeline: per_document_analysis
+
+      # Step 3: Collect all documents into consolidated set
+      - id: collect_set
+        type: document_set_collector
+        debug_mode: true
+        settings:
+          require_complete_set: true
+          fields_to_collect:
+            - "financial_metrics"
+            - "text"
+          output_key: "document_set"
+
+      # Step 4: Deterministic aggregation of financial metrics
+      - id: aggregate_metrics
+        type: cross_document_field_aggregator
+        debug_mode: true
+        settings:
+          aggregations:
+            - field_path: "data.financial_metrics.revenue"
+              operations: [sum, avg, delta, pct_change, trend]
+              output_key: "revenue_analysis"
+            - field_path: "data.financial_metrics.net_income"
+              operations: [sum, avg, delta, pct_change, trend]
+              output_key: "net_income_analysis"
+            - field_path: "data.financial_metrics.profit_margin"
+              operations: [avg, min, max, trend]
+              output_key: "margin_analysis"
+            - field_path: "data.financial_metrics.ebitda"
+              operations: [sum, avg, delta, pct_change, trend]
+              output_key: "ebitda_analysis"
+
+      # Step 5: AI-powered cross-document comparison
+      - id: ai_comparison
+        type: cross_document_comparison
+        debug_mode: true
+        settings:
+          endpoint: "${AZURE_OPENAI_ENDPOINT}"
+          deployment_name: "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+          comparison_instructions: |
+            You are a senior financial analyst reviewing ACME Corporation's
+            FY2024 quarterly financial reports. Each document contains the
+            original report text and extracted financial metrics.
+
+            Analyze the four quarters and provide a comprehensive comparison:
+
+            1. Executive summary — overall FY2024 financial trajectory
+            2. Revenue trend — quarter-over-quarter growth/decline with drivers
+            3. Profitability analysis — margin trends, EBITDA trajectory
+            4. Headcount & customer growth — correlation with revenue
+            5. Seasonal patterns — identify Q3 dip and Q4 surge
+            6. Risk indicators — margin compression in Q3, expense growth
+            7. Key recommendations for FY2025 planning
+
+            Use the actual numbers from the reports. Provide your analysis
+            as structured JSON with sections matching the items above.
+          comparison_fields:
+            - "data.financial_metrics"
+            - "data.text"
+          include_trend_analysis: true
+          include_variance_detection: true
+          variance_threshold_pct: 10.0
+          output_format: structured
+
+    execution_sequence:
+      - init_document_set
+      - process_each_doc
+      - collect_set
+      - aggregate_metrics
+      - ai_comparison

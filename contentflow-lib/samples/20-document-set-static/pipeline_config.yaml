@@ -1,0 +1,73 @@
+# Sample 20: Static Document Set Processing with Real Files
+#
+# Processes quarterly financial report .txt files from 99-assets/doc-set/.
+# The run.py script reads each file, parses financial metrics, and feeds
+# them through this pipeline for document set aggregation.
+#
+# Doc-set folder: contentflow-lib/samples/99-assets/doc-set/
+#   - Q1_Financial_Report_2024.txt
+#   - Q2_Financial_Report_2024.txt
+#   - Q3_Financial_Report_2024.txt
+#   - Q4_Financial_Report_2024.txt
+#
+# No Azure services required — runs entirely locally.
+
+pipeline:
+  name: static_document_set_aggregation
+  executors:
+    # Step 1: Initialize document set metadata on the input List[Content]
+    - id: init_document_set
+      type: document_set_initializer
+      debug_mode: true
+      settings:
+        set_name: "ACME Corp FY2024 Quarterly Financial Reports"
+        ordering_strategy: filename_alpha
+        role_mapping:
+          "Q1": "Q1_2024"
+          "Q2": "Q2_2024"
+          "Q3": "Q3_2024"
+          "Q4": "Q4_2024"
+        validate_set_size: 4
+
+    # Step 2: Collect all processed documents into a single consolidated Content
+    - id: collect_set
+      type: document_set_collector
+      debug_mode: true
+      settings:
+        require_complete_set: true
+        fields_to_collect:
+          - "revenue"
+          - "net_income"
+          - "profit_margin"
+          - "ebitda"
+          - "headcount"
+          - "customer_count"
+          - "text"
+        output_key: "document_set"
+
+    # Step 3: Aggregate numeric fields across the document set
+    - id: aggregate_metrics
+      type: cross_document_field_aggregator
+      debug_mode: true
+      settings:
+        aggregations:
+          - field_path: "data.revenue"
+            operations: [sum, avg, min, max, delta, pct_change, trend]
+            output_key: "revenue_analysis"
+          - field_path: "data.net_income"
+            operations: [sum, avg, min, max, delta, pct_change, trend]
+            output_key: "net_income_analysis"
+          - field_path: "data.ebitda"
+            operations: [sum, avg, delta, pct_change, trend]
+            output_key: "ebitda_analysis"
+          - field_path: "data.profit_margin"
+            operations: [avg, min, max, trend, values]
+            output_key: "margin_analysis"
+          - field_path: "data.headcount"
+            operations: [min, max, trend, values]
+            output_key: "headcount_analysis"
+          - field_path: "data.customer_count"
+            operations: [min, max, delta, trend, values]
+            output_key: "customer_analysis"
+
+  execution_sequence: [init_document_set, collect_set, aggregate_metrics]

@@ -36,11 +36,12 @@ import {
   Plus, Play, ChevronDown, ChevronRight,
   Film, Wand2, Network, FolderInput, Save, Brain, GitBranch, FileText, Search,
   FileUp, FilePlus, Code, Layout, Loader2, Clock,
-  Settings
+  Settings, Repeat
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExecutorNode } from "@/components/pipeline/ExecutorNode";
 import { SubPipelineNode } from "@/components/pipeline/SubPipelineNode";
+import { ForEachContentNode } from "@/components/pipeline/ForEachContentNode";
 import { ExecutorConfigDialog } from "@/components/pipeline/ExecutorConfigDialog";
 import { PipelineSaveDialog, PipelineSaveDialogDataProps } from "@/components/pipeline/PipelineSaveDialog";
 import { LoadPipelinesDialog } from "@/components/pipeline/LoadPipelinesDialog";
@@ -58,6 +59,7 @@ import { ExecutorWithUI, enrichExecutorsWithUI } from "@/lib/executorUiMapper";
 const nodeTypes = {
   executor: ExecutorNode,
   subpipeline: SubPipelineNode,
+  foreachcontent: ForEachContentNode,
 };
 
 export const PipelineBuilder = () => {
@@ -234,6 +236,7 @@ export const PipelineBuilder = () => {
           onDelete: () => handleDeleteNode(node.id),
           ...(node.type === "subpipeline" && {
             selectedPipelineId: node.data.selectedPipelineId || "",
+            selectedPipelineName: node.data.selectedPipelineName || "",
             availablePipelines: loadedPipelines,
           }),
         },
@@ -272,11 +275,17 @@ export const PipelineBuilder = () => {
     [setEdges]
   );
 
+  const getNodeType = (executor: ExecutorWithUI): string => {
+    if (executor.category === "pipeline") return "subpipeline";
+    if (executor.category === "control_flow" || executor.id === "for_each_content") return "foreachcontent";
+    return "executor";
+  };
+
   const addExecutorNode = (executor: ExecutorWithUI, config?: any) => {
     const nodeId = `${executor.id}-${Date.now()}`;
     const newNode: Node = {
       id: nodeId,
-      type: executor.category === "pipeline" ? "subpipeline" : "executor",
+      type: getNodeType(executor),
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: {
         label: config?.name || executor.name,
@@ -288,6 +297,7 @@ export const PipelineBuilder = () => {
         onDelete: () => handleDeleteNode(nodeId),
         ...(executor.category === "pipeline" && {
           selectedPipelineId: config?.selectedPipelineId || "",
+          selectedPipelineName: config?.selectedPipelineName || "",
           availablePipelines: loadedPipelines,
         }),
       },
@@ -343,6 +353,7 @@ export const PipelineBuilder = () => {
                     onDelete: node.data.onDelete,
                     ...(selectedExecutor.category === "pipeline" && {
                       selectedPipelineId: config.selectedPipelineId || "",
+                      selectedPipelineName: config.selectedPipelineName || "",
                       availablePipelines: loadedPipelines,
                     }),
                   } 
@@ -449,6 +460,7 @@ export const PipelineBuilder = () => {
       output: <Save className="w-4 h-4" />,
       pipeline: <Network className="w-4 h-4" />,
       utility: <Settings className="w-4 h-4" />,
+      control_flow: <Repeat className="w-4 h-4" />,
     };
     return icons[category.toLocaleLowerCase()] || null;
   };
@@ -464,6 +476,8 @@ export const PipelineBuilder = () => {
       output: "Output Destinations",
       pipeline: "Pipeline Control",
       utility: "Utility",
+      document_sets: "Document Sets",
+      control_flow: "Control Flow",
     };
     return labels[category.toLocaleLowerCase()] || category;
   };
@@ -518,6 +532,7 @@ export const PipelineBuilder = () => {
           config: node.data.config,
           // Explicitly preserve selectedPipelineId for sub-pipelines
           selectedPipelineId: node.data.selectedPipelineId,
+          selectedPipelineName: node.data.selectedPipelineName,
         },
       }));
 
@@ -631,6 +646,7 @@ export const PipelineBuilder = () => {
           onDelete: () => handleDeleteNode(node.id),
           ...(node.type === "subpipeline" && {
             selectedPipelineId: node.data.selectedPipelineId || "",
+            selectedPipelineName: node.data.selectedPipelineName || "",
             availablePipelines: loadedPipelines,
           }),
         },

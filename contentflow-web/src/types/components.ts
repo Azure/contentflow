@@ -240,6 +240,7 @@ export interface TemplateNode {
     };
     config: Record<string, any>;
     selectedPipelineId?: string;
+    selectedPipelineName?: string;
     savedPipelines?: Pipeline[];
   };
 }

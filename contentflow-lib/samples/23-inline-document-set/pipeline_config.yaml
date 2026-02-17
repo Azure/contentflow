@@ -1,0 +1,110 @@
+# Sample 23: Inline Document Set Processing using ForEachContentExecutor
+#
+# Demonstrates the ForEachContentExecutor which processes each document
+# through a chain of executor steps inline — without sub-pipelines or
+# external orchestration.
+#
+# The dataset is the same as sample 22 (99-assets/dynamics-doc-set/):
+#   dynamics-doc-set/
+#     app-123#1/
+#       application_form.txt
+#       insurance_certificate.txt
+#       financial_statements.txt
+#     app-123#2/
+#       application_form.txt
+#       insurance_certificate.txt
+#       financial_statements.txt
+#
+# All documents from all application folders are loaded as a flat
+# List[Content] and fed into a single pipeline. The for_each_content
+# executor applies per-item steps (validation, enrichment) to each
+# document, then downstream executors process the full set.
+#
+# Comparison with sample 22:
+#   - Sample 22: External orchestration — one pipeline run per folder
+#   - Sample 23: Single pipeline — for_each_content handles per-item
+#     processing inline, then document set executors aggregate results
+#
+# No Azure services required — runs entirely locally.
+
+pipeline:
+  name: inline_document_set_processing
+  executors:
+    # Step 1: Per-document processing via ForEachContentExecutor
+    # Each document goes through validation + enrichment steps inline.
+    
+    # The document_set_initializer loads all documents from the input dataset
+    # and applies role mapping based on filename patterns.
+    - id: init_set
+      type: document_set_initializer
+      settings:
+        ordering_strategy: filename_alpha
+        role_mapping:
+          "application": "application_form"
+          "insurance": "insurance_certificate"
+          "financial": "financial_statement"
+
+    - id: process_each_doc
+      type: for_each_content
+      debug_mode: true
+      settings:
+        max_concurrent: 4
+        timeout_per_item_secs: 60
+        continue_on_error: true
+        steps:
+          # Step 1a: Pass-through (simulates content retrieval).
+          # In a real pipeline, this would be content_retriever fetching
+          # the document from blob storage. Here the data is pre-loaded.
+          - id: validate
+            type: pass_through
+            settings:
+              debug_mode: true
+
+    # Step 2: Collect all documents into a consolidated document set
+    - id: collect_set
+      type: document_set_collector
+      debug_mode: true
+      settings:
+        require_complete_set: false
+        fields_to_collect:
+          - "doc_type"
+          - "company_name"
+          - "annual_revenue"
+          - "employees"
+          - "total_revenue"
+          - "net_income"
+          - "net_margin"
+          - "total_assets"
+          - "total_liabilities"
+          - "current_ratio"
+          - "debt_to_equity"
+          - "ebitda_margin"
+          - "gl_each_occurrence"
+          - "gl_general_aggregate"
+          - "eo_each_claim"
+          - "cyber_each_incident"
+        output_key: "document_set"
+
+    # Step 3: Aggregate financial and insurance fields across documents
+    - id: aggregate_fields
+      type: cross_document_field_aggregator
+      debug_mode: true
+      settings:
+        aggregations:
+          - field_path: "data.total_revenue"
+            operations: [sum, count, values]
+            output_key: "revenue_info"
+          - field_path: "data.annual_revenue"
+            operations: [sum, count, values]
+            output_key: "stated_revenue_info"
+          - field_path: "data.gl_each_occurrence"
+            operations: [sum, min, max, count, values]
+            output_key: "gl_coverage_info"
+          - field_path: "data.eo_each_claim"
+            operations: [sum, min, max, count, values]
+            output_key: "eo_coverage_info"
+          - field_path: "data.employees"
+            operations: [sum, count, values]
+            output_key: "headcount_info"
+
+  execution_sequence: [init_set, process_each_doc, collect_set, aggregate_fields]

@@ -52,7 +52,7 @@ class PassThroughExecutor(BaseExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"PassThroughExecutor with id {self.id} initialized."
+                f"{self.id}: PassThroughExecutor initialized."
             )
     
     async def process_input(
@@ -64,7 +64,7 @@ class PassThroughExecutor(BaseExecutor):
         
         if self.debug_mode:
             logger.debug(
-                f"Passing through document(s) unchanged."
+                f"{self.id}: Passing through document(s) unchanged."
             )
         
         start_time = datetime.now()

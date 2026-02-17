@@ -38,6 +38,16 @@ from .gptrag_search_index_doc_generator import GPTRAGSearchIndexDocumentGenerato
 from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
 
+# Document Set executors
+from .document_set_initializer import DocumentSetInitializerExecutor
+from .document_set_collector import DocumentSetCollectorExecutor
+from .cross_document_executor import CrossDocumentExecutor
+from .cross_document_comparison import CrossDocumentComparisonExecutor
+from .cross_document_field_aggregator import CrossDocumentFieldAggregatorExecutor
+
+# Control Flow executors
+from .for_each_content import ForEachContentExecutor
+
 # # Knowledge Graph executors
 # from .knowledge_graph_entity_extractor import KnowledgeGraphEntityExtractorExecutor
 # from .knowledge_graph_writer import KnowledgeGraphWriterExecutor
@@ -82,6 +92,14 @@ __all__ = [
     "FieldSelectorExecutor",
     "GPTRAGSearchIndexDocumentGeneratorExecutor",
     "PassThroughExecutor",
+    # Document Set
+    "DocumentSetInitializerExecutor",
+    "DocumentSetCollectorExecutor",
+    "CrossDocumentExecutor",
+    "CrossDocumentComparisonExecutor",
+    "CrossDocumentFieldAggregatorExecutor",
+    # Control Flow
+    "ForEachContentExecutor",
     # # Knowledge Graph
     # "KnowledgeGraphEntityExtractorExecutor",
     # "KnowledgeGraphWriterExecutor",
