@@ -1,0 +1,67 @@
+CERTIFICATE OF INSURANCE
+Policy Number: CGL-2024-92103
+
+=============================================================
+INSURED INFORMATION
+=============================================================
+
+Named Insured:        CloudFirst Consulting Inc.
+Address:              2500 Lake Shore Boulevard, Floor 12
+                      Chicago, IL 60614
+Contact:              Rachel Kim, Office Manager
+Phone:                (312) 555-0289
+
+=============================================================
+INSURANCE COMPANY INFORMATION
+=============================================================
+
+Insurer:              Great Lakes Insurance Group
+NAIC Number:          31048
+AM Best Rating:       A (Excellent)
+Address:              200 N Michigan Avenue
+                      Chicago, IL 60601
+
+=============================================================
+COVERAGE DETAILS
+=============================================================
+
+COMMERCIAL GENERAL LIABILITY
+  Policy Period:      04/01/2024 - 04/01/2025
+  Each Occurrence:    $1,000,000
+  General Aggregate:  $2,000,000
+  Products Aggregate: $1,000,000
+  Personal/Adv Inj:   $1,000,000
+  Fire Damage:        $50,000
+  Medical Expense:    $5,000
+
+PROFESSIONAL LIABILITY (E&O)
+  Policy Period:      04/01/2024 - 04/01/2025
+  Each Claim:         $2,000,000
+  Aggregate:          $4,000,000
+  Retroactive Date:   06/01/2020
+  Deductible:         $15,000
+
+CYBER LIABILITY
+  Policy Period:      04/01/2024 - 04/01/2025
+  Each Incident:      $1,000,000
+  Aggregate:          $2,000,000
+  Includes:           Data breach response, regulatory defense
+
+WORKERS' COMPENSATION
+  Policy Period:      04/01/2024 - 04/01/2025
+  Each Accident:      $500,000
+  Disease - Each:     $500,000
+  Disease - Policy:   $500,000
+  State:              IL
+
+=============================================================
+NOTES
+=============================================================
+
+- Commercial Auto coverage: NOT INCLUDED (no company vehicles)
+- Umbrella/Excess policy: NOT INCLUDED
+- Coverage limits are lower than typical enterprise requirements
+- Policy renewal pending for April 2025
+
+Authorized Representative: Karen Walsh
+Date Issued: 2024-06-28

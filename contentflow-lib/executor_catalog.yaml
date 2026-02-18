@@ -85,6 +85,24 @@ executor_catalog:
         default: null
         ui_component: "input"
 
+      discover_mode:
+        type: string
+        title: "Discover Mode"
+        description: "Discovery mode: 'files' returns one Content per blob (default), 'virtual_folders' returns one Content per unique immediate subfolder under the prefix."
+        required: false
+        default: "files"
+        options: ["files", "virtual_folders"]
+        ui_component: "select"
+
+      prefix_from_input_field:
+        type: string
+        title: "Prefix From Input Field"
+        description: "Dot-separated field path in incoming Content's data to use as dynamic prefix (e.g., 'folder_prefix'). Overrides static prefix setting when set."
+        placeholder: "folder_prefix"
+        required: false
+        default: null
+        ui_component: "input"
+
       prefix:
         type: string
         title: "Blob Path Prefix"
@@ -5316,3 +5334,533 @@ executor_catalog:
       icon: "workflow"
       description_short: "Execute a nested ContentFlow pipeline"
       description_long: "Execute a nested ContentFlow pipeline as part of the current pipeline."
+
+  ########################################################
+  # Document Set Initializer Executor
+  - id: document_set_initializer
+    name: "Document Set Initializer"
+    description: "Initialize document set metadata on a list of Content items. Tags each item with set ID, role, order, and total for cross-document analysis."
+    module_path: contentflow.executors.document_set_initializer
+    class_name: DocumentSetInitializerExecutor
+    tags: [document_set, initializer, metadata, grouping]
+    category: "document_set"
+    version: "1.0"
+
+    settings_schema:
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if initialization fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      set_id:
+        type: string
+        title: "Set ID"
+        description: "Explicit set ID. If not provided, a UUID will be auto-generated."
+        placeholder: "my-document-set-id"
+        required: false
+        default: null
+        ui_component: "input"
+
+      set_name:
+        type: string
+        title: "Set Name"
+        description: "Human-readable name for the document set"
+        placeholder: "FY2024 Quarterly Reports"
+        required: false
+        default: null
+        ui_component: "input"
+
+      ordering_strategy:
+        type: string
+        title: "Ordering Strategy"
+        description: "How to determine document order within the set"
+        required: false
+        default: "filename_alpha"
+        options: ["filename_alpha", "filename_numeric", "explicit_mapping", "last_modified", "input_order"]
+        ui_component: "select"
+
+      role_field:
+        type: string
+        title: "Role Field"
+        description: "Metadata field or path to extract role from. If not set, uses filename stem or role_mapping."
+        placeholder: "metadata.period"
+        required: false
+        default: null
+        ui_component: "input"
+
+      role_mapping:
+        type: object
+        title: "Role Mapping"
+        description: "Explicit mapping of filename patterns to role labels. Example: {\"Q1\": \"Q1_2024\", \"Q2\": \"Q2_2024\"}"
+        required: false
+        default: null
+        ui_component: "json"
+
+      validate_set_size:
+        type: integer
+        title: "Validate Set Size"
+        description: "Expected number of documents in the set. 0 = no validation."
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+    ui_metadata:
+      icon: "layers"
+      description_short: "Initialize document set metadata"
+      description_long: "Tags Content items with document set metadata (set ID, role, order, total) for downstream cross-document analysis."
+
+  ########################################################
+  # Document Set Collector Executor
+  - id: document_set_collector
+    name: "Document Set Collector"
+    description: "Collect and consolidate processed documents from a document set into a single Content item for cross-document analysis."
+    module_path: contentflow.executors.document_set_collector
+    class_name: DocumentSetCollectorExecutor
+    tags: [document_set, collector, consolidation, aggregation]
+    category: "document_set"
+    version: "1.0"
+
+    settings_schema:
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if collection fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      require_complete_set:
+        type: boolean
+        title: "Require Complete Set"
+        description: "Fail if the number of collected documents doesn't match the expected total"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      fields_to_collect:
+        type: array
+        title: "Fields To Collect"
+        description: "Data fields to collect from each Content item. Empty means all fields."
+        required: false
+        default: null
+        ui_component: "json"
+
+      summary_fields_to_collect:
+        type: array
+        title: "Summary Fields To Collect"
+        description: "Summary fields to collect from each Content item. Empty means all (except document_set_* keys)."
+        required: false
+        default: null
+        ui_component: "json"
+
+      output_key:
+        type: string
+        title: "Output Key"
+        description: "Key in output Content.data for consolidated set data"
+        required: false
+        default: "document_set"
+        ui_component: "input"
+
+      include_raw_content_list:
+        type: boolean
+        title: "Include Raw Content List"
+        description: "Include the original Content items serialized under a separate key"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "archive"
+      description_short: "Collect document set into single Content"
+      description_long: "Consolidates all processed Content items from a document set into a single Content item with structured set data for cross-document analysis."
+
+  ########################################################
+  # Cross-Document Comparison Executor
+  - id: cross_document_comparison
+    name: "Cross-Document Comparison"
+    description: "AI-powered comparison of data across documents in a set using Azure OpenAI. Performs trend analysis, variance detection, and comparative insights."
+    module_path: contentflow.executors.cross_document_comparison
+    class_name: CrossDocumentComparisonExecutor
+    tags: [document_set, cross_document, comparison, ai, azure_openai, analysis]
+    category: "document_set"
+    version: "1.0"
+
+    settings_schema:
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if comparison fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      set_data_key:
+        type: string
+        title: "Set Data Key"
+        description: "Key in Content.data for the consolidated set data"
+        required: false
+        default: "document_set"
+        ui_component: "input"
+
+      output_key:
+        type: string
+        title: "Output Key"
+        description: "Key in Content.data for comparison analysis results"
+        required: false
+        default: "cross_document_analysis"
+        ui_component: "input"
+
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI endpoint URL"
+        placeholder: "${AZURE_OPENAI_ENDPOINT}"
+        required: true
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Deployment Name"
+        description: "Azure OpenAI model deployment name"
+        placeholder: "gpt-4.1"
+        required: true
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Azure credential type to use"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "API Key"
+        description: "API key for azure_key_credential authentication"
+        required: false
+        default: null
+        ui_component: "input"
+
+      comparison_instructions:
+        type: string
+        title: "Comparison Instructions"
+        description: "Custom prompt/instructions for the AI comparison. Supports multiline."
+        placeholder: "Compare the data across documents and identify trends..."
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      comparison_fields:
+        type: array
+        title: "Comparison Fields"
+        description: "Specific field paths to include in the comparison. If empty, sends all data."
+        required: false
+        default: null
+        ui_component: "json"
+
+      output_format:
+        type: string
+        title: "Output Format"
+        description: "Desired output format from the LLM"
+        required: false
+        default: "structured"
+        options: ["json", "markdown", "structured"]
+        ui_component: "select"
+
+      include_trend_analysis:
+        type: boolean
+        title: "Include Trend Analysis"
+        description: "Request period-over-period trend analysis"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      include_variance_detection:
+        type: boolean
+        title: "Include Variance Detection"
+        description: "Flag significant variances between periods"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      variance_threshold_pct:
+        type: number
+        title: "Variance Threshold (%)"
+        description: "Percentage change threshold to flag as significant"
+        required: false
+        default: 10.0
+        ui_component: "number"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature (0.0 to 2.0)"
+        required: false
+        default: 0.2
+        ui_component: "number"
+
+      max_tokens:
+        type: integer
+        title: "Max Tokens"
+        description: "Maximum tokens in AI response"
+        required: false
+        default: 2000
+        ui_component: "number"
+
+      max_retries:
+        type: integer
+        title: "Max Retries"
+        description: "Maximum retries on transient errors"
+        required: false
+        default: 3
+        ui_component: "number"
+
+    ui_metadata:
+      icon: "git-compare"
+      description_short: "AI-powered cross-document comparison"
+      description_long: "Uses Azure OpenAI to compare data across documents in a set. Generates trend analysis, variance detection, and comparative insights."
+
+  ########################################################
+  # Cross-Document Field Aggregator Executor
+  - id: cross_document_field_aggregator
+    name: "Cross-Document Field Aggregator"
+    description: "Deterministic aggregation of numeric and categorical fields across all documents in a set. Computes sum, avg, min, max, deltas, percentage changes, and trend detection."
+    module_path: contentflow.executors.cross_document_field_aggregator
+    class_name: CrossDocumentFieldAggregatorExecutor
+    tags: [document_set, cross_document, aggregation, metrics, analysis]
+    category: "document_set"
+    version: "1.0"
+
+    settings_schema:
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if aggregation fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      set_data_key:
+        type: string
+        title: "Set Data Key"
+        description: "Key in Content.data for the consolidated set data"
+        required: false
+        default: "document_set"
+        ui_component: "input"
+
+      output_key:
+        type: string
+        title: "Output Key"
+        description: "Key in Content.data for aggregation results"
+        required: false
+        default: "field_aggregations"
+        ui_component: "input"
+
+      aggregations:
+        type: array
+        title: "Aggregations"
+        description: "List of aggregation definitions. Each item should have 'field_path' (str), 'operations' (list of: sum, avg, min, max, count, delta, pct_change, trend, values), and optional 'output_key' (str)."
+        required: true
+        default: null
+        ui_component: "json"
+
+    ui_metadata:
+      icon: "calculator"
+      description_short: "Aggregate fields across document set"
+      description_long: "Performs deterministic calculations (sum, average, min, max, deltas, percentage changes, trend detection) across all documents in a set."
+
+  ########################################################
+  # For Each Content Executor (Control Flow)
+  - id: for_each_content
+    name: "For Each Content"
+    description: "Iterates over a List[Content] and applies an inline chain of executor steps to each item, with parallel execution and concurrency control. Eliminates the need for sub-pipelines for simple per-document processing chains."
+    module_path: contentflow.executors.for_each_content
+    class_name: ForEachContentExecutor
+    tags: [control_flow, iteration, parallel, document_set, loop]
+    category: "control_flow"
+    version: "1.0"
+
+    settings_schema:
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if the for-each executor fails"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed per-item step logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      steps:
+        type: array
+        title: "Steps"
+        description: "Ordered list of executor step definitions. Each step is a dict with 'id' (str), 'type' (str referencing an executor catalog ID), and optional 'settings' (dict). Items flow through steps sequentially."
+        required: true
+        default: null
+        ui_component: "json"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent"
+        description: "Maximum number of content items processed in parallel"
+        required: false
+        default: 5
+        min: 1
+        ui_component: "number"
+
+      timeout_per_item_secs:
+        type: integer
+        title: "Timeout Per Item (seconds)"
+        description: "Timeout for processing a single item through all steps"
+        required: false
+        default: 300
+        min: 1
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing remaining items if one item fails. Failed items pass through with original data."
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      preserve_order:
+        type: boolean
+        title: "Preserve Order"
+        description: "Return results in the same order as the input list"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "repeat"
+      description_short: "Iterate over items with inline steps"
+      description_long: "Applies an inline chain of executor steps to each Content item in a List[Content], with parallel execution and concurrency control. Use instead of sub-pipelines for simple per-document processing chains."
+      

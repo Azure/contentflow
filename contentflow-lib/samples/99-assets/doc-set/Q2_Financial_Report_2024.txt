@@ -1,0 +1,72 @@
+ACME CORPORATION
+Q2 2024 QUARTERLY FINANCIAL REPORT
+Period: April 1 - June 30, 2024
+Prepared by: Finance Department
+
+=============================================================
+EXECUTIVE SUMMARY
+=============================================================
+
+ACME Corporation maintained strong momentum in Q2, delivering
+6.7% quarter-over-quarter revenue growth. Revenue reached
+$11.2 million with particularly strong mid-market traction
+and early returns from the EMEA expansion initiative.
+
+=============================================================
+FINANCIAL HIGHLIGHTS
+=============================================================
+
+Revenue:              $11,200,000
+Cost of Goods Sold:   $4,480,000
+Gross Profit:         $6,720,000
+Operating Expenses:   $4,020,000
+EBITDA:               $3,500,000
+Net Income:           $2,700,000
+Profit Margin:        24.1%
+
+Headcount:            262 employees
+New Hires (Q2):       17
+Customer Count:       1,340
+
+=============================================================
+REVENUE BREAKDOWN BY SEGMENT
+=============================================================
+
+Enterprise Sales:     $6,496,000  (58%)
+Mid-Market:           $3,136,000  (28%)
+SMB / Self-Serve:     $1,568,000  (14%)
+
+=============================================================
+KEY INITIATIVES & MILESTONES
+=============================================================
+
+1. EMEA Market Expansion
+   - EMEA contributing 15% of new revenue
+   - 42 qualified opportunities in pipeline
+   - Expanded to cover DACH region (Germany, Austria, Switzerland)
+
+2. Product Development
+   - Analytics Dashboard v2.0 GA release (May 10)
+   - Mobile app beta testing with 50 customers
+   - API v3 launched with 200% improvement in throughput
+
+3. Customer Growth
+   - Net new logos: 90 accounts
+   - Enterprise upsells: $1.8M in expansion revenue
+   - NPS score improved to 72 (from 68 in Q1)
+
+=============================================================
+RISK FACTORS
+=============================================================
+
+- Currency headwinds in EMEA (EUR/USD volatility)
+- Key competitor launched aggressive pricing in mid-market
+- Infrastructure costs rising with customer growth
+
+=============================================================
+OUTLOOK
+=============================================================
+
+Q3 typically sees seasonal softness due to summer months.
+Revenue guidance for Q3: $10.5M - $11.0M. Full-year guidance
+raised to $44M - $46M (previously $42M - $44M).

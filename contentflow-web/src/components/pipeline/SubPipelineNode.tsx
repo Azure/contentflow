@@ -7,12 +7,11 @@ import { Workflow, ExternalLink, X } from "lucide-react";
 
 
 export const SubPipelineNode = ({ data, id }: NodeProps) => {
-  const { label, config, selectedPipelineId, savedPipelines = [], onDelete } = data;
+  const { label, config, selectedPipelineId, availablePipelines, onDelete, selectedPipelineName } = data;
 
   // Find the selected pipeline
-  const selectedPipeline = savedPipelines.find((p: any) => p.id === selectedPipelineId);
+  const selectedPipeline = availablePipelines.find((p: any) => p.id === selectedPipelineId);
   const executorCount = selectedPipeline ? selectedPipeline.nodes.length : 0;
-
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-secondary/30 min-w-[260px] relative group">

@@ -1,0 +1,94 @@
+VENDOR ONBOARDING APPLICATION FORM
+Application ID: APP-123-001
+Submission Date: 2024-06-15
+
+=============================================================
+SECTION 1: COMPANY INFORMATION
+=============================================================
+
+Legal Entity Name:    TechSupply Solutions LLC
+DBA / Trade Name:     TechSupply Solutions
+EIN / Tax ID:         82-4571923
+DUNS Number:          07-438-2917
+CAGE Code:            5K2R7
+
+Address:              1200 Innovation Drive, Suite 400
+City:                 Austin
+State:                TX
+ZIP Code:             78701
+Country:              United States
+
+Year Established:     2018
+Number of Employees:  145
+Annual Revenue:       $28,500,000
+Primary NAICS Code:   541512 (Computer Systems Design Services)
+
+=============================================================
+SECTION 2: PRIMARY CONTACT
+=============================================================
+
+Name:                 Sarah Chen
+Title:                VP of Business Development
+Email:                sarah.chen@techsupply.example.com
+Phone:                (512) 555-0147
+Mobile:               (512) 555-0198
+
+=============================================================
+SECTION 3: PRODUCTS & SERVICES OFFERED
+=============================================================
+
+Category 1: Cloud Infrastructure Management
+  - Azure/AWS/GCP deployment and management
+  - Infrastructure as Code (Terraform, Bicep)
+  - 24/7 monitoring and incident response
+  - SLA: 99.95% uptime guarantee
+
+Category 2: Software Development Services  
+  - Custom application development (.NET, Python, Node.js)
+  - API design and integration
+  - Legacy system modernization
+  - Agile/Scrum methodology
+
+Category 3: Data Analytics
+  - Business intelligence solutions
+  - Data warehouse design
+  - Real-time analytics dashboards
+  - Machine learning model deployment
+
+=============================================================
+SECTION 4: CERTIFICATIONS & COMPLIANCE
+=============================================================
+
+- ISO 27001:2022 (Information Security) - Valid through 2026-03
+- SOC 2 Type II - Last audit: 2024-02
+- Microsoft Gold Partner - Cloud Platform
+- AWS Advanced Consulting Partner
+- FedRAMP Moderate (In Progress - Expected 2025-Q1)
+
+=============================================================
+SECTION 5: REFERENCES
+=============================================================
+
+Reference 1:
+  Company:    GlobalBank Corp
+  Contact:    James Wright, CTO
+  Phone:      (212) 555-0342
+  Contract:   Cloud migration project ($4.2M)
+  Duration:   2022-2024
+
+Reference 2:
+  Company:    HealthFirst Networks
+  Contact:    Dr. Maria Santos, VP Engineering
+  Phone:      (415) 555-0891
+  Contract:   Analytics platform build ($2.8M)
+  Duration:   2023-2024
+
+=============================================================
+SECTION 6: DECLARATIONS
+=============================================================
+
+Conflict of Interest:          No
+Debarment or Suspension:       No
+Pending Litigation:            No
+Tax Delinquency:               No
+Previous Government Contracts: Yes (3 contracts, all completed satisfactorily)

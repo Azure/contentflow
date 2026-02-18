@@ -1,0 +1,86 @@
+ACME CORPORATION
+Q4 2024 QUARTERLY FINANCIAL REPORT
+Period: October 1 - December 31, 2024
+Prepared by: Finance Department
+
+=============================================================
+EXECUTIVE SUMMARY
+=============================================================
+
+ACME Corporation closed fiscal year 2024 with a record quarter.
+Revenue surged 21.3% QoQ to $13.1 million, driven by strong
+enterprise deal closures and holiday demand in the SMB segment.
+Profit margin recovered to 29.8%, the highest of the year.
+
+=============================================================
+FINANCIAL HIGHLIGHTS
+=============================================================
+
+Revenue:              $13,100,000
+Cost of Goods Sold:   $4,847,000
+Gross Profit:         $8,253,000
+EBITDA:               $4,800,000
+Operating Expenses:   $4,353,000
+Net Income:           $3,900,000
+Profit Margin:        29.8%
+
+Headcount:            285 employees
+New Hires (Q4):       15
+Customer Count:       1,520
+
+=============================================================
+REVENUE BREAKDOWN BY SEGMENT
+=============================================================
+
+Enterprise Sales:     $7,862,000  (60%)
+Mid-Market:           $3,406,000  (26%)
+SMB / Self-Serve:     $1,832,000  (14%)
+
+=============================================================
+KEY INITIATIVES & MILESTONES
+=============================================================
+
+1. Enterprise Growth
+   - Closed 8 enterprise deals > $200K ARR
+   - Largest single deal: $1.2M (3-year contract with Fortune 500)
+   - Enterprise deal closures drove 40% of Q4 revenue
+
+2. Product Excellence
+   - AI-powered content suggestions GA (Nov 15)
+   - Platform processing 2.5M documents/month (up from 1.8M in Q3)
+   - Customer-reported bugs down 42% YoY
+
+3. Year-End Metrics
+   - Full-year revenue: $45.6M (within guidance range)
+   - Full-year net income: $10.8M
+   - ARR growth: 28% YoY
+   - Customer NPS: 74
+
+=============================================================
+RISK FACTORS
+=============================================================
+
+- Key employee retention: 3 senior engineers departed in Q4
+- Rising cloud infrastructure costs ($380K/month, up 22% YoY)
+- Regulatory changes in EU may impact EMEA operations
+
+=============================================================
+FY2024 FULL YEAR SUMMARY
+=============================================================
+
+Total Revenue:        $45,600,000
+Total Net Income:     $10,800,000
+Average Margin:       23.4%
+Year-End Headcount:   285
+Year-End Customers:   1,520
+ARR:                  $52,000,000
+
+=============================================================
+FY2025 OUTLOOK
+=============================================================
+
+Management targets $55M - $60M in revenue for FY2025,
+representing 20-32% growth. Key drivers include:
+- APAC market entry (H2 2025)
+- Launch of Enterprise Analytics Suite
+- Partner channel expansion to 15% of revenue

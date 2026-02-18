@@ -1,0 +1,80 @@
+CERTIFICATE OF INSURANCE
+Policy Number: CGL-2024-78451
+
+=============================================================
+INSURED INFORMATION
+=============================================================
+
+Named Insured:        TechSupply Solutions LLC
+Address:              1200 Innovation Drive, Suite 400
+                      Austin, TX 78701
+Contact:              Jennifer Park, Risk Manager
+Phone:                (512) 555-0204
+
+=============================================================
+INSURANCE COMPANY INFORMATION
+=============================================================
+
+Insurer:              National Business Insurance Co.
+NAIC Number:          23841
+AM Best Rating:       A+ (Superior)
+Address:              500 Financial Center Drive
+                      Hartford, CT 06103
+
+=============================================================
+COVERAGE DETAILS
+=============================================================
+
+COMMERCIAL GENERAL LIABILITY
+  Policy Period:      01/01/2024 - 01/01/2025
+  Each Occurrence:    $2,000,000
+  General Aggregate:  $4,000,000
+  Products Aggregate: $2,000,000
+  Personal/Adv Inj:   $1,000,000
+  Fire Damage:        $100,000
+  Medical Expense:    $10,000
+
+PROFESSIONAL LIABILITY (E&O)
+  Policy Period:      01/01/2024 - 01/01/2025
+  Each Claim:         $5,000,000
+  Aggregate:          $10,000,000
+  Retroactive Date:   01/01/2018
+  Deductible:         $25,000
+
+CYBER LIABILITY
+  Policy Period:      01/01/2024 - 01/01/2025
+  Each Incident:      $3,000,000
+  Aggregate:          $5,000,000
+  Includes:           Data breach response, business interruption,
+                      media liability, regulatory defense
+
+WORKERS' COMPENSATION
+  Policy Period:      01/01/2024 - 01/01/2025
+  Each Accident:      $1,000,000
+  Disease - Each:     $1,000,000
+  Disease - Policy:   $1,000,000
+  State:              TX, CA, NY
+
+COMMERCIAL AUTO
+  Policy Period:      01/01/2024 - 01/01/2025
+  Combined Single:    $1,000,000
+  Coverage:           Hired & Non-Owned Auto
+
+=============================================================
+ADDITIONAL INSUREDS
+=============================================================
+
+Certificate Holder and Additional Insured:
+  Dynamics Corp (or as may be required per contract)
+
+=============================================================
+CANCELLATION NOTICE
+=============================================================
+
+Should any of the above described policies be cancelled before
+the expiration date thereof, notice will be delivered in
+accordance with the policy provisions. 30 days written notice
+for non-payment; 60 days for all other reasons.
+
+Authorized Representative: Michael Torres
+Date Issued: 2024-06-10

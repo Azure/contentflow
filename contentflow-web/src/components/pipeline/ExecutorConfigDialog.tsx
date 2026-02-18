@@ -17,7 +17,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, Info } from "lucide-react";
 import type { ExecutorWithUI } from "@/lib/executorUiMapper";
+import { enrichExecutorsWithUI } from "@/lib/executorUiMapper";
 import type { ExecutorSetting } from "@/types/components";
+import { getExecutors } from "@/lib/api/executorsApi";
+import { StepListEditor, StepDefinition } from "@/components/pipeline/StepListEditor";
 
 interface ExecutorConfigDialogProps {
   open: boolean;
@@ -43,6 +46,8 @@ export const ExecutorConfigDialog = ({
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [steps, setSteps] = useState<StepDefinition[]>([]);
+  const [availableExecutorsForSteps, setAvailableExecutorsForSteps] = useState<ExecutorWithUI[]>([]);
 
   useEffect(() => {
     if (executor) {
@@ -54,11 +59,23 @@ export const ExecutorConfigDialog = ({
       // Add sub-pipeline specific field
       if (executor.category === "pipeline") {
         initialValues.selectedPipelineId = initialConfig?.selectedPipelineId || "";
+        initialValues.selectedPipelineName = initialConfig?.selectedPipelineName || "";
+      }
+
+      // Initialize steps for for_each_content executors
+      const isForEachContent = executor.category === "control_flow" || executor.id === "for_each_content";
+      if (isForEachContent) {
+        const initialSteps = initialConfig?.settings?.steps || [];
+        setSteps(initialSteps);
+      } else {
+        setSteps([]);
       }
 
       // Load values from settings schema
       if (executor.settings_schema) {
         Object.entries(executor.settings_schema).forEach(([key, schema]) => {
+          // Skip 'steps' — handled by StepListEditor
+          if (key === "steps") return;
           const setting = schema as ExecutorSetting;
           if (initialConfig?.settings?.[key] !== undefined) {
             initialValues[key] = initialConfig.settings[key];
@@ -88,6 +105,16 @@ export const ExecutorConfigDialog = ({
       setErrors({});
     }
   }, [executor, initialConfig]);
+
+  // Load available executors for step palette when editing a for_each_content executor
+  useEffect(() => {
+    const isForEachContent = executor?.category === "control_flow" || executor?.id === "for_each_content";
+    if (isForEachContent && open && availableExecutorsForSteps.length === 0) {
+      getExecutors()
+        .then((execs) => setAvailableExecutorsForSteps(enrichExecutorsWithUI(execs)))
+        .catch((err) => console.error("Failed to load executors for step editor:", err));
+    }
+  }, [executor, open]);
 
   const validateField = (key: string, value: any, setting: ExecutorSetting): string | null => {
     if (setting.required && (value === null || value === undefined || value === "")) {
@@ -123,6 +150,8 @@ export const ExecutorConfigDialog = ({
 
     if (executor?.settings_schema) {
       Object.entries(executor.settings_schema).forEach(([key, schema]) => {
+        // Skip 'steps' — validated separately
+        if (key === "steps") return;
         const setting = schema as ExecutorSetting;
         const error = validateField(key, config[key], setting);
         if (error) {
@@ -141,12 +170,19 @@ export const ExecutorConfigDialog = ({
     }
 
     // Separate base config from settings
-    const { name, description, selectedPipelineId, ...settings } = config;
+    const { name, description, selectedPipelineId, selectedPipelineName, ...settings } = config;
     
+    // Merge steps back into settings for for_each_content executors
+    const isForEachContent = executor?.category === "control_flow" || executor?.id === "for_each_content";
+    if (isForEachContent) {
+      settings.steps = steps;
+    }
+
     const savedConfig = {
       name,
       description,
       ...(selectedPipelineId && { selectedPipelineId }),
+      ...(selectedPipelineName && { selectedPipelineName }),
       settings,
     };
 
@@ -154,17 +190,18 @@ export const ExecutorConfigDialog = ({
   };
 
   const handleFieldChange = (key: string, value: any) => {
-    setConfig({ ...config, [key]: value });
+    setConfig((prev) => ({ ...prev, [key]: value }));
     
     // Clear error for this field when changed
     if (errors[key]) {
-      setErrors({ ...errors, [key]: "" });
+      setErrors((prev) => ({ ...prev, [key]: "" }));
     }
   };
 
   if (!executor) return null;
 
   const isSubPipeline = executor.category === "pipeline";
+  const isForEachContent = executor.category === "control_flow" || executor.id === "for_each_content";
   
   const renderField = (key: string, setting: ExecutorSetting) => {
     const value = config[key];
@@ -357,7 +394,9 @@ export const ExecutorConfigDialog = ({
           <DialogDescription>
             {isSubPipeline
               ? "Select a saved pipeline to use as a sub-pipeline"
-              : "Set up parameters and options for this executor"}
+              : isForEachContent
+                ? "Configure the inline per-item processing chain and concurrency settings"
+                : "Set up parameters and options for this executor"}
           </DialogDescription>
         </DialogHeader>
 
@@ -403,7 +442,11 @@ export const ExecutorConfigDialog = ({
               </Label>
               <Select
                 value={config.selectedPipelineId || ""}
-                onValueChange={(value) => handleFieldChange("selectedPipelineId", value)}
+                onValueChange={(value) => {
+                  handleFieldChange("selectedPipelineId", value);
+                  const selected = availablePipelines.find((p) => p.id === value);
+                  handleFieldChange("selectedPipelineName", selected?.name || "");
+                }}
               >
                 <SelectTrigger id="pipeline" className={errors.selectedPipelineId ? "border-red-500" : ""}>
                   <SelectValue placeholder="Choose a saved pipeline..." />
@@ -434,14 +477,29 @@ export const ExecutorConfigDialog = ({
           {executor.settings_schema && Object.keys(executor.settings_schema).length > 0 && (
             <>
               <div className="border-t pt-3 mt-3">
-                <h4 className="text-sm font-semibold mb-2 px-1">Executor Settings</h4>
+                <h4 className="text-sm font-semibold mb-2 px-1">
+                  {isForEachContent ? "Loop Settings" : "Executor Settings"}
+                </h4>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 px-1">
-                  {Object.entries(executor.settings_schema).map(([key, schema]) =>
-                    renderField(key, schema as ExecutorSetting)
-                  )}
+                  {Object.entries(executor.settings_schema)
+                    .filter(([key]) => key !== "steps")
+                    .map(([key, schema]) =>
+                      renderField(key, schema as ExecutorSetting)
+                    )}
                 </div>
               </div>
             </>
+          )}
+
+          {/* StepListEditor for for_each_content executors */}
+          {isForEachContent && (
+            <div className="border-t pt-3 mt-3">
+              <StepListEditor
+                steps={steps}
+                onChange={setSteps}
+                availableExecutors={availableExecutorsForSteps}
+              />
+            </div>
           )}
         </div>
 

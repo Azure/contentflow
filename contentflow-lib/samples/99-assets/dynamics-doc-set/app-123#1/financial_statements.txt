@@ -1,0 +1,105 @@
+FINANCIAL STATEMENT SUMMARY
+TechSupply Solutions LLC
+Fiscal Year Ending December 31, 2023
+
+Prepared by: Anderson & Associates CPAs
+Engagement Type: Reviewed Financial Statements
+
+=============================================================
+INCOME STATEMENT (FY2023)
+=============================================================
+
+Revenue
+  Service Revenue:              $24,200,000
+  Product Revenue:              $3,800,000
+  Recurring / SaaS Revenue:     $500,000
+  -------------------------------------------
+  Total Revenue:                $28,500,000
+
+Cost of Revenue
+  Direct Labor:                 $11,400,000
+  Subcontractors:               $2,850,000
+  Cloud Infrastructure:         $1,425,000
+  -------------------------------------------
+  Total Cost of Revenue:        $15,675,000
+
+Gross Profit:                   $12,825,000
+Gross Margin:                   45.0%
+
+Operating Expenses
+  Sales & Marketing:            $4,275,000
+  Research & Development:       $3,420,000
+  General & Administrative:     $2,565,000
+  Depreciation & Amortization:  $570,000
+  -------------------------------------------
+  Total Operating Expenses:     $10,830,000
+
+Operating Income:               $1,995,000
+Operating Margin:               7.0%
+
+Other Income / (Expense)
+  Interest Expense:             ($120,000)
+  Other Income:                 $45,000
+
+Net Income Before Tax:          $1,920,000
+Income Tax Provision:           $480,000
+Net Income:                     $1,440,000
+Net Margin:                     5.1%
+
+=============================================================
+BALANCE SHEET (as of 12/31/2023)
+=============================================================
+
+ASSETS
+Current Assets
+  Cash & Equivalents:           $4,200,000
+  Accounts Receivable:          $5,700,000
+  Unbilled Revenue:             $1,200,000
+  Prepaid Expenses:             $380,000
+  -------------------------------------------
+  Total Current Assets:         $11,480,000
+
+Non-Current Assets
+  Property & Equipment (net):   $1,850,000
+  Intangible Assets:            $620,000
+  Right-of-Use Assets:          $1,400,000
+  Deposits:                     $150,000
+  -------------------------------------------
+  Total Non-Current Assets:     $4,020,000
+
+TOTAL ASSETS:                   $15,500,000
+
+LIABILITIES
+Current Liabilities
+  Accounts Payable:             $2,100,000
+  Accrued Liabilities:          $1,800,000
+  Deferred Revenue:             $950,000
+  Current Portion of Debt:      $300,000
+  Lease Obligations (current):  $420,000
+  -------------------------------------------
+  Total Current Liabilities:    $5,570,000
+
+Non-Current Liabilities
+  Long-Term Debt:               $1,200,000
+  Lease Obligations:            $1,050,000
+  -------------------------------------------
+  Total Non-Current Liabilities:$2,250,000
+
+TOTAL LIABILITIES:              $7,820,000
+
+EQUITY
+  Members' Capital:             $7,680,000
+
+TOTAL LIABILITIES & EQUITY:     $15,500,000
+
+=============================================================
+KEY FINANCIAL RATIOS
+=============================================================
+
+Current Ratio:                  2.06
+Quick Ratio:                    1.78
+Debt-to-Equity:                 0.20
+Revenue Growth (YoY):           18.3%
+EBITDA:                         $2,565,000
+EBITDA Margin:                  9.0%
+Days Sales Outstanding (DSO):   73 days
