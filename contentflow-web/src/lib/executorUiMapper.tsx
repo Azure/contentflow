@@ -79,6 +79,7 @@ const getCategoryDefaultUI = (category: string): { icon: React.ReactNode; color:
     output: { icon: <Save className="w-5 h-5" />, color: "bg-green-500" },
     utility: { icon: <Settings className="w-5 h-5" />, color: "bg-gray-500" },
     pipeline: { icon: <Network className="w-5 h-5" />, color: "bg-violet-500" },
+    document_set: { icon: <BookOpen className="w-5 h-5" />, color: "bg-yellow-500" },
     control_flow: { icon: <Repeat className="w-5 h-5" />, color: "bg-amber-500" },
   };
   
