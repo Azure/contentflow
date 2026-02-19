@@ -36,7 +36,8 @@ import {
   Plus, Play, ChevronDown, ChevronRight,
   Film, Wand2, Network, FolderInput, Save, Brain, GitBranch, FileText, Search,
   FileUp, FilePlus, Code, Layout, Loader2, Clock,
-  Settings, Repeat
+  Settings, Repeat,
+  BookOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExecutorNode } from "@/components/pipeline/ExecutorNode";
@@ -460,6 +461,7 @@ export const PipelineBuilder = () => {
       output: <Save className="w-4 h-4" />,
       pipeline: <Network className="w-4 h-4" />,
       utility: <Settings className="w-4 h-4" />,
+      document_set: <BookOpen className="w-4 h-4" />,
       control_flow: <Repeat className="w-4 h-4" />,
     };
     return icons[category.toLocaleLowerCase()] || null;
@@ -476,7 +478,7 @@ export const PipelineBuilder = () => {
       output: "Output Destinations",
       pipeline: "Pipeline Control",
       utility: "Utility",
-      document_sets: "Document Sets",
+      document_set: "Document Sets",
       control_flow: "Control Flow",
     };
     return labels[category.toLocaleLowerCase()] || category;
