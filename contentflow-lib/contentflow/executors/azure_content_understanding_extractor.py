@@ -46,6 +46,12 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
           Default: 60
         - content_understanding_model_mappings (str): Default model deployment mappings in Json format.
           Default: None
+        - retrieve_figures (bool): Whether to retrieve figure/image files from the analysis result.
+          When True, the executor scans the analysis result for figures and downloads
+          each figure's image bytes via the Content Understanding Get Result File API.
+          Default: False
+        - figures_output_field (str): Field name for storing retrieved figure data.
+          Default: "figures"
 
         Also setting from ParallelExecutor and BaseExecutor apply.
         
@@ -87,6 +93,8 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
         self.output_field = self.get_setting("output_field", default="content_understanding_output")
+        self.retrieve_figures = self.get_setting("retrieve_figures", default=False)
+        self.figures_output_field = self.get_setting("figures_output_field", default="figures")
         
         # Content Understanding connector config
         self.content_understanding_endpoint = self.get_setting("content_understanding_endpoint", default=None, required=True)
@@ -232,6 +240,16 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             # Store response as output
             content.data[f"{self.output_field}"] = analysis_result
             
+            # Optionally retrieve figures from the result
+            if self.retrieve_figures:
+                figures_data = await self._retrieve_figures(analysis_result)
+                if figures_data:
+                    content.data[self.figures_output_field] = figures_data
+                    if self.debug_mode:
+                        logger.debug(
+                            f"Retrieved {len(figures_data)} figure(s) for document {content.id}"
+                        )
+            
             # Update summary
             content.summary_data['extraction_status'] = "success"
             content.summary_data['analyzer_id'] = self.analyzer_id
@@ -247,3 +265,95 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             raise
         
         return content
+
+    async def _retrieve_figures(
+        self,
+        analysis_result: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve figure/image files from an analysis result.
+        
+        Scans the analysis result for figures and downloads each figure's
+        binary content using the Content Understanding Get Result File API.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/contentunderstanding/
+             content-analyzers/get-result-file?view=rest-contentunderstanding-2025-11-01
+        
+        Args:
+            analysis_result: The completed analysis result dict from Content Understanding.
+            
+        Returns:
+            A list of dicts, each containing:
+                - id (str): The figure identifier
+                - bytes (bytes): The figure image binary data
+                - content_type (str): Inferred content type (e.g. "image/png")
+                - Additional metadata from the figure element (boundingRegions, spans, etc.)
+        """
+        operation_id = analysis_result.get("id")
+        if not operation_id:
+            logger.warning("No operation ID found in analysis result; cannot retrieve figures.")
+            return []
+        
+        # Navigate to figures in the result structure
+        result = analysis_result.get("result", {})
+        contents = result.get("contents", [])
+        
+        figures = []
+        for content_item in contents:
+            content_figures = content_item.get("figures", [])
+            figures.extend(content_figures)
+        
+        if not figures:
+            if self.debug_mode:
+                logger.debug(f"No figures found in analysis result for operation {operation_id}")
+            return []
+        
+        logger.info(
+            f"Found {len(figures)} figure(s) in analysis result for operation {operation_id}. "
+            f"Retrieving figure files..."
+        )
+        
+        retrieved_figures: List[Dict[str, Any]] = []
+        
+        for figure in figures:
+            figure_id = figure.get("id", "")
+            if not figure_id:
+                logger.warning("Figure entry missing 'id', skipping.")
+                continue
+            
+            # The file path for the Get Result File API
+            file_path = f"files/figures/{figure_id}"
+            
+            try:
+                figure_bytes = await self.content_understanding_connector.get_result_file(
+                    operation_id=operation_id,
+                    file_path=file_path
+                )
+                
+                figure_data: Dict[str, Any] = {
+                    "id": figure_id,
+                    "bytes": figure_bytes,
+                    "content_type": "image/png",
+                }
+                
+                # Carry over useful metadata from the figure element
+                for key in ("boundingRegions", "source", "span", "caption", "description", "elements"):
+                    if key in figure:
+                        figure_data[key] = figure[key]
+                
+                retrieved_figures.append(figure_data)
+                
+                if self.debug_mode:
+                    logger.debug(
+                        f"Retrieved figure '{figure_id}' ({len(figure_bytes)} bytes) "
+                        f"for operation {operation_id}"
+                    )
+                    
+            except Exception as e:
+                logger.warning(
+                    f"Failed to retrieve figure '{figure_id}' for operation {operation_id}: {e}"
+                )
+                # Continue retrieving remaining figures
+                continue
+        
+        return retrieved_figures
