@@ -176,6 +176,9 @@ class ContentUnderstandingConnector(ConnectorBase):
     def _get_defaults_url(self) -> str:
         return f"{self.endpoint}/contentunderstanding/defaults?api-version={self.api_version}"
     
+    def _get_results_file_url(self, operation_id: str, file_path: str) -> str:
+        return f"{self.endpoint}/contentunderstanding/analyzerResults/{operation_id}/{file_path}?api-version={self.api_version}"
+    
     def _retry_on_error(self, method):
         """Decorator to add retry logic with exponential backoff."""
         @wraps(method)
@@ -346,14 +349,21 @@ class ContentUnderstandingConnector(ConnectorBase):
                     operation_location = response.headers.get("operation-location", "")
                     if not operation_location:
                         raise ValueError("Operation location not found in response headers")
-                    return operation_location
+                    
+                    response_json = await response.json()
+                    logger.debug(f"Received response for file analysis: {response_json}")
+                    return operation_location, response_json
             
-            operation_location = await _post()
+            operation_location, response_json = await _post()
             
-            logger.info(f"Started analysis for file {file_path} with analyzer {analyzer_id}")
+            # extrac operation ID from the response JSON if available for better logging
+            operation_id = response_json.get("id", "unknown")
+            operation_status = response_json.get("status", "unknown")
+            
+            logger.info(f"Started analysis for file {file_path} with analyzer {analyzer_id}: Response status: {operation_status}, Operation ID: {operation_id}")
             
             # Poll for results
-            return await self.poll_result(operation_location)
+            return await self.poll_result(operation_location, operation_id)
             
         except Exception as e:
             logger.error(f"Error analyzing document from file {file_path}: {str(e)}")
@@ -416,6 +426,7 @@ class ContentUnderstandingConnector(ConnectorBase):
     async def poll_result(
         self,
         operation_location: str,
+        operation_id: str = "unknown",
         timeout_seconds: int = None,
         polling_interval_seconds: int = None
     ) -> Dict[str, Any]:
@@ -424,6 +435,7 @@ class ContentUnderstandingConnector(ConnectorBase):
         
         Args:
             operation_location: URL to poll for operation status
+            operation_id: ID of the operation (for logging purposes)
             timeout_seconds: Maximum time to wait for results
             polling_interval_seconds: Time between polling attempts
             
@@ -435,6 +447,8 @@ class ContentUnderstandingConnector(ConnectorBase):
         
         timeout = timeout_seconds or self.timeout
         interval = polling_interval_seconds or self.polling_interval
+        
+        logger.debug(f"Polling for results at {operation_location} with timeout {timeout}s and interval {interval}s (Operation ID: {operation_id})")
         
         start_time = asyncio.get_event_loop().time()
         
@@ -530,6 +544,54 @@ class ContentUnderstandingConnector(ConnectorBase):
         
         return extracted
     
+    async def get_result_file(
+        self,
+        operation_id: str,
+        file_path: str
+    ) -> bytes:
+        """
+        Get a file associated with the result of an analysis operation.
+        
+        This retrieves files such as extracted figures/images that are
+        referenced in analysis results.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/contentunderstanding/
+             content-analyzers/get-result-file?view=rest-contentunderstanding-2025-11-01
+        
+        Args:
+            operation_id: The operation identifier from the analysis result.
+            file_path: The file path (e.g., "figures/1.1").
+            
+        Returns:
+            The file content as bytes.
+        """
+        if not self.session:
+            raise RuntimeError("Connector not initialized. Call initialize() first.")
+        
+        url = self._get_results_file_url(operation_id, file_path)
+        
+        logger.debug(
+            f"Retrieving result file: operation_id={operation_id}, "
+            f"file_path={file_path}, url={url}"
+        )
+        
+        @self._retry_on_error
+        async def _get():
+            async with self.session.get(
+                url=url,
+                headers=self.headers
+            ) as response:
+                await self._raise_for_status_with_detail(response)
+                return await response.read()
+        
+        file_bytes = await _get()
+        
+        logger.info(
+            f"Retrieved result file '{file_path}' ({len(file_bytes)} bytes) "
+            f"for operation {operation_id}"
+        )
+        return file_bytes
+
     async def cleanup(self) -> None:
         """Cleanup connector resources."""
         if self.session:

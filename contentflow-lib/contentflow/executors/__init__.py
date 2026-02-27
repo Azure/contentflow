@@ -21,6 +21,7 @@ from .recursive_text_chunker_executor import RecursiveTextChunkerExecutor
 from .word_extractor import WordExtractorExecutor
 from .powerpoint_extractor import PowerPointExtractorExecutor
 from .excel_extractor import ExcelExtractorExecutor
+from .csv_extractor import CSVExtractorExecutor
 from .table_row_splitter_executor import TableRowSplitterExecutor
 from .azure_openai_agent_executor import AzureOpenAIAgentExecutor
 from .azure_openai_embeddings_executor import AzureOpenAIEmbeddingsExecutor
@@ -77,6 +78,7 @@ __all__ = [
     "WordExtractorExecutor",
     "PowerPointExtractorExecutor",
     "ExcelExtractorExecutor",
+    "CSVExtractorExecutor",
     "TableRowSplitterExecutor",
     "AzureOpenAIAgentExecutor",
     "AzureOpenAIEmbeddingsExecutor",

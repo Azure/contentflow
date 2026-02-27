@@ -764,6 +764,22 @@ executor_catalog:
         required: false
         default: "prebuilt-documentSearch"
         ui_component: "input"
+
+      retrieve_figures:
+        type: boolean
+        title: "Retrieve Figures"
+        description: "Whether to retrieve figures (images) from the document when using an analyzer that supports figure extraction. Note that this may increase execution time and cost."
+        required: false
+        default: false
+        ui_component: "checkbox"
+      
+      figures_output_field:
+        type: string
+        title: "Figures Output Field"
+        description: "Field to store extracted figures if Retrieve Figures is enabled. Each figure will be stored as a dictionary with keys such as 'id', 'bytes', 'content_type', and any metadata returned by the service."
+        required: false
+        default: "figures"
+        ui_component: "input"
       
       content_understanding_endpoint:
         type: string
@@ -5863,4 +5879,181 @@ executor_catalog:
       icon: "repeat"
       description_short: "Iterate over items with inline steps"
       description_long: "Applies an inline chain of executor steps to each Content item in a List[Content], with parallel execution and concurrency control. Use instead of sub-pipelines for simple per-document processing chains."
+
+  ########################################################
+  # CSV Extractor
+  - id: csv_extractor
+    name: "CSV Extractor"
+    description: "Extracts structured rows and columns from CSV, TSV, and other delimited files"
+    module_path: contentflow.executors.csv_extractor
+    class_name: CSVExtractorExecutor
+    tags: [extraction, csv, tsv, delimited, tabular]
+    category: "extract"
+    version: "1.0"
+
+    settings_schema:
+      # common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition to evaluate for each content item to determine if it should be processed"
+        required: false
+        default: null
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if CSV extraction fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # executor-specific settings
+      content_field:
+        type: string
+        title: "Content Field"
+        description: "Field containing CSV bytes or string content. Either this or 'temp_file_path_field' must be provided."
+        required: false
+        default: "content"
+        ui_component: "input"
+
+      temp_file_path_field:
+        type: string
+        title: "Temp File Path Field"
+        description: "Field containing the temp file path to a CSV file. Either this or 'content_field' must be provided."
+        required: false
+        default: "temp_file_path"
+        ui_component: "input"
+
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field to store extracted CSV output"
+        required: false
+        default: "csv_output"
+        ui_component: "input"
+
+      delimiter:
+        type: string
+        title: "Delimiter"
+        description: "Column delimiter character (e.g. ',' for CSV, '\t' for TSV)"
+        required: false
+        default: ","
+        ui_component: "input"
+
+      quotechar:
+        type: string
+        title: "Quote Character"
+        description: "Character used to quote fields containing the delimiter"
+        required: false
+        default: '"'
+        ui_component: "input"
+
+      has_header:
+        type: boolean
+        title: "Has Header Row"
+        description: "Whether the first row contains column headers"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      encoding:
+        type: string
+        title: "Encoding"
+        description: "Character encoding of the CSV file"
+        required: false
+        default: "utf-8"
+        options: ["utf-8", "utf-8-sig", "latin-1", "iso-8859-1", "ascii", "cp1252"]
+        ui_component: "select"
+
+      max_rows:
+        type: integer
+        title: "Max Rows"
+        description: "Maximum number of data rows to extract (0 = unlimited)"
+        required: false
+        default: 0
+        min: 0
+        ui_component: "number"
+
+      skip_empty_rows:
+        type: boolean
+        title: "Skip Empty Rows"
+        description: "Skip rows where all fields are empty"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      strip_whitespace:
+        type: boolean
+        title: "Strip Whitespace"
+        description: "Strip leading/trailing whitespace from cell values"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      infer_types:
+        type: boolean
+        title: "Infer Types"
+        description: "Attempt to infer numeric types (int/float) for cell values"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      extract_text:
+        type: boolean
+        title: "Extract Text"
+        description: "Produce a plain-text table representation of the CSV"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Parallel Executions"
+        description: "Maximum number of concurrent executions"
+        required: false
+        default: 3
+        min: 1
+        max: 10
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout for executor execution in seconds"
+        required: false
+        default: 300
+        min: 10
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if extraction fails for one"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "table"
+      description_short: "Extract CSV content"
+      description_long: "Extracts structured rows and columns from CSV, TSV, and other delimited files. Supports header detection, type inference, row limits, and plain-text output."
       
