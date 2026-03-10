@@ -18,7 +18,7 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "azure-identity>=1.15.0",
     "aiohttp>=3.13.3",
-    "agent-framework==1.0.0b251223",
+    "agent-framework==1.0.0b260130",
     "azure-core==1.38.0",
     "azure-identity==1.25.1",
     "azure-storage-blob==12.27.1",

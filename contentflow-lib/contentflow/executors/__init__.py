@@ -38,6 +38,7 @@ from .field_selector_executor import FieldSelectorExecutor
 from .gptrag_search_index_doc_generator import GPTRAGSearchIndexDocumentGeneratorExecutor
 from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
+from .cosmos_db_lookup_executor import CosmosDBLookupExecutor
 
 # Document Set executors
 from .document_set_initializer import DocumentSetInitializerExecutor
@@ -94,6 +95,7 @@ __all__ = [
     "FieldSelectorExecutor",
     "GPTRAGSearchIndexDocumentGeneratorExecutor",
     "PassThroughExecutor",
+    "CosmosDBLookupExecutor",
     # Document Set
     "DocumentSetInitializerExecutor",
     "DocumentSetCollectorExecutor",
