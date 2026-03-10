@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, List, Union
 
 try:
     from agent_framework.azure import AzureOpenAIResponsesClient
-    from agent_framework import ChatAgent, AgentRunResponse
+    from agent_framework import ChatAgent, AgentResponse
 except ImportError:
     raise ImportError(
         "agent-framework and azure-identity are required for AI Agent execution. "

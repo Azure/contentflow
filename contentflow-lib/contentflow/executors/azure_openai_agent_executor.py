@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 
 try:
     from agent_framework.azure import AzureOpenAIResponsesClient
-    from agent_framework import ChatAgent, AgentRunResponse
+    from agent_framework import ChatAgent, AgentResponse
     from agent_framework.exceptions import ServiceResponseException
 except ImportError:
     raise ImportError(
@@ -223,7 +223,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
     async def _run_agent(
         self,
         query: Optional[str] = None,
-    ) -> tuple[str, AgentRunResponse]:
+    ) -> tuple[str, AgentResponse]:
         """Run agent in non-streaming mode.
         
         Args:

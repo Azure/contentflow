@@ -6056,4 +6056,194 @@ executor_catalog:
       icon: "table"
       description_short: "Extract CSV content"
       description_long: "Extracts structured rows and columns from CSV, TSV, and other delimited files. Supports header detection, type inference, row limits, and plain-text output."
-      
+
+  ########################################################
+  # Cosmos DB Lookup Executor
+  - id: cosmos_db_lookup
+    name: "Cosmos DB Lookup"
+    description: "Look up records in Azure Cosmos DB NoSQL containers to validate or enrich content fields. Supports point-reads and parameterised SQL queries with results written back to content data."
+    module_path: contentflow.executors.cosmos_db_lookup_executor
+    class_name: CosmosDBLookupExecutor
+    tags: [lookup, cosmos, azure, nosql, validation, enrichment, database]
+    category: "transform"
+    version: "1.0"
+
+    settings_schema:
+      # ---- Common settings ----
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      condition:
+        type: string
+        title: "Condition"
+        description: "Condition expression evaluated per content item"
+        required: false
+        default: ""
+        ui_component: "textarea"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if a lookup error occurs"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug logging for queries and results"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # ---- Connection settings ----
+      cosmos_endpoint:
+        type: string
+        title: "Cosmos DB Endpoint"
+        description: "Azure Cosmos DB account endpoint URL. Supports ${ENV_VAR} syntax."
+        required: true
+        default: ""
+        ui_component: "input"
+
+      cosmos_key:
+        type: string
+        title: "Cosmos DB Key"
+        description: "Cosmos DB account key. Required when credential_type is 'key'. Supports ${ENV_VAR} syntax."
+        required: false
+        default: ""
+        ui_component: "password"
+
+      credential_type:
+        type: string
+        title: "Credential Type"
+        description: "Authentication method for Cosmos DB"
+        required: false
+        default: "key"
+        options: ["key", "default_azure_credential"]
+        ui_component: "select"
+
+      cosmos_database:
+        type: string
+        title: "Database Name"
+        description: "Cosmos DB database name"
+        required: true
+        default: ""
+        ui_component: "input"
+
+      cosmos_container:
+        type: string
+        title: "Container Name"
+        description: "Cosmos DB container name to query"
+        required: true
+        default: ""
+        ui_component: "input"
+
+      # ---- Lookup behaviour ----
+      lookup_mode:
+        type: string
+        title: "Lookup Mode"
+        description: "Use 'point_read' for direct id+partition key reads, or 'query' for SQL queries"
+        required: false
+        default: "query"
+        options: ["point_read", "query"]
+        ui_component: "select"
+
+      query_template:
+        type: string
+        title: "Query Template"
+        description: "Cosmos DB SQL query with @param placeholders. Example: SELECT * FROM c WHERE c.sku = @sku"
+        required: false
+        default: ""
+        ui_component: "textarea"
+
+      field_mappings:
+        type: string
+        title: "Field Mappings"
+        description: "Maps @param names (or 'id'/'partition_key' for point_read) to dot-paths in content.data. Example: {\"@sku\": \"product.sku\"}"
+        required: false
+        default: "{}"
+        ui_component: "json"
+
+      partition_key_field:
+        type: string
+        title: "Partition Key Field"
+        description: "Dot-path in content.data to use as partition key for query mode (enables single-partition queries)"
+        required: false
+        default: ""
+        ui_component: "input"
+
+      # ---- Output settings ----
+      output_field:
+        type: string
+        title: "Output Field"
+        description: "Field name in content.data where lookup results are stored"
+        required: false
+        default: "cosmos_lookup_result"
+        ui_component: "input"
+
+      result_mode:
+        type: string
+        title: "Result Mode"
+        description: "Return 'first' match only or 'all' matches"
+        required: false
+        default: "all"
+        options: ["first", "all"]
+        ui_component: "select"
+
+      flatten_single:
+        type: boolean
+        title: "Flatten Single Result"
+        description: "When result_mode is 'all' and one result is returned, store the dict directly instead of a one-element list"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      max_results:
+        type: integer
+        title: "Max Results"
+        description: "Maximum number of items returned per query"
+        required: false
+        default: 50
+        min: 1
+        max: 1000
+        ui_component: "number"
+
+      # ---- Parallel executor settings ----
+      max_concurrent:
+        type: integer
+        title: "Max Concurrent Lookups"
+        description: "Maximum number of parallel Cosmos DB lookups"
+        required: false
+        default: 5
+        min: 1
+        max: 50
+        increment: 1
+        ui_component: "number"
+
+      timeout_secs:
+        type: integer
+        title: "Timeout Seconds"
+        description: "Timeout per lookup in seconds"
+        required: false
+        default: 300
+        min: 10
+        ui_component: "number"
+
+      continue_on_error:
+        type: boolean
+        title: "Continue On Error"
+        description: "Continue processing other content items if a lookup fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+    ui_metadata:
+      icon: "database"
+      description_short: "Look up records in Cosmos DB NoSQL"
+      description_long: "Queries Azure Cosmos DB NoSQL containers to validate or enrich content fields. Supports both direct point-reads (by id and partition key) and parameterised SQL queries. Lookup values are extracted from content.data via configurable field mappings and results are written back into each content item."
