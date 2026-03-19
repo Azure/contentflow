@@ -119,12 +119,12 @@ var deployerRoleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: deployer().objectType
+      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Blob Data Contributor'        
     }
     {
       principalId: deployer().objectId
-      principalType: deployer().objectType
+      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Queue Data Contributor'        
     }
   ]
@@ -150,7 +150,7 @@ var deployerRoleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: deployer().objectType
+      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'App Configuration Data Owner'        
     }
   ]
@@ -158,4 +158,4 @@ var deployerRoleAssignments = [
 
 **Explanation:**
 
-The `deployer()` function in Bicep returns both `.objectId` and `.objectType`. Using `deployer().objectType` instead of the hardcoded `'User'` string dynamically resolves the correct principal type (`User` for interactive logins, `ServicePrincipal` for managed identities), making the template work with both deployment methods.
+The `deployer()` function in Bicep only exposes three properties: `objectId`, `tenantId`, and `userPrincipalName`. For service principals and managed identities, `userPrincipalName` is empty. By checking `empty(deployer().userPrincipalName)`, we can dynamically determine the correct `principalType` — `'ServicePrincipal'` when UPN is empty (managed identity / SP), `'User'` when it has a value (interactive login).

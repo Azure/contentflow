@@ -71,12 +71,12 @@ var queueRoleAssignments array = [for principalId in roleAssignedManagedIdentity
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: 'User'
+      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Blob Data Contributor'        
     }
     {
       principalId: deployer().objectId
-      principalType: 'User'
+      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Queue Data Contributor'        
     }
   ]
