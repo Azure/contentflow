@@ -35,7 +35,7 @@ var roleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
+      principalType: empty(deployer().?userPrincipalName ?? '') ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'App Configuration Data Owner'        
     }
   ]

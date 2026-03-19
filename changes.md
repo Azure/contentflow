@@ -119,12 +119,12 @@ var deployerRoleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
+      principalType: empty(deployer().?userPrincipalName ?? '') ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Blob Data Contributor'        
     }
     {
       principalId: deployer().objectId
-      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
+      principalType: empty(deployer().?userPrincipalName ?? '') ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'Storage Queue Data Contributor'        
     }
   ]
@@ -150,7 +150,7 @@ var deployerRoleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: empty(deployer().userPrincipalName) ? 'ServicePrincipal' : 'User'
+      principalType: empty(deployer().?userPrincipalName ?? '') ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'App Configuration Data Owner'        
     }
   ]
@@ -158,4 +158,11 @@ var deployerRoleAssignments = [
 
 **Explanation:**
 
-The `deployer()` function in Bicep only exposes three properties: `objectId`, `tenantId`, and `userPrincipalName`. For service principals and managed identities, `userPrincipalName` is empty. By checking `empty(deployer().userPrincipalName)`, we can dynamically determine the correct `principalType` — `'ServicePrincipal'` when UPN is empty (managed identity / SP), `'User'` when it has a value (interactive login).
+The `deployer()` function returns `objectId` and `tenantId` for all principal types, but `userPrincipalName` is only included when the deployer is a user — it is **omitted entirely** (not just empty) for service principals and managed identities. Using `deployer().userPrincipalName` directly throws a runtime error because the property doesn't exist in the ARM response object.
+
+The fix uses the Bicep **safe-access operator** (`?.`) combined with the **null-coalescing operator** (`??`):
+- `deployer().?userPrincipalName` → returns the value if it exists, or `null` if the property is absent
+- `?? ''` → converts `null` to an empty string
+- `empty(...)` → evaluates to `true` for managed identity/SP (no UPN), `false` for users (UPN present)
+
+This works correctly for both interactive user logins and managed identity deployments without requiring any additional parameters.
