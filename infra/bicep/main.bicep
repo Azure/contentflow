@@ -63,6 +63,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Resource ID of existing App Insights from AI Landing Zone (optional, will create new if not provided)')
 param existingAppInsightsId string = ''
 
+@description('Name of an existing Container Registry from AI Landing Zone (optional, will create new if not provided)')
+param existingContainerRegistryName string = ''
+
 // ========== APPLICATION SPECIFIC PARAMETERS ==========
 @description('Cosmos DB database name')
 param cosmosDbName string = 'contentflow'
@@ -435,10 +438,10 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
 }
 
 // ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
-// Create new Container Registry, with private endpoint support (if using AILZ integrated mode),
-// or use public endpoints (basic mode)
+// Use existing Container Registry if provided (AILZ), otherwise create a new one
+var shouldCreateContainerRegistry = empty(existingContainerRegistryName)
 
-module containerRegistry 'modules/container-registry.bicep' = {
+module containerRegistry 'modules/container-registry.bicep' = if (shouldCreateContainerRegistry) {
   name: 'acr-${resourceToken}'
   params: {
     containerRegistryName: containerRegistryName
@@ -449,6 +452,72 @@ module containerRegistry 'modules/container-registry.bicep' = {
     acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
+  }
+}
+
+// Reference existing Container Registry when provided
+resource existingContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (!shouldCreateContainerRegistry) {
+  name: existingContainerRegistryName
+}
+
+// Resolved ACR values that work for both existing and new registries
+var containerRegistryLoginServer = shouldCreateContainerRegistry ? containerRegistry!.outputs.loginServer : existingContainerRegistry.properties.loginServer
+var containerRegistryNameResolved = shouldCreateContainerRegistry ? containerRegistry!.outputs.name : existingContainerRegistryName
+
+// Private endpoint for existing ACR (needed when ACR is in a different VNet)
+resource existingAcrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = if (!shouldCreateContainerRegistry && isAILZIntegrated) {
+  name: '${existingContainerRegistryName}-pe'
+  location: location
+  tags: tags
+  properties: {
+    subnet: {
+      id: networkConfig.privateEndpointSubnetId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${existingContainerRegistryName}-acr-plsc'
+        properties: {
+          privateLinkServiceId: existingContainerRegistry.id
+          groupIds: ['registry']
+        }
+      }
+    ]
+  }
+}
+
+resource existingAcrDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = if (!shouldCreateContainerRegistry && isAILZIntegrated && !empty(existingAcrPrivateDnsZoneId)) {
+  parent: existingAcrPrivateEndpoint
+  name: 'acr-dns-zone-group'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'acr-config'
+        properties: {
+          privateDnsZoneId: existingAcrPrivateDnsZoneId
+        }
+      }
+    ]
+  }
+}
+
+// RBAC for managed identity on existing ACR (AcrPull + AcrPush)
+resource existingAcrRoleAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!shouldCreateContainerRegistry) {
+  name: guid(resourceGroup().id, existingContainerRegistryName, userAssignedIdentityName, '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+  scope: existingContainerRegistry
+  properties: {
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
+  }
+}
+
+resource existingAcrRoleAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!shouldCreateContainerRegistry) {
+  name: guid(resourceGroup().id, existingContainerRegistryName, userAssignedIdentityName, '8311e382-0749-4cb8-b61a-304f252e45ec')
+  scope: existingContainerRegistry
+  properties: {
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec') // AcrPush
   }
 }
 
@@ -490,8 +559,9 @@ module apiContainerApp 'modules/container-app.bicep' = {
     name: apiContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistryLoginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
+    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: 8090
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -525,8 +595,9 @@ module workerContainerApp 'modules/container-app.bicep' = {
     name: workerContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistryLoginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
+    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: workerContainerAppTargetPort
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -560,8 +631,9 @@ module webContainerApp 'modules/container-app.bicep' = {
     name: webContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistryLoginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
+    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: 8080
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -587,8 +659,8 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 
 // Container Registry outputs
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry!.outputs.loginServer
-output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistryLoginServer
+output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistryNameResolved
 
 // Service endpoints
 output API_ENDPOINT string = 'https://${apiContainerApp.outputs.fqdn}'

@@ -20,6 +20,7 @@ ContentFlow supports **two deployment configurations** based on your infrastruct
 | **Compliance Ready** |  N/A | ✅ Yes |
 | **Enterprise Use** | Development | Production |
 | **Cost** | Lower | Slightly higher (Network infra costs added) |
+| **Container Registry** | Creates new ACR | Can reuse existing AI LZ ACR |
 | **Prerequisites** | Azure subscription | Azure subscription + AI LZ |
 
 ---
@@ -38,6 +39,7 @@ Before deploying, ensure you have:
 - Access to existing AI Landing Zone infrastructure
 - Documentation of VNet and DNS zone resource IDs
 - Appropriate permissions in the AI LZ resource group
+- **(Recommended for no-egress VNets)** An existing Container Registry with a pre-imported placeholder image (see [Using an Existing Container Registry](#using-an-existing-container-registry-no-egress-vnets))
 
 **Verify tools are installed:**
 ```shell
@@ -220,6 +222,10 @@ azd env set EXISTING_CONTAINER_APPS_ENV_PRIVATE_DNS_ZONE_ID "$EXISTING_CONTAINER
 # (ContentFlow will create new ones if not provided)
 # azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_ID "$EXISTING_LOG_ANALYTICS_WORKSPACE_ID"
 # azd env set EXISTING_APP_INSIGHTS_ID "$EXISTING_APP_INSIGHTS_ID"
+
+# Optional: Use existing Container Registry (recommended for no-egress VNets)
+# See "Using an Existing Container Registry" section below
+# azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
 ```
 
 #### Step 4: Deploy ContentFlow
@@ -259,7 +265,7 @@ This will:
 
 **What Gets Deployed:**
 - Container Apps with private endpoints
-- Private Container Registry
+- Container Registry (new, or private endpoint to existing ACR)
 - Storage Account with private endpoints
 - Cosmos DB with private endpoints
 - App Configuration with private endpoints
@@ -280,6 +286,7 @@ This will:
   - Key Vault (optional)
 - Existing Log Analytics Workspace (optional)
 - Existing Application Insights (optional)
+- Existing Container Registry (optional — recommended for no-egress VNets)
 
 **Duration:** 10-15 minutes (depends on existing AI LZ setup)
 
@@ -412,6 +419,10 @@ azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_ID /subscriptions/<sub-id>/resource
 
 azd env set EXISTING_APP_INSIGHTS_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Insights/components/<ai-name>
 
+# Optional: Use existing Container Registry (recommended for no-egress VNets)
+# First import placeholder image: az acr import --name <acr-name> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
+azd env set EXISTING_CONTAINER_REGISTRY_NAME <acr-name>
+
 # Step 7: Deploy
 azd up
 ```
@@ -426,6 +437,53 @@ az network vnet list --query "[?tags.environment=='ailz']" --output table
 az network vnet show --name <vnet-name> --resource-group <rg> --query id
 az network private-dns-zone list --resource-group <rg> --output table
 ```
+
+---
+
+### Using an Existing Container Registry (No-Egress VNets)
+
+In AILZ environments **without internet egress** (no NAT Gateway), Container Apps cannot pull placeholder images from the public Microsoft Container Registry (MCR) during initial provisioning. This causes a 20-minute timeout on the first deployment.
+
+To solve this, ContentFlow supports referencing an **existing Container Registry** from your AI Landing Zone — the same pattern used for Log Analytics and App Insights.
+
+#### Setup
+
+**1. Import a placeholder image** into your existing ACR (requires a machine with internet + ACR access):
+
+```bash
+az acr import --name <existing-acr-name> \
+  --source mcr.microsoft.com/k8se/quickstart:latest \
+  --image placeholder:latest
+```
+
+**2. Set the environment variable** before deploying:
+
+```bash
+azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
+```
+
+**3. Deploy normally:**
+
+```bash
+azd up
+```
+
+#### What Happens
+
+When `EXISTING_CONTAINER_REGISTRY_NAME` is set:
+- A new ACR is **not** created — the existing one is referenced
+- A **private endpoint** is created for the existing ACR in the app's PE subnet (enables cross-VNet connectivity)
+- **RBAC roles** (AcrPull + AcrPush) are assigned to the managed identity on the existing ACR
+- Container Apps use `<acr>/placeholder:latest` instead of MCR — no internet required
+- `azd deploy` pushes application images to the existing ACR via remote build
+
+| Scenario | ACR | Placeholder Image | Internet Required |
+|----------|-----|-------------------|-------------------|
+| Basic mode (default) | New ACR created | MCR public image | Yes |
+| AILZ + no existing ACR | New ACR created | MCR public image | Yes |
+| AILZ + existing ACR | Existing ACR reused | `<acr>/placeholder:latest` | **No** |
+
+> **Note:** The existing ACR must be in the **same subscription**. The deploying identity needs permissions to create role assignments on the existing ACR's resource group (Owner or User Access Administrator).
 
 ---
 
@@ -463,7 +521,7 @@ infra/
 Main infrastructure template that provisions:
 - Resource Group (if not already existing)
 - Managed Identity (for Container Apps)
-- Container Registry
+- Container Registry (or references existing ACR with private endpoint and RBAC)
 - Container Apps Environment
 - Storage Account (blob + queue)
 - Cosmos DB with all required containers
@@ -483,7 +541,7 @@ Each module is a reusable component:
 - **app-insights.bicep**: Application Insights for monitoring
 - **container-app.bicep**: Creates a Container App with configurable settings
 - **container-apps-environment.bicep**: Container Apps Environment
-- **container-registry.bicep**: Azure Container Registry
+- **container-registry.bicep**: Azure Container Registry (skipped when using existing ACR)
 - **cosmos-db.bicep**: Cosmos DB account with containers
 - **log-analytics-ws.bicep**: Log Analytics Workspace
 - **storage.bicep**: Storage Account with blob container and queue
@@ -638,7 +696,8 @@ The infrastructure sets these key outputs:
 
 - `AZURE_LOCATION` - Azure region
 - `AZURE_RESOURCE_GROUP` - Resource group name
-- `AZURE_CONTAINER_REGISTRY_ENDPOINT` - ACR login server
+- `AZURE_CONTAINER_REGISTRY_ENDPOINT` - ACR login server (new or existing)
+- `AZURE_CONTAINER_REGISTRY_NAME` - ACR name (new or existing)
 - `COSMOS_DB_ENDPOINT` - Cosmos DB endpoint
 - `STORAGE_ACCOUNT_NAME` - Storage account name
 - `APP_CONFIG_ENDPOINT` - App Configuration endpoint

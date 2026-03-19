@@ -5,6 +5,7 @@
 - [1. Fix: LogAnalytics CustomerId Must Be a GUID](#1-fix-loganalytics-customerid-must-be-a-guid)
 - [2. Fix: Property Name Typo `privateEndpointsSubnetId`](#2-fix-property-name-typo-privateendpointssubnetid)
 - [3. Fix: `UnmatchedPrincipalType` – `deployer().objectId` Hardcoded as `User`](#3-fix-unmatchedprincipaltype--deployerobjectid-hardcoded-as-user)
+- [4. Feature: Support Existing Container Registry from AI Landing Zone](#4-feature-support-existing-container-registry-from-ai-landing-zone)
 
 ---
 
@@ -166,3 +167,70 @@ The fix uses the Bicep **safe-access operator** (`?.`) combined with the **null-
 - `empty(...)` → evaluates to `true` for managed identity/SP (no UPN), `false` for users (UPN present)
 
 This works correctly for both interactive user logins and managed identity deployments without requiring any additional parameters.
+
+---
+
+## 4. Feature: Support Existing Container Registry from AI Landing Zone
+
+**Problem:**
+
+In AILZ-integrated deployments without internet egress (no NAT Gateway), the Container Apps provisioning fails with a **20-minute timeout** because it cannot pull the hardcoded placeholder image `mcr.microsoft.com/azuredocs/containerapps-helloworld:latest` from the public Microsoft Container Registry (MCR). The private VNet has no outbound internet connectivity, making any MCR pull impossible.
+
+**Solution:**
+
+Added support for referencing an existing Azure Container Registry from the AI Landing Zone, following the same conditional pattern used for Log Analytics and App Insights. When an existing ACR is provided, the template:
+
+1. **Skips creating** a new Container Registry
+2. **References the existing ACR** using the Bicep `existing` keyword
+3. **Creates a private endpoint** for the existing ACR in the app's PE subnet (enables cross-VNet connectivity)
+4. **Assigns RBAC** (AcrPull + AcrPush) to the managed identity on the existing ACR
+5. **Uses a conditioned placeholder image** — MCR for basic mode (has internet), `${acr}/placeholder:latest` for AILZ (no internet)
+
+**Prerequisites for AILZ mode:**
+
+Before running `azd provision`, import a placeholder image into the existing ACR:
+```bash
+az acr import --name <existing-acr> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
+```
+
+Then set the environment variable:
+```bash
+azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
+```
+
+**Affected Files:**
+
+### `infra/bicep/main.bicep`
+
+- Added `existingContainerRegistryName` parameter (string, default empty)
+- Added `shouldCreateContainerRegistry` conditional variable
+- Wrapped existing `containerRegistry` module with `if (shouldCreateContainerRegistry)`
+- Added `existing` resource reference for the ACR
+- Added `containerRegistryLoginServer` and `containerRegistryNameResolved` variables
+- Added private endpoint + DNS zone group for existing ACR (conditioned on AILZ mode)
+- Added RBAC role assignments (AcrPull, AcrPush) on existing ACR for managed identity
+- Updated all 3 container app module calls to use `containerRegistryLoginServer` instead of `containerRegistry!.outputs.loginServer`
+- Added `placeholderImage` parameter to all 3 container app module calls
+- Updated outputs to use resolved variables
+
+### `infra/bicep/main.parameters.json`
+
+Added parameter mapping:
+```json
+"existingContainerRegistryName": {
+  "value": "${EXISTING_CONTAINER_REGISTRY_NAME=}"
+}
+```
+
+### `infra/bicep/modules/container-app.bicep`
+
+- Added `placeholderImage` parameter (string, default `mcr.microsoft.com/k8se/quickstart:latest`)
+- Replaced hardcoded MCR image with `placeholderImage` parameter
+
+**Scenario Matrix:**
+
+| Mode | `EXISTING_CONTAINER_REGISTRY_NAME` | ACR Created | Placeholder Image | PE Created |
+|------|-------------------------------------|-------------|-------------------|------------|
+| basic | empty (default) | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | No |
+| ailz-integrated | empty | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | Yes (new ACR) |
+| ailz-integrated | `<acr-name>` | No (existing) | `<acr>/placeholder:latest` | Yes (existing ACR) |
