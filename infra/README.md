@@ -40,6 +40,7 @@ Before deploying, ensure you have:
 - Documentation of VNet and DNS zone resource IDs
 - Appropriate permissions in the AI LZ resource group
 - **(Recommended for no-egress VNets)** An existing Container Registry with a pre-imported placeholder image (see [Using an Existing Container Registry](#using-an-existing-container-registry-no-egress-vnets))
+  - You will need the ACR's full **resource ID** (e.g., `/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>`)
 
 **Verify tools are installed:**
 ```shell
@@ -225,7 +226,7 @@ azd env set EXISTING_CONTAINER_APPS_ENV_PRIVATE_DNS_ZONE_ID "$EXISTING_CONTAINER
 
 # Optional: Use existing Container Registry (recommended for no-egress VNets)
 # See "Using an Existing Container Registry" section below
-# azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
+# azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>"
 ```
 
 #### Step 4: Deploy ContentFlow
@@ -421,7 +422,7 @@ azd env set EXISTING_APP_INSIGHTS_ID /subscriptions/<sub-id>/resourceGroups/<rg>
 
 # Optional: Use existing Container Registry (recommended for no-egress VNets)
 # First import placeholder image: az acr import --name <acr-name> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
-azd env set EXISTING_CONTAINER_REGISTRY_NAME <acr-name>
+azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>
 
 # Step 7: Deploy
 azd up
@@ -456,10 +457,10 @@ az acr import --name <existing-acr-name> \
   --image placeholder:latest
 ```
 
-**2. Set the environment variable** before deploying:
+**2. Set the environment variable** before deploying (use the full resource ID):
 
 ```bash
-azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
+azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<existing-acr-name>"
 ```
 
 **3. Deploy normally:**
@@ -470,10 +471,10 @@ azd up
 
 #### What Happens
 
-When `EXISTING_CONTAINER_REGISTRY_NAME` is set:
+When `EXISTING_CONTAINER_REGISTRY_RESOURCE_ID` is set:
 - A new ACR is **not** created — the existing one is referenced
 - A **private endpoint** is created for the existing ACR in the app's PE subnet (enables cross-VNet connectivity)
-- **RBAC roles** (AcrPull + AcrPush) are assigned to the managed identity on the existing ACR
+- **RBAC roles** (AcrPull + AcrPush) are assigned to the managed identity on the existing ACR (cross-resource-group deployment)
 - Container Apps use `<acr>/placeholder:latest` instead of MCR — no internet required
 - `azd deploy` pushes application images to the existing ACR via remote build
 

@@ -63,8 +63,8 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Resource ID of existing App Insights from AI Landing Zone (optional, will create new if not provided)')
 param existingAppInsightsId string = ''
 
-@description('Name of an existing Container Registry from AI Landing Zone (optional, will create new if not provided)')
-param existingContainerRegistryName string = ''
+@description('Resource ID of an existing Container Registry from AI Landing Zone (optional, will create new if not provided)')
+param existingContainerRegistryResourceId string = ''
 
 // ========== APPLICATION SPECIFIC PARAMETERS ==========
 @description('Cosmos DB database name')
@@ -439,7 +439,11 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
 
 // ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
 // Use existing Container Registry if provided (AILZ), otherwise create a new one
-var shouldCreateContainerRegistry = empty(existingContainerRegistryName)
+var shouldCreateContainerRegistry = empty(existingContainerRegistryResourceId)
+
+// Derived values from existing ACR resource ID
+var existingAcrName = !shouldCreateContainerRegistry ? last(split(existingContainerRegistryResourceId, '/')) : ''
+var existingAcrResourceGroup = !shouldCreateContainerRegistry ? split(existingContainerRegistryResourceId, '/')[4] : resourceGroup().name
 
 module containerRegistry 'modules/container-registry.bicep' = if (shouldCreateContainerRegistry) {
   name: 'acr-${resourceToken}'
@@ -455,18 +459,13 @@ module containerRegistry 'modules/container-registry.bicep' = if (shouldCreateCo
   }
 }
 
-// Reference existing Container Registry when provided
-resource existingContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (!shouldCreateContainerRegistry) {
-  name: existingContainerRegistryName
-}
-
 // Resolved ACR values that work for both existing and new registries
-var containerRegistryLoginServer = shouldCreateContainerRegistry ? containerRegistry!.outputs.loginServer : existingContainerRegistry.properties.loginServer
-var containerRegistryNameResolved = shouldCreateContainerRegistry ? containerRegistry!.outputs.name : existingContainerRegistryName
+var containerRegistryLoginServer = shouldCreateContainerRegistry ? containerRegistry!.outputs.loginServer : '${existingAcrName}.azurecr.io'
+var containerRegistryNameResolved = shouldCreateContainerRegistry ? containerRegistry!.outputs.name : existingAcrName
 
 // Private endpoint for existing ACR (needed when ACR is in a different VNet)
 resource existingAcrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = if (!shouldCreateContainerRegistry && isAILZIntegrated) {
-  name: '${existingContainerRegistryName}-pe'
+  name: '${existingAcrName}-pe'
   location: location
   tags: tags
   properties: {
@@ -475,9 +474,9 @@ resource existingAcrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-
     }
     privateLinkServiceConnections: [
       {
-        name: '${existingContainerRegistryName}-acr-plsc'
+        name: '${existingAcrName}-acr-plsc'
         properties: {
-          privateLinkServiceId: existingContainerRegistry.id
+          privateLinkServiceId: existingContainerRegistryResourceId
           groupIds: ['registry']
         }
       }
@@ -501,23 +500,13 @@ resource existingAcrDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZ
 }
 
 // RBAC for managed identity on existing ACR (AcrPull + AcrPush)
-resource existingAcrRoleAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!shouldCreateContainerRegistry) {
-  name: guid(resourceGroup().id, existingContainerRegistryName, userAssignedIdentityName, '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-  scope: existingContainerRegistry
-  properties: {
+// Deployed to the ACR's resource group via module scope (cross-RG)
+module existingAcrRbac 'modules/acr-role-assignment.bicep' = if (!shouldCreateContainerRegistry) {
+  name: 'existingAcrRbac-${resourceToken}'
+  scope: resourceGroup(existingAcrResourceGroup)
+  params: {
+    containerRegistryName: existingAcrName
     principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-  }
-}
-
-resource existingAcrRoleAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!shouldCreateContainerRegistry) {
-  name: guid(resourceGroup().id, existingContainerRegistryName, userAssignedIdentityName, '8311e382-0749-4cb8-b61a-304f252e45ec')
-  scope: existingContainerRegistry
-  properties: {
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec') // AcrPush
   }
 }
 

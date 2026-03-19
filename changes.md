@@ -193,32 +193,36 @@ Before running `azd provision`, import a placeholder image into the existing ACR
 az acr import --name <existing-acr> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
 ```
 
-Then set the environment variable:
+Then set the environment variable (use the full resource ID):
 ```bash
-azd env set EXISTING_CONTAINER_REGISTRY_NAME "<existing-acr-name>"
+azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>"
 ```
 
 **Affected Files:**
 
 ### `infra/bicep/main.bicep`
 
-- Added `existingContainerRegistryName` parameter (string, default empty)
+- Added `existingContainerRegistryResourceId` parameter (string, default empty)
 - Added `shouldCreateContainerRegistry` conditional variable
+- Added `existingAcrName` and `existingAcrResourceGroup` derived from resource ID
 - Wrapped existing `containerRegistry` module with `if (shouldCreateContainerRegistry)`
-- Added `existing` resource reference for the ACR
-- Added `containerRegistryLoginServer` and `containerRegistryNameResolved` variables
-- Added private endpoint + DNS zone group for existing ACR (conditioned on AILZ mode)
-- Added RBAC role assignments (AcrPull, AcrPush) on existing ACR for managed identity
+- Added `containerRegistryLoginServer` (deterministic `<name>.azurecr.io`) and `containerRegistryNameResolved` variables
+- Added private endpoint + DNS zone group for existing ACR (conditioned on AILZ mode), using the resource ID in `privateLinkServiceId`
+- Added cross-resource-group RBAC module (`modules/acr-role-assignment.bicep`) with `scope: resourceGroup(existingAcrResourceGroup)` for AcrPull + AcrPush
 - Updated all 3 container app module calls to use `containerRegistryLoginServer` instead of `containerRegistry!.outputs.loginServer`
 - Added `placeholderImage` parameter to all 3 container app module calls
 - Updated outputs to use resolved variables
+
+### `infra/bicep/modules/acr-role-assignment.bicep` (new file)
+
+New module for cross-resource-group RBAC assignment on an existing ACR. Deployed with `scope: resourceGroup(existingAcrResourceGroup)` so it can reference the ACR in its own resource group. Assigns AcrPull and AcrPush to the managed identity.
 
 ### `infra/bicep/main.parameters.json`
 
 Added parameter mapping:
 ```json
-"existingContainerRegistryName": {
-  "value": "${EXISTING_CONTAINER_REGISTRY_NAME=}"
+"existingContainerRegistryResourceId": {
+  "value": "${EXISTING_CONTAINER_REGISTRY_RESOURCE_ID=}"
 }
 ```
 
@@ -229,8 +233,8 @@ Added parameter mapping:
 
 **Scenario Matrix:**
 
-| Mode | `EXISTING_CONTAINER_REGISTRY_NAME` | ACR Created | Placeholder Image | PE Created |
+| Mode | `EXISTING_CONTAINER_REGISTRY_RESOURCE_ID` | ACR Created | Placeholder Image | PE Created |
 |------|-------------------------------------|-------------|-------------------|------------|
 | basic | empty (default) | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | No |
 | ailz-integrated | empty | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | Yes (new ACR) |
-| ailz-integrated | `<acr-name>` | No (existing) | `<acr>/placeholder:latest` | Yes (existing ACR) |
+| ailz-integrated | `/subscriptions/.../registries/<acr>` | No (existing) | `<acr>/placeholder:latest` | Yes (existing ACR) |
