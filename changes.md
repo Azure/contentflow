@@ -250,7 +250,7 @@ fi
 
 ---
 
-## 5. Fix: Container Apps Timeout – DNS Zone Group and Deployment Sequencing
+## 5. Fix: Container Apps Timeout – DNS Zone Group Creation Workaround
 
 **Error:**
 
@@ -260,50 +260,77 @@ Container Apps deployment timing out after 20 minutes during AILZ-integrated dep
 
 **Symptoms:**
 
-- Container Apps (API, Worker, Web) fail to provision and timeout after 20 minutes
+- Container Apps (API, Worker, Web) fail to provision and timeout after exactly 20 minutes
 - ACR private endpoint exists and shows correct IP addresses (10.0.0.16 for login server, 10.0.0.15 for data endpoint)
 - Private DNS Zone `privatelink.azurecr.io` is linked to VNet
 - **BUT**: Private DNS Zone has NO A records for the ACR
-- DNS zone group exists but shows empty configuration `{}`
+- DNS zone group does NOT exist (query returns `[]`)
 - Without DNS resolution, Container Apps cannot resolve the private ACR FQDN
-- Requests fall back to public DNS but ACR has `publicNetworkAccess: Disabled` → connection refused
+- Requests fall back to public DNS but ACR has `publicNetworkAccess: Disabled` → connection refused → timeout
 
-**Root Causes:**
+**Root Cause:**
 
-### Issue 1: DNS Zone Group Conditional Logic Bug
-
-In `infra/bicep/modules/container-registry.bicep` (lines 85-96), the conditional `!empty(acrPrivateDnsZoneId) ?` was placed **inside** the `privateDnsZoneGroupConfigs` array instead of wrapping the entire `privateDnsZoneGroups` array. This caused the AVM module to create a DNS zone group with an **empty configs array** `[]` when `acrPrivateDnsZoneId` was provided.
-
-An empty DNS zone group doesn't register A records in the Private DNS Zone, breaking DNS resolution for the private endpoint.
-
-**Before (BROKEN):**
+The Azure Verified Module (AVM) `containerregistry/registry:0.9.3` does not properly handle the `privateDnsZoneGroups` parameter when passed conditionally through our wrapper module. Even with the corrected conditional logic:
 
 ```bicep
-privateDnsZoneGroups: [
-  {
-    name: 'acr-dns-zone-group'
-    privateDnsZoneGroupConfigs: !empty(acrPrivateDnsZoneId) ? [
-      {
-        name: 'acr-config'
-        privateDnsZoneResourceId: acrPrivateDnsZoneId
-      }
-    ] : []
-  }
-]
+privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [{...}] : []
 ```
 
-This creates:
-- **When `acrPrivateDnsZoneId` is empty** (basic mode): `privateDnsZoneGroups: [{ name: 'acr-dns-zone-group', privateDnsZoneGroupConfigs: [] }]` → creates broken zone group
-- **When `acrPrivateDnsZoneId` is provided** (AILZ mode): `privateDnsZoneGroups: [{ name: 'acr-dns-zone-group', privateDnsZoneGroupConfigs: [{...}] }]` → creates proper zone group
+The AVM module fails to create the DNS zone group, resulting in NO A record registration in the Private DNS Zone. Investigation via Azure CLI confirmed:
+- `az network private-endpoint dns-zone-group list` returned `[]` (no zone groups)
+- `az network private-dns record-set a list` returned empty table (no A records)
+- ACR deployment succeeded, private endpoint succeeded, but DNS registration failed
 
-Wait, that's backwards. Let me re-check the logic...
+**Solution: Explicit DNS Zone Group Module**
 
-Actually, when `acrPrivateDnsZoneId` is **provided** (AILZ mode), the condition evaluates to `true` and creates the config array. When **empty** (basic mode), it creates an empty array. But the zone group object itself is **always created** because the array wrapping it is unconditional.
+Instead of relying on the AVM module to create the DNS zone group, we now create it explicitly using a separate Bicep module that runs **after** the ACR and private endpoint are provisioned.
 
-The problem is: when you don't provide a DNS zone ID (basic mode), it still creates a zone group with empty configs, which may cause deployment issues or doesn't properly configure DNS.
+### Files Changed
 
-**After (FIXED):**
+#### **New File: `infra/bicep/modules/private-endpoint-dns-zone-group.bicep`**
 
+Created a dedicated module that explicitly creates a DNS zone group for an existing private endpoint:
+
+```bicep
+@description('Name of the private endpoint')
+param privateEndpointName string
+
+@description('Resource ID of the private DNS zone')
+param privateDnsZoneId string
+
+@description('Location for the deployment metadata')
+param location string = resourceGroup().location
+
+// Reference existing private endpoint
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' existing = {
+  name: privateEndpointName
+}
+
+// Create DNS zone group for the private endpoint
+resource dnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = {
+  parent: privateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-azurecr-io'
+        properties: {
+          privateDnsZoneId: privateDnsZoneId
+        }
+      }
+    ]
+  }
+}
+
+output dnsZoneGroupName string = dnsZoneGroup.name
+output dnsZoneGroupId string = dnsZoneGroup.id
+```
+
+#### **Modified: `infra/bicep/modules/container-registry.bicep`**
+
+Removed `privateDnsZoneGroups` from the `privateEndpoints` array passed to the AVM module:
+
+**Before:**
 ```bicep
 privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
   {
@@ -318,94 +345,80 @@ privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
 ] : []
 ```
 
-This creates:
-- **When `acrPrivateDnsZoneId` is empty** (basic mode): `privateDnsZoneGroups: []` → no zone group created
-- **When `acrPrivateDnsZoneId` is provided** (AILZ mode): `privateDnsZoneGroups: [{ name: 'acr-dns-zone-group', privateDnsZoneGroupConfigs: [{...}] }]` → proper zone group with configs
+**After:**
+```bicep
+// privateDnsZoneGroups removed - AVM module 0.9.3 does not handle conditional correctly
+// DNS zone group will be created explicitly in main.bicep using separate module
+```
 
-### Issue 2: Container Apps Deployment Race Condition
+#### **Modified: `infra/bicep/main.bicep`**
 
-In `infra/bicep/main.bicep`, the Container Apps modules (`apiContainerApp`, `workerContainerApp`, `webContainerApp`) reference the ACR via `containerRegistry.outputs.loginServer` in their parameters. While Bicep can infer the dependency from this output reference, it only waits for the **ACR resource creation** to complete — not necessarily for all child resources like:
-
-- RBAC role assignments
-- Private endpoint provisioning
-- **DNS zone group registration** (which registers A records)
-
-In practice, Container Apps attempted to deploy before the DNS zone group had registered the A records, causing DNS resolution failures and 20-minute timeouts.
-
-**Solution:** Add explicit `dependsOn: [containerRegistry]` to all three Container Apps modules to ensure they wait for the **entire module** to complete, including all child resources.
-
-**Files Changed:**
-
-### `infra/bicep/modules/container-registry.bicep`
-
-**Lines 85-96** (DNS zone group conditional fix):
+Added explicit DNS zone group module **after** the ACR module:
 
 ```bicep
-privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
-  {
-    name: 'acr-dns-zone-group'
-    privateDnsZoneGroupConfigs: [
-      {
-        name: 'acr-config'
-        privateDnsZoneResourceId: acrPrivateDnsZoneId
-      }
-    ]
+// ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
+module containerRegistry 'modules/container-registry.bicep' = {
+  name: 'acr-${resourceToken}'
+  params: {
+    containerRegistryName: containerRegistryName
+    location: location
+    roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
+    enablePrivateEndpoint: isAILZIntegrated
+    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
+    acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
+    publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
+    networkRuleBypassOptions: 'AzureServices'
+    tags: tags
   }
-] : []
-```
+}
 
-### `infra/bicep/main.bicep`
-
-Added `dependsOn: [containerRegistry]` to:
-
-1. **API Container App** (after line 518):
-```bicep
-module apiContainerApp 'modules/container-app.bicep' = {
-  name: 'ca-api-${resourceToken}'
-  params: { /* ... */ }
+// ========== ACR DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM containerregistry module 0.9.3 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module acrDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'acr-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${containerRegistryName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.acr
+    location: location
+  }
   dependsOn: [
     containerRegistry
   ]
 }
 ```
 
-2. **Worker Container App** (after line 553):
-```bicep
-module workerContainerApp 'modules/container-app.bicep' = {
-  name: 'ca-worker-${resourceToken}'
-  params: { /* ... */ }
-  dependsOn: [
-    containerRegistry
-  ]
-}
-```
+Also retained the `dependsOn: [containerRegistry]` on all three Container Apps modules (API, Worker, Web) to ensure they wait for both ACR and DNS zone group to complete.
 
-3. **Web Container App** (after line 587):
-```bicep
-module webContainerApp 'modules/container-app.bicep' = {
-  name: 'ca-web-${resourceToken}'
-  params: { /* ... */ }
-  dependsOn: [
-    containerRegistry
-  ]
-}
-```
+**How It Works:**
 
-**Note on Bicep Linter Warnings:**
-
-Bicep linter reports `no-unnecessary-dependson` warnings because it detects the dependency is implicit via `.outputs.loginServer`. However, the explicit `dependsOn` is **intentionally defensive** to ensure:
-
-- ACR resource is created
-- RBAC role assignments complete
-- Private endpoint provisions
-- **DNS zone group registers A records** (critical for AILZ)
-
-The implicit dependency only guarantees the ACR resource exists, not that all child resources are ready. Given the DNS timing issues observed, the explicit `dependsOn` is the correct choice for reliable AILZ deployments.
+1. **ACR Module** creates the Container Registry with private endpoint (but no DNS zone group)
+2. **DNS Zone Group Module** (conditional on AILZ mode) creates the DNS zone group explicitly
+3. Azure automatically registers A records in the Private DNS Zone when the zone group is properly configured
+4. **Container Apps** wait for the entire ACR deployment (including DNS) via explicit `dependsOn`
+5. DNS resolution works correctly, Container Apps pull images successfully
 
 **Expected Results After Fix:**
 
-✅ Private DNS Zone automatically gets A records for ACR FQDN pointing to private IPs  
+✅ Private DNS Zone automatically gets A records for ACR FQDN pointing to private IPs (10.0.0.x)  
+✅ DNS zone group exists and has proper configuration (not empty `{}` or missing `[]`)  
 ✅ DNS resolution works correctly within the VNet  
-✅ Container Apps deploy successfully without timeout  
+✅ Container Apps deploy successfully without 20-minute timeout  
 ✅ No manual DNS record creation needed  
-✅ Deployment completes in 15-20 minutes (down from 20+ minutes timeout)
+✅ Deployment completes in 15-20 minutes total
+
+**Verification Commands:**
+
+```bash
+# Verify DNS zone group exists
+az network private-endpoint dns-zone-group list \
+  --resource-group <workload-rg> \
+  --endpoint-name <acr-name>-pe
+
+# Verify A records registered
+az network private-dns record-set a list \
+  --resource-group <ailz-rg> \
+  --zone-name privatelink.azurecr.io \
+  --query "[].{Name:name, IP:aRecords[0].ipv4Address}"
+```

@@ -451,6 +451,22 @@ module containerRegistry 'modules/container-registry.bicep' = {
   }
 }
 
+// ========== ACR DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM containerregistry module 0.9.3 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module acrDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'acr-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${containerRegistryName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.acr
+    location: location
+  }
+  dependsOn: [
+    containerRegistry
+  ]
+}
+
 // ========== CONTAINER APPS ENVIRONMENT ==========
 // Create new Container Apps Environment, with private endpoint support (if using AILZ integrated mode),
 // or use public endpoints (basic mode)

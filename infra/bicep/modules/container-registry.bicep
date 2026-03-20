@@ -85,17 +85,8 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
         subnetResourceId: privateEndpointSubnetId
         service: 'registry'
         privateLinkServiceConnectionName: '${containerRegistryName}-acr-plsc'
-        privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
-          {
-            name: 'acr-dns-zone-group'
-            privateDnsZoneGroupConfigs: [
-              {
-                name: 'acr-config'
-                privateDnsZoneResourceId: acrPrivateDnsZoneId
-              }
-            ]
-          }
-        ] : []
+        // privateDnsZoneGroups removed - AVM module 0.9.3 does not handle conditional correctly
+        // DNS zone group will be created explicitly in main.bicep using separate module
       }
     ] : []
   }
