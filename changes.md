@@ -216,46 +216,92 @@ Simplified ACR deployment configuration to align with Zero Trust and workload is
 
 ---
 
-## 5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround
+## 5. Fix: Private Endpoint DNS Zone Groups Not Created - AVM Module Limitation
 
 **Error:**
 
 ```
 Container Apps deployment timing out after 20 minutes during AILZ-integrated deployments
+Storage Queue: The request may be blocked by network rules
+App Configuration: Failed to resolve 'appcs-*.azconfig.io' [Errno -2] Name or service not known
 ```
 
 **Symptoms:**
 
 - Container Apps (API, Worker, Web) fail to provision and timeout after exactly 20 minutes
-- ACR private endpoint exists and shows correct IP addresses (10.0.0.16 for login server, 10.0.0.15 for data endpoint)
-- Private DNS Zone `privatelink.azurecr.io` is linked to VNet
-- **BUT**: Private DNS Zone has NO A records for the ACR
-- DNS zone group does NOT exist (query returns `[]`)
-- Without DNS resolution, Container Apps cannot resolve the private ACR FQDN
-- Requests fall back to public DNS but ACR has `publicNetworkAccess: Disabled` → connection refused → timeout
+- Private endpoints exist and show correct IP addresses
+- Private DNS Zones are linked to VNet
+- **BUT**: Private DNS Zones have NO A records for any resource
+- DNS zone groups do NOT exist (query returns `[]` for all resources)
+- Without DNS resolution, services cannot resolve private FQDNs
+- Requests fall back to public DNS but resources have `publicNetworkAccess: Disabled` → connection refused → timeout or failures
+
+**Affected Resources:**
+- ❌ Container Registry (ACR)
+- ❌ Storage Account (blob + queue endpoints)
+- ❌ Cosmos DB
+- ❌ App Configuration
 
 **Root Cause:**
 
-The Azure Verified Module (AVM) `containerregistry/registry:0.9.3` does not properly handle the `privateDnsZoneGroups` parameter when passed conditionally through our wrapper module. Even with the corrected conditional logic:
+Multiple Azure Verified Modules (AVMs) do not properly handle the `privateDnsZoneGroups` parameter when passed conditionally through wrapper modules:
+
+- `avm/res/container-registry/registry:0.9.3`
+- `avm/res/storage/storage-account:0.27.1`
+- `avm/res/document-db/database-account:0.13.1`
+- `avm/res/app-configuration/configuration-store:0.9.2`
+
+Even with proper conditional logic in the configuration:
 
 ```bicep
-privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [{...}] : []
+privateDnsZoneGroups: !empty(privateDnsZoneId) ? [{...}] : []
 ```
 
-The AVM module fails to create the DNS zone group, resulting in NO A record registration in the Private DNS Zone. Investigation via Azure CLI confirmed:
-- `az network private-endpoint dns-zone-group list` returned `[]` (no zone groups)
-- `az network private-dns record-set a list` returned empty table (no A records)
-- ACR deployment succeeded, private endpoint succeeded, but DNS registration failed
+The AVM modules fail to create the DNS zone group child resources, resulting in NO A record registration in the Private DNS Zones.
 
-**Solution: Explicit DNS Zone Group Module**
+**Investigation via Azure CLI:**
 
-Instead of relying on the AVM module to create the DNS zone group, we now create it explicitly using a separate Bicep module that runs **after** the ACR and private endpoint are provisioned.
+```bash
+# All returned [] (empty) - confirming no DNS zone groups created
+az network private-endpoint dns-zone-group list --endpoint-name cra5s63braj5xj2-pe
+az network private-endpoint dns-zone-group list --endpoint-name sta5s63braj5xj2-blob-pe
+az network private-endpoint dns-zone-group list --endpoint-name sta5s63braj5xj2-queue-pe
+az network private-endpoint dns-zone-group list --endpoint-name cosmos-a5s63braj5xj2-pe
+az network private-endpoint dns-zone-group list --endpoint-name appcs-a5s63braj5xj2-pe
+
+# All returned empty tables - confirming no A records registered
+az network private-dns record-set a list --zone-name privatelink.azurecr.io
+az network private-dns record-set a list --zone-name privatelink.blob.core.windows.net
+az network private-dns record-set a list --zone-name privatelink.queue.core.windows.net
+az network private-dns record-set a list --zone-name privatelink.documents.azure.com
+az network private-dns record-set a list --zone-name privatelink.azconfig.io
+```
+
+**Why This Only Affects AILZ Mode:**
+
+In **basic mode**, private endpoints are NOT created (`enablePrivateEndpoint = false`), so:
+- Resources use public endpoints
+- DNS resolves via Azure's public DNS
+- No Private DNS Zones needed
+- ✅ Works without issues
+
+In **AILZ mode**, private endpoints ARE created (`enablePrivateEndpoint = true`), so:
+- Resources have `publicNetworkAccess: 'Disabled'`
+- Must resolve FQDNs via Private DNS Zones
+- Requires DNS zone groups to register A records
+- ❌ Fails when DNS zone groups missing
+
+---
+
+**Solution: Explicit DNS Zone Group Modules**
+
+Instead of relying on the AVM modules to create DNS zone groups, we now create them explicitly using separate Bicep modules that run **after** the private endpoints are provisioned.
 
 ### Files Changed
 
 #### **New File: `infra/bicep/modules/private-endpoint-dns-zone-group.bicep`**
 
-Created a dedicated module that explicitly creates a DNS zone group for an existing private endpoint:
+Created a reusable module that creates a DNS zone group for any existing private endpoint:
 
 ```bicep
 @description('Name of the private endpoint')
@@ -292,56 +338,23 @@ output dnsZoneGroupName string = dnsZoneGroup.name
 output dnsZoneGroupId string = dnsZoneGroup.id
 ```
 
-#### **Modified: `infra/bicep/modules/container-registry.bicep`**
+#### **Modified: Resource Wrapper Modules**
 
-Removed `privateDnsZoneGroups` from the `privateEndpoints` array passed to the AVM module:
+Removed `privateDnsZoneGroups` configuration from all affected modules:
 
-**Before:**
-```bicep
-privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
-  {
-    name: 'acr-dns-zone-group'
-    privateDnsZoneGroupConfigs: [
-      {
-        name: 'acr-config'
-        privateDnsZoneResourceId: acrPrivateDnsZoneId
-      }
-    ]
-  }
-] : []
-```
+- `infra/bicep/modules/container-registry.bicep`
+- `infra/bicep/modules/storage.bicep` (not removed, but will be ignored by AVM)
+- `infra/bicep/modules/cosmos.bicep` (not removed, but will be ignored by AVM)
+- `infra/bicep/modules/app-config-store.bicep` (not removed, but will be ignored by AVM)
 
-**After:**
-```bicep
-// privateDnsZoneGroups removed - AVM module 0.9.3 does not handle conditional correctly
-// DNS zone group will be created explicitly in main.bicep using separate module
-```
+**Note:** We kept the `privateDnsZoneGroups` configurations in place for documentation purposes, but they are effectively ignored as the explicit modules take precedence.
 
 #### **Modified: `infra/bicep/main.bicep`**
 
-Added explicit DNS zone group module **after** the ACR module:
+Added explicit DNS zone group modules **after** each resource module:
 
+**1. Container Registry:**
 ```bicep
-// ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
-module containerRegistry 'modules/container-registry.bicep' = {
-  name: 'acr-${resourceToken}'
-  params: {
-    containerRegistryName: containerRegistryName
-    location: location
-    roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
-    enablePrivateEndpoint: isAILZIntegrated
-    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
-    acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
-    publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
-    networkRuleBypassOptions: 'AzureServices'
-    tags: tags
-  }
-}
-
-// ========== ACR DNS ZONE GROUP (EXPLICIT CREATION) ==========
-// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
-// Workaround: AVM containerregistry module 0.9.3 does not properly handle privateDnsZoneGroups conditional
-// This separate module creates the DNS zone group after the private endpoint exists
 module acrDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
   name: 'acr-dns-zone-group-${resourceToken}'
   params: {
@@ -349,30 +362,114 @@ module acrDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isA
     privateDnsZoneId: networkConfig.privateDnsZoneIds.acr
     location: location
   }
-  dependsOn: [
-    containerRegistry
-  ]
+  dependsOn: [containerRegistry]
 }
 ```
 
-Also retained the `dependsOn: [containerRegistry]` on all three Container Apps modules (API, Worker, Web) to ensure they wait for both ACR and DNS zone group to complete.
+**2. Storage Account (Blob):**
+```bicep
+module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-blob-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-blob-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.blob
+    location: location
+  }
+  dependsOn: [storage]
+}
+```
+
+**3. Storage Account (Queue):**
+```bicep
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-queue-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-queue-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.queue
+    location: location
+  }
+  dependsOn: [storage]
+}
+```
+
+**4. Cosmos DB:**
+```bicep
+module cosmosDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'cosmos-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${cosmosAccountName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.cosmos
+    location: location
+  }
+  dependsOn: [cosmos]
+}
+```
+
+**5. App Configuration:**
+```bicep
+module appConfigDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'appconfig-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${appConfigStoreName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.appConfig
+    location: location
+  }
+  dependsOn: [appConfigStore]
+}
+```
+
+**Summary of DNS Zone Groups Created:**
+- 1× ACR (login server + data endpoint via single zone group)
+- 2× Storage Account (blob + queue endpoints - separate zone groups)
+- 1× Cosmos DB
+- 1× App Configuration
+- **Total: 5 DNS zone group modules**
 
 **How It Works:**
 
-1. **ACR Module** creates the Container Registry with private endpoint (but no DNS zone group)
-2. **DNS Zone Group Module** (conditional on AILZ mode) creates the DNS zone group explicitly
-3. Azure automatically registers A records in the Private DNS Zone when the zone group is properly configured
-4. **Container Apps** wait for the entire ACR deployment (including DNS) via explicit `dependsOn`
-5. DNS resolution works correctly, Container Apps pull images successfully
+1. **Resource Module** creates the resource with private endpoint (but DNS zone group fails silently)
+2. **Explicit DNS Zone Group Module** (conditional on AILZ mode) creates the DNS zone group
+3. Azure automatically registers A records in the Private DNS Zone
+4. **Dependent Services** can now resolve private FQDNs correctly
+5. All network connections work via private endpoints
 
 **Expected Results After Fix:**
 
-✅ Private DNS Zone automatically gets A records for ACR FQDN pointing to private IPs (10.0.0.x)  
-✅ DNS zone group exists and has proper configuration (not empty `{}` or missing `[]`)  
-✅ DNS resolution works correctly within the VNet  
+✅ All Private DNS Zones automatically get A records for resource FQDNs pointing to private IPs (10.0.0.x)  
+✅ DNS zone groups exist for all 5 private endpoints  
+✅ DNS resolution works correctly within the VNet for all resources  
 ✅ Container Apps deploy successfully without 20-minute timeout  
+✅ Postprovision hook can access Storage Account and App Configuration  
 ✅ No manual DNS record creation needed  
-✅ Deployment completes in 15-20 minutes total
+✅ Deployment completes in 15-20 minutes total (vs 20-minute timeout)
+
+**Verification Commands:**
+
+```bash
+# 1. Verify all DNS zone groups exist
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <acr-name>-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <storage-name>-blob-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <storage-name>-queue-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <cosmos-name>-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <appconfig-name>-pe
+
+# 2. Verify A records registered in Private DNS Zones
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.azurecr.io
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.blob.core.windows.net
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.queue.core.windows.net
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.documents.azure.com
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.azconfig.io
+
+# 3. Test DNS resolution from within VNet (e.g., from jumpbox)
+nslookup <acr-name>.azurecr.io
+nslookup <storage-name>.blob.core.windows.net
+nslookup <storage-name>.queue.core.windows.net
+nslookup <cosmos-name>.documents.azure.com
+nslookup <appconfig-name>.azconfig.io
+# All should resolve to 10.0.0.x private IPs
+```
+
+---
 
 **Verification Commands:**
 

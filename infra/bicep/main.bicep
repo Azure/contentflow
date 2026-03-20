@@ -224,6 +224,34 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
+// ========== STORAGE DNS ZONE GROUPS (EXPLICIT CREATION) ==========
+// Create DNS zone groups explicitly to ensure A records are registered in private DNS zones
+// Workaround: AVM storage module 0.27.1 does not properly handle privateDnsZoneGroups conditional
+// These separate modules create the DNS zone groups after the private endpoints exist
+module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-blob-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-blob-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.blob
+    location: location
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-queue-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-queue-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.queue
+    location: location
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
 
 // ========== COSMOS DB ==========
 // Create new Cosmos DB account with private endpoint support (if using AILZ integrated mode),
@@ -246,6 +274,22 @@ module cosmos 'modules/cosmos.bicep' = {
   }
 }
 
+// ========== COSMOS DB DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM cosmos module 0.13.1 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module cosmosDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'cosmos-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${cosmosAccountName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.cosmos
+    location: location
+  }
+  dependsOn: [
+    cosmos
+  ]
+}
+
 // ========== APP CONFIGURATION ==========
 // Create new App Configuration store, with private endpoint support (if using AILZ integrated mode),
 // or use public endpoints (basic mode)
@@ -262,6 +306,22 @@ module appConfigStore 'modules/app-config-store.bicep' = {
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
   }
+}
+
+// ========== APP CONFIGURATION DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM app-configuration module 0.9.2 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module appConfigDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'appconfig-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${appConfigStoreName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.appConfig
+    location: location
+  }
+  dependsOn: [
+    appConfigStore
+  ]
 }
 
 // ========== APP CONFIGURATION KEYS ==========
