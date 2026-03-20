@@ -4,9 +4,10 @@
 
 - [1. Fix: LogAnalytics CustomerId Must Be a GUID](#1-fix-loganalytics-customerid-must-be-a-guid)
 - [2. Fix: Property Name Typo `privateEndpointsSubnetId`](#2-fix-property-name-typo-privateendpointssubnetid)
-- [3. Fix: `UnmatchedPrincipalType` – `deployer().objectId` Hardcoded as `User`](#3-fix-unmatchedprincipaltype--deployerobjectid-hardcoded-as-user)
+- [3. Fix: `UnmatchedPrincipalType` - `deployer().objectId` Hardcoded as `User`](#3-fix-unmatchedprincipaltype---deployerobjectid-hardcoded-as-user)
 - [4. Feature: Automated ACR Placeholder Import for AILZ Deployments](#4-feature-automated-acr-placeholder-import-for-ailz-deployments)
-- [5. Fix: Container Apps Timeout – DNS Zone Group and Deployment Sequencing](#5-fix-container-apps-timeout--dns-zone-group-and-deployment-sequencing)
+- [5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround](#5-fix-container-apps-timeout---dns-zone-group-creation-workaround)
+- [6. Fix: App Configuration Keys Failure - ARM Private Link Delegation](#6-fix-app-configuration-keys-failure---arm-private-link-delegation)
 
 ---
 
@@ -79,7 +80,7 @@ Simple typo fix — `privateEndpointsSubnetId` → `privateEndpointSubnetId`.
 
 ---
 
-## 3. Fix: `UnmatchedPrincipalType` – `deployer().objectId` Hardcoded as `User`
+## 3. Fix: `UnmatchedPrincipalType` - `deployer().objectId` Hardcoded as `User`
 
 **Error:**
 
@@ -250,7 +251,7 @@ fi
 
 ---
 
-## 5. Fix: Container Apps Timeout – DNS Zone Group Creation Workaround
+## 5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround
 
 **Error:**
 
@@ -422,3 +423,207 @@ az network private-dns record-set a list \
   --zone-name privatelink.azurecr.io \
   --query "[].{Name:name, IP:aRecords[0].ipv4Address}"
 ```
+
+---
+
+**Fix Verification Results (Deployment: content_flow_Friday20-02)**
+
+**Tested**: March 20, 2026  
+**Environment**: AILZ-integrated mode with jumpbox deployment
+
+✅ **DNS Zone Group Created Successfully**
+```json
+{
+  "name": "default",
+  "privateDnsZoneConfigs": [
+    {
+      "name": "privatelink-azurecr-io",
+      "privateDnsZoneId": "/subscriptions/.../privateDnsZones/privatelink.azurecr.io",
+      "recordSets": [
+        {
+          "fqdn": "cra5s63braj5xj2.eastus2.data.privatelink.azurecr.io",
+          "ipAddresses": ["10.0.0.15"],
+          "provisioningState": "Succeeded",
+          "recordType": "A"
+        },
+        {
+          "fqdn": "cra5s63braj5xj2.privatelink.azurecr.io",
+          "ipAddresses": ["10.0.0.16"],
+          "provisioningState": "Succeeded",
+          "recordType": "A"
+        }
+      ]
+    }
+  ],
+  "provisioningState": "Succeeded"
+}
+```
+
+✅ **A Records Registered in Private DNS Zone**
+```
+Name             IP
+---------------  ---------
+cra5s63braj5xj2  10.0.0.16
+```
+
+✅ **Container Apps Deployed Successfully**
+- Worker: 16.4 seconds (previously: 20-minute timeout)
+- API: 49.4 seconds (previously: 20-minute timeout)
+- Web: 18.5 seconds (previously: 20-minute timeout)
+
+**Result**: The workaround with explicit DNS zone group module completely resolved the Container Apps timeout issue. DNS records are now automatically registered, and Container Apps can successfully pull images from the private ACR.
+
+---
+
+## 6. Fix: App Configuration Keys Failure - ARM Private Link Delegation
+
+**Error:**
+
+```
+appConfigKeys-a5s63braj5xj2 → Failed
+Error: Forbidden - Access to the requested resource is forbidden
+```
+
+**Root Cause:**
+
+In AILZ-integrated deployments with private endpoints, the App Configuration Store is configured with:
+- `publicNetworkAccess: 'Disabled'` — no public internet access
+- Private endpoint in the VNet — accessible only through private network
+- `dataPlaneProxy.privateLinkDelegation: 'Disabled'` — **THIS IS THE PROBLEM**
+
+When the `appConfigStoreKeys` Bicep module tries to create key-value pairs using the ARM deployment service, **ARM cannot access the App Configuration data plane** because:
+
+1. ARM deployment service operates **outside the customer's VNet**
+2. App Configuration has public access disabled (correct for AILZ)
+3. ARM has no private endpoint connection to the customer's VNet
+4. **Azure Resource Manager requires explicit private link delegation** to access resources through private endpoints during deployments
+
+The `dataPlaneProxy.privateLinkDelegation` property controls whether ARM can access the App Configuration data plane through its own private link connection when the resource has private endpoints and public access disabled.
+
+**This is NOT an RBAC issue** — the deployer MI has correct permissions (Owner on RG + App Configuration Data Owner). The error is a **network connectivity issue**.
+
+---
+
+**Microsoft Documentation:**
+
+From [Azure App Configuration REST API - Data Plane Proxy](https://learn.microsoft.com/en-us/rest/api/appconfiguration/data-plane-proxy):
+
+> **privateLinkDelegation**: When set to `'Enabled'`, Azure Resource Manager (ARM) can access the data plane through its private link even when public network access is disabled. This is required for ARM template deployments that create key-values in App Configuration stores with private endpoints.
+
+**API Version:** Requires `2025-02-01-preview` or later
+
+---
+
+**Verification via Azure CLI:**
+
+Confirmed current App Configuration data plane proxy configuration:
+
+```bash
+az rest --method GET \
+  --url "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/<app-config-name>?api-version=2025-02-01-preview" \
+  --query "properties.dataPlaneProxy"
+```
+
+**Current Output:**
+```json
+{
+  "authenticationMode": "Pass-through",
+  "privateLinkDelegation": "Disabled"  // ← Problem
+}
+```
+
+**Required Configuration:**
+```json
+{
+  "authenticationMode": "Pass-through",
+  "privateLinkDelegation": "Enabled"  // ← Fix
+}
+```
+
+---
+
+**Solution: Conditional Private Link Delegation**
+
+The `privateLinkDelegation` setting should be conditional based on deployment mode:
+
+- **Basic Mode** (public deployment): Set to `'Disabled'` — ARM accesses via public endpoint, no delegation needed
+- **AILZ Mode** (private endpoints): Set to `'Enabled'` — ARM needs delegation to access through private link
+
+### File Changed: `infra/bicep/modules/app-config-store.bicep`
+
+**Before:**
+
+```bicep
+dataPlaneProxy: {
+  authenticationMode: 'Pass-through'
+  privateLinkDelegation: 'Disabled'  // Hardcoded
+}
+```
+
+**After:**
+
+```bicep
+dataPlaneProxy: {
+  authenticationMode: 'Pass-through'
+  privateLinkDelegation: enablePrivateEndpoint ? 'Enabled' : 'Disabled'  // Conditional
+}
+```
+
+**How It Works:**
+
+| Deployment Mode | `enablePrivateEndpoint` | `privateLinkDelegation` | ARM Access Method |
+|-----------------|------------------------|------------------------|-------------------|
+| **Basic** | `false` | `'Disabled'` | Public endpoint (internet) |
+| **AILZ** | `true` | `'Enabled'` | Private link delegation |
+
+The module already receives the `enablePrivateEndpoint` parameter from `main.bicep` (set to `isAILZIntegrated`), so no changes to the main template are required.
+
+---
+
+**Why Not Use Trusted Services Bypass?**
+
+Unlike Azure Container Registry (which has `networkRuleBypassOptions: 'AzureServices'`), **Azure App Configuration does not support a trusted services bypass**. The only way for ARM to access the data plane through private endpoints is via private link delegation.
+
+This design choice follows the principle of **explicit authorization** rather than implicit trust.
+
+---
+
+**Expected Results After Fix:**
+
+✅ App Configuration Store provisions successfully  
+✅ Private endpoint created in AILZ mode  
+✅ `privateLinkDelegation` set to `'Enabled'` in AILZ mode  
+✅ ARM deployment can access data plane through private link  
+✅ `appConfigStoreKeys` module creates key-values successfully  
+✅ No 403 Forbidden errors  
+✅ Single `azd provision` command completes end-to-end  
+✅ Basic mode continues to work with public access (delegation disabled)
+
+---
+
+**Verification After Deployment:**
+
+```bash
+# Verify private link delegation is enabled (AILZ mode)
+az rest --method GET \
+  --url "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/<app-config-name>?api-version=2025-02-01-preview" \
+  --query "properties.dataPlaneProxy.privateLinkDelegation"
+
+# Expected output: "Enabled"
+
+# Verify key-values were created successfully
+az appconfig kv list \
+  --name <app-config-name> \
+  --auth-mode login
+
+# Should show all expected keys without errors
+```
+
+---
+
+**Impact on Deployment Modes:**
+
+- **Basic Mode**: No change in behavior — public access enabled, delegation disabled (least privilege)
+- **AILZ Mode**: Enables ARM to deploy key-values through private network (required for functionality)
+
+This fix maintains security best practices by only enabling private link delegation when private endpoints are actually configured.
