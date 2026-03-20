@@ -264,7 +264,10 @@ module appConfigStore 'modules/app-config-store.bicep' = {
   }
 }
 
-module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
+// ========== APP CONFIGURATION KEYS ==========
+// Basic mode: Create keys via Bicep (public access enabled, ARM can access)
+// AILZ mode: Skip Bicep creation, keys created via postprovision hook (jumpbox has VNet access)
+module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = if (!isAILZIntegrated) {
   name: 'appConfigKeys-${resourceToken}'
   params: {
     appConfigStoreName: appConfigStoreName
@@ -626,6 +629,7 @@ output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output STORAGE_QUEUE_URL string = storage.outputs.primaryQueueEndpoint
 output STORAGE_QUEUE_NAME string = workerQueueName
 output APP_CONFIG_ENDPOINT string = appConfigStore.outputs.endpoint
+output APP_CONFIG_NAME string = appConfigStoreName
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsConnectionString
 
 // Managed Identity outputs

@@ -475,7 +475,7 @@ cra5s63braj5xj2  10.0.0.16
 
 ---
 
-## 6. Fix: App Configuration Keys Failure - ARM Private Link Delegation
+## 6. Fix: App Configuration Keys Failure - Private Network Access Limitation
 
 **Error:**
 
@@ -484,84 +484,154 @@ appConfigKeys-a5s63braj5xj2 → Failed
 Error: Forbidden - Access to the requested resource is forbidden
 ```
 
+**Symptoms:**
+
+- App Configuration Store provisions successfully in AILZ mode
+- Private endpoint created and functional
+- Container Apps can access App Config via private endpoint
+- **BUT**: Bicep module `appConfigStoreKeys` fails with 403 Forbidden when attempting to create key-value pairs
+- Error persists even after RBAC role assignments have propagated (2+ hours)
+- Error appears for **every key** being created (30+ Forbidden errors)
+
+---
+
 **Root Cause:**
 
-In AILZ-integrated deployments with private endpoints, the App Configuration Store is configured with:
-- `publicNetworkAccess: 'Disabled'` — no public internet access
-- Private endpoint in the VNet — accessible only through private network
-- `dataPlaneProxy.privateLinkDelegation: 'Disabled'` — **THIS IS THE PROBLEM**
+This is **NOT an RBAC issue** — it's a **network connectivity limitation** with Azure Resource Manager (ARM) deployment service accessing App Configuration through private endpoints.
 
-When the `appConfigStoreKeys` Bicep module tries to create key-value pairs using the ARM deployment service, **ARM cannot access the App Configuration data plane** because:
+In AILZ-integrated deployments, the App Configuration Store is configured with:
+- `publicNetworkAccess: 'Disabled'` — no public internet access ✅ (correct for AILZ)
+- Private endpoint in the VNet — accessible only through private network ✅
+- `dataPlaneProxy.authenticationMode: 'Pass-through'` — uses deployer MI for auth ✅
+- `dataPlaneProxy.privateLinkDelegation: 'Enabled'` — enables ARM private network access ✅
 
-1. ARM deployment service operates **outside the customer's VNet**
-2. App Configuration has public access disabled (correct for AILZ)
-3. ARM has no private endpoint connection to the customer's VNet
-4. **Azure Resource Manager requires explicit private link delegation** to access resources through private endpoints during deployments
+**The problem:** When Bicep creates `Microsoft.AppConfiguration/configurationStores/keyValues` resources, the **ARM deployment service** (which runs in Microsoft's network, **outside the customer's VNet**) attempts to write the key-values to the App Configuration data plane. However:
 
-The `dataPlaneProxy.privateLinkDelegation` property controls whether ARM can access the App Configuration data plane through its own private link connection when the resource has private endpoints and public access disabled.
-
-**This is NOT an RBAC issue** — the deployer MI has correct permissions (Owner on RG + App Configuration Data Owner). The error is a **network connectivity issue**.
+1. ARM deployment service has no direct access to the customer's private VNet
+2. App Configuration has `publicNetworkAccess: 'Disabled'` (no internet route)
+3. ARM cannot connect → 403 Forbidden
 
 ---
 
-**Microsoft Documentation:**
+**Microsoft Official Documentation:**
 
-From [Azure App Configuration REST API - Data Plane Proxy](https://learn.microsoft.com/en-us/rest/api/appconfiguration/data-plane-proxy):
+From [Azure App Configuration - Deployment Overview](https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-deployment-overview?tabs=portal#private-network-access):
 
-> **privateLinkDelegation**: When set to `'Enabled'`, Azure Resource Manager (ARM) can access the data plane through its private link even when public network access is disabled. This is required for ARM template deployments that create key-values in App Configuration stores with private endpoints.
-
-**API Version:** Requires `2025-02-01-preview` or later
-
----
-
-**Verification via Azure CLI:**
-
-Confirmed current App Configuration data plane proxy configuration:
-
-```bash
-az rest --method GET \
-  --url "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/<app-config-name>?api-version=2025-02-01-preview" \
-  --query "properties.dataPlaneProxy"
-```
-
-**Current Output:**
-```json
-{
-  "authenticationMode": "Pass-through",
-  "privateLinkDelegation": "Disabled"  // ← Problem
-}
-```
-
-**Required Configuration:**
-```json
-{
-  "authenticationMode": "Pass-through",
-  "privateLinkDelegation": "Enabled"  // ← Fix
-}
-```
+> **"Private network access"**
+> 
+> When you restrict an App Configuration resource to private network access, deployments that access App Configuration data through public networks are blocked. For deployments to succeed when access to an App Configuration resource is restricted to private networks, you must take the following actions:
+> 
+> 1. **Set up an Azure Resource Management private link**
+> 2. In your App Configuration resource, set the Azure Resource Manager authentication mode to **Pass-through**
+> 3. In your App Configuration resource, **enable Azure Resource Manager private network access** (this is `privateLinkDelegation: 'Enabled'`)
+> 4. **Run deployments accessing App Configuration data through the configured Azure Resource Manager private link**
 
 ---
 
-**Solution: Conditional Private Link Delegation**
+**Why `privateLinkDelegation: 'Enabled'` Alone Is Not Sufficient:**
 
-The `privateLinkDelegation` setting should be conditional based on deployment mode:
+The `dataPlaneProxy.privateLinkDelegation` property (API version `2025-02-01-preview` or later) **enables** App Configuration to accept ARM connections via private link, but **does not establish the private link**. It's a prerequisite, not a complete solution.
 
-- **Basic Mode** (public deployment): Set to `'Disabled'` — ARM accesses via public endpoint, no delegation needed
-- **AILZ Mode** (private endpoints): Set to `'Enabled'` — ARM needs delegation to access through private link
+To **actually use** this feature, you need an **Azure Resource Manager Private Link** (requirement #1 and #4 above), which is:
 
-### File Changed: `infra/bicep/modules/app-config-store.bicep`
+- **An enterprise infrastructure** configured at the **root management group** level (applies to the entire tenant)
+- **Out of scope** for application-level templates like ContentFlow
+- Requires **Global Administrator** or **Owner permissions at the root management group**
+- See: [Create Azure Resource Manager Private Link](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/create-private-link-access-portal)
+
+**Without ARM Private Link configured at the tenant level**, even with `privateLinkDelegation: 'Enabled'`, ARM deployment service still attempts to access App Configuration over the public internet, which fails when `publicNetworkAccess: 'Disabled'`.
+
+---
+
+**Solution Architecture: Two-Phase Approach**
+
+Since ARM Private Link is an enterprise-level prerequisite beyond the scope of this template, we implement a **two-phase solution** based on deployment mode:
+
+### **Basic Mode** (Public Deployment)
+- App Configuration: `publicNetworkAccess: 'Enabled'` (no private endpoints)
+- **Keys created via Bicep**: ARM can access over the internet → Success ✅
+- No postprovision hook needed
+
+### **AILZ Mode** (Private Deployment)
+- App Configuration: `publicNetworkAccess: 'Disabled'` + Private Endpoint
+- **Keys created via postprovision hook**: Script runs on jumpbox VM (inside VNet) → Has private endpoint access → Success ✅
+- Bicep module skipped (conditional: `if (!isAILZIntegrated)`)
+
+**Why the Hook Works:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Azure Resource Manager (ARM) Deployment Service        │
+│  (Runs in Microsoft's network, NOT in customer VNet)   │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   │ Bicep tries: keyValues resource
+                   │ Result: 403 Forbidden ❌
+                   │ (no ARM Private Link configured)
+                   ▼
+       ┌───────────────────────────┐
+       │  App Configuration Store  │
+       │  • publicNetworkAccess:   │
+       │    'Disabled'            │
+       │  • privateLinkDelegation: │
+       │    'Enabled'             │
+       └───────────────────────────┘
+                   ▲
+                   │
+                   │ postprovision hook: az appconfig kv set
+                   │ Result: Success ✅
+                   │ (jumpbox has VNet access)
+                   │
+       ┌───────────────────────────┐
+       │  Jumpbox VM (in VNet)     │
+       │  • Private endpoint       │
+       │  • Runs post-provision.sh │
+       └───────────────────────────┘
+```
+
+The postprovision hook executes **after Bicep provisioning completes**, from the jumpbox VM which:
+- Is located inside the customer's VNet
+- Has network access via the App Configuration private endpoint
+- Uses Azure CLI with `--auth-mode login` (managed identity authentication)
+- Creates all 30 key-value pairs successfully
+
+---
+
+**Implementation Details:**
+
+### File Changes
+
+#### **1. Modified: `infra/bicep/main.bicep`** (line 267)
 
 **Before:**
-
 ```bicep
-dataPlaneProxy: {
-  authenticationMode: 'Pass-through'
-  privateLinkDelegation: 'Disabled'  // Hardcoded
+module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
+  name: 'appConfigKeys-${resourceToken}'
+  params: {
+    appConfigStoreName: appConfigStoreName
+    configurationKeyValues: [...]
+  }
 }
 ```
 
 **After:**
+```bicep
+// Basic mode: Create keys via Bicep (public access enabled, ARM can access)
+// AILZ mode: Skip Bicep creation, keys created via postprovision hook
+module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = if (!isAILZIntegrated) {
+  name: 'appConfigKeys-${resourceToken}'
+  params: {
+    appConfigStoreName: appConfigStoreName
+    configurationKeyValues: [...]
+  }
+}
+```
 
+**Result:** Module only runs in basic mode. In AILZ mode, Bicep skips this module entirely → no 403 Forbidden errors.
+
+#### **2. Modified: `infra/bicep/modules/app-config-store.bicep`**
+
+**Kept conditional `privateLinkDelegation`** (implemented in previous fix):
 ```bicep
 dataPlaneProxy: {
   authenticationMode: 'Pass-through'
@@ -569,61 +639,212 @@ dataPlaneProxy: {
 }
 ```
 
-**How It Works:**
+**Why keep it?** Even though it doesn't solve the **key creation** problem (requires ARM Private Link at tenant level), it:
+- Follows Microsoft's documented best practice for AILZ deployments
+- Prepares the App Configuration Store for enterprise environments that **do** have ARM Private Link configured
+- Is a prerequisite (#3 in Microsoft's documentation)
+- Does not cause harm when ARM Private Link is absent
 
-| Deployment Mode | `enablePrivateEndpoint` | `privateLinkDelegation` | ARM Access Method |
-|-----------------|------------------------|------------------------|-------------------|
-| **Basic** | `false` | `'Disabled'` | Public endpoint (internet) |
-| **AILZ** | `true` | `'Enabled'` | Private link delegation |
+#### **3. Extended: `infra/scripts/post-provision.sh`**
 
-The module already receives the `enablePrivateEndpoint` parameter from `main.bicep` (set to `isAILZIntegrated`), so no changes to the main template are required.
+**Added new section** (after ACR import, lines ~55+):
+
+```bash
+# Create App Configuration keys in AILZ mode
+if [ "$DEPLOYMENT_MODE" = "ailz-integrated" ]; then
+  echo "✓ Creating App Configuration keys (AILZ mode - via jumpbox with VNet access)..."
+  
+  APP_CONFIG_NAME=$(azd env get-value APP_CONFIG_NAME)
+  COSMOS_DB_NAME=$(azd env get-value COSMOS_DB_NAME)
+  # ... get other values from azd env
+  
+  # Create all 30 keys using az appconfig kv set
+  az appconfig kv set --name "$APP_CONFIG_NAME" \
+    --key "contentflow.common.COSMOS_DB_ENDPOINT" \
+    --value "$COSMOS_ENDPOINT" \
+    --auth-mode login --yes --only-show-errors
+  
+  # ... (30 total keys)
+  
+  # Verify creation
+  KEY_COUNT=$(az appconfig kv list --name "$APP_CONFIG_NAME" \
+    --auth-mode login --query "length([])" -o tsv)
+  echo "  ✓ Verification: $KEY_COUNT keys found"
+fi
+```
+
+**Key Features:**
+- Uses `--auth-mode login`: Authenticates with deployer managed identity
+- Uses `--only-show-errors`: Suppresses verbose output
+- Validates key count after creation
+- Provides clear error messages if creation fails
+
+#### **4. Modified: `infra/bicep/main.bicep`** (outputs section)
+
+**Added output:**
+```bicep
+output APP_CONFIG_NAME string = appConfigStoreName
+```
+
+Required for the postprovision script to identify the correct App Configuration Store.
 
 ---
 
-**Why Not Use Trusted Services Bypass?**
+**How It Works (AILZ Mode):**
 
-Unlike Azure Container Registry (which has `networkRuleBypassOptions: 'AzureServices'`), **Azure App Configuration does not support a trusted services bypass**. The only way for ARM to access the data plane through private endpoints is via private link delegation.
+1. **Bicep Provisioning (`azd provision`)**:
+   - Creates App Configuration Store with private endpoint and `privateLinkDelegation: 'Enabled'`
+   - **Skips** `appConfigStoreKeys` module (conditional: `if (!isAILZIntegrated)`)
+   - No 403 Forbidden errors during Bicep deployment
+   - Completes successfully, outputs App Config name to azd environment
 
-This design choice follows the principle of **explicit authorization** rather than implicit trust.
+2. **Postprovision Hook (`post-provision.sh`)**:
+   - Detects `DEPLOYMENT_MODE=ailz-integrated`
+   - Retrieves App Config name and all required values from azd environment
+   - Executes `az appconfig kv set` 30 times (one per key)
+   - Azure CLI accesses App Config **via private endpoint** (jumpbox is in VNet)
+   - All keys created successfully
+   - Verifies key count matches expected (30)
+
+3. **Container Apps Startup**:
+   - Apps read `AZURE_APP_CONFIG_ENDPOINT` from environment variables
+   - Connect to App Config via private endpoint
+   - Load all 30 keys successfully
+   - Applications start without configuration errors
 
 ---
 
 **Expected Results After Fix:**
 
-✅ App Configuration Store provisions successfully  
-✅ Private endpoint created in AILZ mode  
-✅ `privateLinkDelegation` set to `'Enabled'` in AILZ mode  
-✅ ARM deployment can access data plane through private link  
-✅ `appConfigStoreKeys` module creates key-values successfully  
-✅ No 403 Forbidden errors  
-✅ Single `azd provision` command completes end-to-end  
-✅ Basic mode continues to work with public access (delegation disabled)
+✅ **Basic mode** (public deployment):
+- Bicep creates all 30 keys during `azd provision`
+- No postprovision hook execution needed
+- Single `azd up` command completes end-to-end
+
+✅ **AILZ mode** (private deployment):
+- Bicep **skips** key creation (module not executed)
+- No 403 Forbidden errors during Bicep phase
+- Postprovision hook creates all 30 keys from jumpbox
+- Container Apps read keys successfully via private endpoint
+- Single `azd up` command completes end-to-end (hook is automatic)
+
+✅ **Security maintained**:
+- App Configuration remains fully private (`publicNetworkAccess: 'Disabled'`)
+- No temporary public access required
+- Zero Trust principles preserved
 
 ---
 
-**Verification After Deployment:**
+**Verification After Deployment (AILZ Mode):**
 
 ```bash
-# Verify private link delegation is enabled (AILZ mode)
+# 1. Verify privateLinkDelegation is enabled (best practice)
 az rest --method GET \
   --url "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/<app-config-name>?api-version=2025-02-01-preview" \
   --query "properties.dataPlaneProxy.privateLinkDelegation"
+# Expected: "Enabled"
 
-# Expected output: "Enabled"
-
-# Verify key-values were created successfully
+# 2. Verify all 30 keys were created
 az appconfig kv list \
   --name <app-config-name> \
-  --auth-mode login
+  --auth-mode login \
+  --query "length([])"
+# Expected: 30
 
-# Should show all expected keys without errors
+# 3. Check specific keys
+az appconfig kv list \
+  --name <app-config-name> \
+  --auth-mode login \
+  --query "[].{Key:key, Value:value}" \
+  --output table
+
+# 4. Verify Container Apps can access config
+az containerapp logs show \
+  --name api-<resource-token> \
+  --resource-group <rg-name> \
+  --query "[?contains(Log, 'Configuration loaded')]"
 ```
+
+---
+
+**Why Not Enable ARM Private Link?**
+
+Azure Resource Manager Private Link is an **enterprise infrastructure prerequisite** that:
+
+- **Scope:** Configured at the **root management group** level (entire tenant)
+- **Impact:** Applies to **all** Azure Resource Manager deployments across the tenant
+- **Permissions Required:**
+  - Global Administrator for Microsoft Entra ID
+  - Owner or Contributor at the root management group
+  - Ability to elevate access and grant permissions across all subscriptions
+- **Complexity:** Multi-step setup with private endpoints, private DNS zones, and link associations
+- **Purpose:** Designed for enterprises with strict network isolation requirements across all Azure operations
+- **Documentation:** [Use portal to create private link for managing Azure resources](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/create-private-link-access-portal)
+
+**For ContentFlow deployments:**
+- This template targets **application-level** deployments, not tenant-wide infrastructure
+- Most customers do **not** have ARM Private Link configured (it's optional and complex)
+- The postprovision hook provides a **portable solution** that works regardless of ARM Private Link presence
+- If customers **do** have ARM Private Link configured, `privateLinkDelegation: 'Enabled'` ensures compatibility
+
+---
+
+### ✅ Chosen Solution: Postprovision Hook
+**Why it's optimal:**
+- ✅ Runs on existing jumpbox (no additional resources/cost)
+- ✅ Has VNet access via private endpoint (already configured)
+- ✅ Uses managed identity authentication (deployer MI, already assigned)
+- ✅ Simple bash script with Azure CLI (standard tooling)
+- ✅ Executes automatically as part of `azd up` (no manual steps)
+- ✅ Maintains Zero Trust security (no public access)
+- ✅ Portable across environments (doesn't require ARM Private Link)
 
 ---
 
 **Impact on Deployment Modes:**
 
-- **Basic Mode**: No change in behavior — public access enabled, delegation disabled (least privilege)
-- **AILZ Mode**: Enables ARM to deploy key-values through private network (required for functionality)
+| Deployment Mode | Public Network Access | Keys Creation Method | ARM Private Link Required? |
+|-----------------|----------------------|---------------------|---------------------------|
+| **Basic** | `'Enabled'` | Bicep module | No |
+| **AILZ** | `'Disabled'` | Postprovision hook | No (would enable it if present) |
 
-This fix maintains security best practices by only enabling private link delegation when private endpoints are actually configured.
+---
+
+**References:**
+
+- [Azure App Configuration - Deployment Overview](https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-deployment-overview)
+- [Private network access for App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-deployment-overview?tabs=portal#private-network-access)
+- [Create Azure Resource Manager Private Link](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/create-private-link-access-portal)
+- [Use private endpoints for Azure App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/concept-private-endpoint)
+
+---
+
+**Troubleshooting:**
+
+If App Configuration keys are not created in AILZ mode:
+
+```bash
+# 1. Check postprovision hook execution
+# Look for: "Creating App Configuration keys (AILZ mode...)"
+azd provision --no-prompt 2>&1 | grep -A 10 "Creating App Configuration"
+
+# 2. Manually run key creation from jumpbox
+APP_CONFIG_NAME="appcs-<resource-token>"
+az appconfig kv set --name "$APP_CONFIG_NAME" \
+  --key "contentflow.common.COSMOS_DB_ENDPOINT" \
+  --value "<cosmos-endpoint>" \
+  --auth-mode login --yes
+
+# 3. Verify managed identity has correct role
+az role assignment list \
+  --scope "/subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/$APP_CONFIG_NAME" \
+  --query "[?roleDefinitionName=='App Configuration Data Owner'].principalId"
+
+# 4. Check private endpoint connectivity from jumpbox
+nslookup <app-config-name>.azconfig.io
+# Should resolve to 10.0.0.x (private IP)
+```
+
+---
+
+This solution provides a production-ready, secure, and automated approach for managing App Configuration keys in both basic and AILZ deployment modes without requiring enterprise-level ARM Private Link infrastructure.
