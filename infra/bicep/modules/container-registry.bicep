@@ -85,17 +85,17 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
         subnetResourceId: privateEndpointSubnetId
         service: 'registry'
         privateLinkServiceConnectionName: '${containerRegistryName}-acr-plsc'
-        privateDnsZoneGroups: [
+        privateDnsZoneGroups: !empty(acrPrivateDnsZoneId) ? [
           {
             name: 'acr-dns-zone-group'
-            privateDnsZoneGroupConfigs: !empty(acrPrivateDnsZoneId) ? [
+            privateDnsZoneGroupConfigs: [
               {
                 name: 'acr-config'
                 privateDnsZoneResourceId: acrPrivateDnsZoneId
               }
-            ] : []
+            ]
           }
-        ]
+        ] : []
       }
     ] : []
   }

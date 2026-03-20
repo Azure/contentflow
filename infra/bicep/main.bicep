@@ -515,6 +515,9 @@ module apiContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'api' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== WORKER CONTAINER APP ==========
@@ -550,6 +553,9 @@ module workerContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'worker' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== API CONTAINER APP ==========
@@ -577,6 +583,9 @@ module webContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'web' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== OUTPUTS ==========
