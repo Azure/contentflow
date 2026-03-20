@@ -5,9 +5,10 @@
 - [1. Fix: LogAnalytics CustomerId Must Be a GUID](#1-fix-loganalytics-customerid-must-be-a-guid)
 - [2. Fix: Property Name Typo `privateEndpointsSubnetId`](#2-fix-property-name-typo-privateendpointssubnetid)
 - [3. Fix: `UnmatchedPrincipalType` - `deployer().objectId` Hardcoded as `User`](#3-fix-unmatchedprincipaltype---deployerobjectid-hardcoded-as-user)
-- [4. Feature: Automated ACR Placeholder Import for AILZ Deployments](#4-feature-automated-acr-placeholder-import-for-ailz-deployments)
+- [4. Cleanup: ACR Configuration Simplification](#4-cleanup-acr-configuration-simplification)
 - [5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround](#5-fix-container-apps-timeout---dns-zone-group-creation-workaround)
-- [6. Fix: App Configuration Keys Failure - ARM Private Link Delegation](#6-fix-app-configuration-keys-failure---arm-private-link-delegation)
+- [6. Fix: App Configuration Keys Failure - Private Network Access Limitation](#6-fix-app-configuration-keys-failure---private-network-access-limitation)
+- [7. Fix: Storage Account Name Output Returns Module Name Instead of Resource Name](#7-fix-storage-account-name-output-returns-module-name-instead-of-resource-name)
 
 ---
 
@@ -172,48 +173,20 @@ This works correctly for both interactive user logins and managed identity deplo
 
 ---
 
-## 4. Feature: Automated ACR Placeholder Import for AILZ Deployments
+## 4. Cleanup: ACR Configuration Simplification
 
-**Problem:**
+**Changes Made:**
 
-In AILZ-integrated deployments without internet egress (no NAT Gateway), Container Apps provisioning previously failed with a **20-minute timeout** because it couldn't pull placeholder images from the public Microsoft Container Registry (MCR). The private VNet has no outbound internet connectivity.
-
-**Solution:**
-
-Implemented an automated approach that maintains **Zero Trust / workload isolation** principles:
-
-1. **Always create a new ACR per workload** — never share a central ACR across workloads (violates isolation)
-2. **Enable trusted Azure services** — set `networkRuleBypassOptions: 'AzureServices'` on the new ACR, allowing server-side operations like `az acr import` even when the ACR has private endpoints and `publicNetworkAccess: Disabled`
-3. **Automated postprovision hook** — after Bicep provisions infrastructure, automatically import the placeholder image: `mcr.microsoft.com/k8se/quickstart:latest` → `${acr}/placeholder:latest`
-4. **Non-blocking design** — Container Apps use the ACA platform-cached image `mcr.microsoft.com/k8se/quickstart:latest` during provisioning. The import is defensive, ensuring subsequent operations can resolve the image from ACR.
-
-**How It Works:**
-
-The `postprovision` hook in [azure.yaml](azure.yaml) runs [post-provision.sh](infra/scripts/post-provision.sh) after Bicep completes:
-
-```bash
-# Conditional import (only in AILZ mode)
-if [ "$DEPLOYMENT_MODE" = "ailz-integrated" ]; then
-  az acr import \
-    --name "$ACR_NAME" \
-    --source mcr.microsoft.com/k8se/quickstart:latest \
-    --image placeholder:latest
-fi
-```
-
-- **Basic mode**: Skip import (ACR is public, MCR reachable)
-- **AILZ mode**: Import runs server-side via trusted services bypass (no client-side Docker or internet needed)
-
-**Affected Files:**
+Simplified ACR deployment configuration to align with Zero Trust and workload isolation principles:
 
 ### `infra/bicep/main.bicep`
 
-- **Removed** `existingContainerRegistryResourceId` parameter (and all related variables/logic)
-- **Removed** conditional ACR creation — now always creates new ACR
-- **Removed** private endpoint + RBAC for existing ACR
+- **Removed** `existingContainerRegistryResourceId` parameter — now always creates a new ACR per workload
+- **Removed** conditional ACR creation logic (was overly complex)
+- **Removed** private endpoint + RBAC configuration for existing ACR references
 - **Added** `networkRuleBypassOptions: 'AzureServices'` parameter to `containerRegistry` module call
-- **Simplified** container app module calls — removed conditional `placeholderImage` (use default `k8se/quickstart`)
-- **Simplified** outputs — use direct `containerRegistry.outputs.*`
+- **Simplified** container app module calls — removed conditional `placeholderImage` logic
+- **Simplified** outputs — use direct `containerRegistry.outputs.*` references
 
 ### `infra/bicep/main.parameters.json`
 
@@ -222,32 +195,24 @@ fi
 ### `infra/bicep/modules/container-registry.bicep`
 
 - **Added** `networkRuleBypassOptions` parameter (default: `'AzureServices'`)
-- **Pass through** to AVM module for trusted services support
-
-### `infra/bicep/modules/container-app.bicep`
-
-- **No changes** — already has correct default `placeholderImage: 'mcr.microsoft.com/k8se/quickstart:latest'`
+- Pass-through to AVM module for trusted Azure services support
 
 ### `infra/bicep/modules/acr-role-assignment.bicep`
 
-- **DELETED** — no longer needed (no cross-RG ACR RBAC)
+- **DELETED** — no longer needed (no cross-resource-group ACR RBAC)
 
-### `azure.yaml`
+### `infra/bicep/modules/container-app.bicep`
 
-- **Uncommented** `postprovision` hook to enable automated import
+- No changes — already has correct default `placeholderImage: 'mcr.microsoft.com/k8se/quickstart:latest'`
 
-### `infra/scripts/post-provision.sh`
-
-- **Added** conditional ACR import logic for AILZ mode
-- **Added** error handling with fallback instructions
-
-**Benefits:**
+**Rationale:**
 
 ✅ **Zero Trust compliance** — each workload has its own ACR, no shared central registry  
-✅ **`azd up` remains one command** — fully automated, no manual steps  
-✅ **Works from jumpbox without Docker** — `az acr import` is server-side  
-✅ **Non-blocking** — ACA platform caches `k8se/quickstart`, provisioning succeeds even if import fails  
-✅ **CI/CD ready** — no human intervention required
+✅ **Simplified codebase** — removed conditional logic and cross-RG complexity  
+✅ **Trusted services bypass** — `networkRuleBypassOptions: 'AzureServices'` enables Azure services (like Azure Pipelines, GitHub Actions) to access the ACR even with `publicNetworkAccess: Disabled`  
+✅ **Best practices** — aligns with Azure Landing Zone workload isolation principles
+
+**Note:** This item documents architectural simplification. The Container Apps timeout issue (initially thought to be related to ACR image access) was actually caused by missing DNS zone groups for private endpoints. See **Item 5** below for the actual solution to the timeout problem
 
 ---
 
@@ -848,3 +813,157 @@ nslookup <app-config-name>.azconfig.io
 ---
 
 This solution provides a production-ready, secure, and automated approach for managing App Configuration keys in both basic and AILZ deployment modes without requiring enterprise-level ARM Private Link infrastructure.
+
+---
+
+## 7. Fix: Storage Account Name Output Returns Module Name Instead of Resource Name
+
+**Error:**
+
+```
+ERROR: HTTPSConnection(host='storage-a5s63braj5xj2.storageaccount.queue.core.windows.net', port=443):
+Failed to resolve 'storage-a5s63braj5xj2.storageaccount.queue.core.windows.net'
+[Errno -2] Name or service not known
+```
+
+**Symptoms:**
+
+- Postprovision hook fails when trying to create App Configuration keys
+- DNS resolution errors for Storage Account queue endpoint
+- `azd env get-value STORAGE_ACCOUNT_NAME` returns incorrect value: `storage-a5s63braj5xj2.storageAccount`
+- Expected value should be: `sta5s63braj5xj2`
+- The `.storageAccount` suffix is the **module deployment name**, not the actual storage account name
+
+---
+
+**Root Cause:**
+
+In `infra/bicep/modules/storage.bicep`, the storage account is deployed using the Azure Verified Module (AVM):
+
+```bicep
+module storageAccount 'br/public:avm/res/storage/storage-account:0.27.1' = {
+  name: '${deployment().name}.storageAccount'  // Deployment name: "storage-xyz.storageAccount"
+  params: {
+    name: storageAccountName                    // Actual resource name: "sta5s63braj5xj2"
+  }
+}
+```
+
+The bug was in the module's output:
+
+```bicep
+output name string = storageAccount.name  // ❌ Returns deployment name
+```
+
+Bicep's `module.name` property returns the **deployment name** (the `name:` parameter of the module declaration), NOT the name of the resource created by that module. To get the actual resource name, you must access the module's outputs.
+
+---
+
+**Impact:**
+
+1. **`main.bicep` output is incorrect:**
+   ```bicep
+   output STORAGE_ACCOUNT_NAME string = storage.outputs.name  // Gets wrong value
+   ```
+   - This output feeds `azd` environment variables
+   - Results in: `STORAGE_ACCOUNT_NAME=storage-a5s63braj5xj2.storageAccount`
+
+2. **Postprovision script fails (AILZ mode):**
+   ```bash
+   STORAGE_ACCOUNT=$(azd env get-value STORAGE_ACCOUNT_NAME)
+   # STORAGE_ACCOUNT="storage-a5s63braj5xj2.storageAccount"  ❌
+   
+   az appconfig kv set --name "$APP_CONFIG_NAME" \
+     --key "contentflow.common.BLOB_STORAGE_ACCOUNT_NAME" \
+     --value "$STORAGE_ACCOUNT"  # Wrong value inserted! ❌
+   ```
+
+3. **DNS resolution fails:**
+   - Code constructs: `${STORAGE_ACCOUNT}.queue.core.windows.net`
+   - Results in: `storage-a5s63braj5xj2.storageaccount.queue.core.windows.net` ❌
+   - Correct would be: `sta5s63braj5xj2.queue.core.windows.net` ✅
+
+4. **Container Apps cannot access storage:**
+   - Apps read storage account name from App Configuration
+   - Receive incorrect value with `.storageAccount` suffix
+   - Cannot connect to blob storage or queues
+
+---
+
+**Solution:**
+
+### File Changed: `infra/bicep/modules/storage.bicep`
+
+**Line 184 - Before:**
+```bicep
+output name string = storageAccount.name
+```
+
+**Line 184 - After:**
+```bicep
+output name string = storageAccount.outputs.name
+```
+
+**Explanation:**
+
+- `storageAccount.name` → Returns the **module deployment name** (`storage-xyz.storageAccount`)
+- `storageAccount.outputs.name` → Returns the actual **storage account resource name** from the AVM module (`sta5s63braj5xj2`)
+
+The AVM module exposes the actual resource name via its output properties. By accessing `outputs.name`, we get the correct value that was passed in the `params.name` and used to create the actual Azure Storage Account resource.
+
+---
+
+**Verification:**
+
+To verify the fix works correctly:
+
+```bash
+# 1. Check azd environment has correct storage account name
+azd env get-value STORAGE_ACCOUNT_NAME
+# Expected: sta5s63braj5xj2 (no .storageAccount suffix)
+
+# 2. Verify DNS resolution works from jumpbox
+nslookup sta5s63braj5xj2.queue.core.windows.net
+# Should resolve to private IP (10.0.0.x) in AILZ mode
+
+# 3. Check App Configuration keys have correct value
+az appconfig kv show \
+  --name appcs-<resource-token> \
+  --key "contentflow.common.BLOB_STORAGE_ACCOUNT_NAME" \
+  --auth-mode login \
+  --query "value" -o tsv
+# Expected: sta5s63braj5xj2
+
+# 4. Test storage queue creation from postprovision hook
+az storage queue create \
+  --name test-queue \
+  --account-name sta5s63braj5xj2 \
+  --auth-mode login
+# Should succeed without DNS errors
+```
+
+---
+
+**Related Modules (No Issues Found):**
+
+Audited all other modules that use the same pattern. All others correctly use `module.outputs.name`:
+
+✅ `log-analytics-ws.bicep`: `output name string = logAnalytics.outputs.name`  
+✅ `container-apps-environment.bicep`: `output name string = containerAppsEnvironment.outputs.name`  
+✅ `app-config-store.bicep`: `output name string = appConfigStore.outputs.name`  
+✅ `container-registry.bicep`: `output name string = containerRegistry.outputs.name`  
+✅ `user-assigned-identity.bicep`: `output name string = userAssignedIdentity.outputs.name`  
+✅ `static-web-app.bicep`: `output name string = staticWebApp.outputs.name`
+
+⚠️ `container-app.bicep`: Uses `output name string = containerApp.name` but this output is **never consumed** in `main.bicep` (only `.outputs.fqdn` is used), so no impact.
+
+---
+
+**Benefits After Fix:**
+
+✅ **Correct storage account name** propagates to azd environment  
+✅ **DNS resolution works** for blob and queue endpoints  
+✅ **Postprovision hook succeeds** in AILZ mode  
+✅ **App Configuration keys** contain correct storage account name  
+✅ **Container Apps** can connect to storage successfully  
+✅ **No breaking changes** — existing code in `main.bicep` uses variable `storageAccountName` for App Config keys (basic mode), not affected by this output

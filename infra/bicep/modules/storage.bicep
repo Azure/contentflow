@@ -181,7 +181,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.27.1' = {
 
 // Outputs
 output resourceId string = storageAccount.outputs.resourceId
-output name string = storageAccount.name
+output name string = storageAccount.outputs.name
 output primaryBlobEndpoint string = storageAccount.outputs.primaryBlobEndpoint
 output primaryQueueEndpoint string = 'https://${storageAccount.outputs.name}.queue.${environment().suffixes.storage}/'
 output privateEndpoints array = storageAccount.outputs.privateEndpoints

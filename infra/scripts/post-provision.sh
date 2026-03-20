@@ -29,28 +29,6 @@ az storage queue create \
   --auth-mode login \
   --only-show-errors || echo "Queue already exists or error creating queue"
 
-# Import placeholder image to ACR in AILZ mode (enables Container Apps provisioning without internet egress)
-if [ "$DEPLOYMENT_MODE" = "ailz-integrated" ]; then
-  echo "✓ Importing placeholder image to ACR (AILZ mode - no internet egress)..."
-  echo "  Source: mcr.microsoft.com/k8se/quickstart:latest"
-  echo "  Target: $ACR_NAME/placeholder:latest"
-  
-  az acr import \
-    --name "$ACR_NAME" \
-    --source mcr.microsoft.com/k8se/quickstart:latest \
-    --image placeholder:latest \
-    --only-show-errors || {
-      echo "⚠ Warning: Failed to import placeholder image to ACR."
-      echo "  This is not critical if the image is cached by Container Apps platform."
-      echo "  If Container Apps fail to provision, you can manually import:"
-      echo "  az acr import --name $ACR_NAME --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest"
-    }
-  
-  echo "✓ Placeholder image imported successfully"
-else
-  echo "⊘ Skipping ACR import (basic mode - internet egress available)"
-fi
-
 # Create App Configuration keys in AILZ mode
 # Why: ARM deployment service cannot access App Config with publicNetworkAccess: 'Disabled'
 # Solution: Jumpbox (inside VNet) has access via private endpoint
