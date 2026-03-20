@@ -52,9 +52,6 @@
     },
     "existingAppInsightsId": {
       "value": "${EXISTING_APP_INSIGHTS_ID=}"
-    },
-    "existingContainerRegistryResourceId": {
-      "value": "${EXISTING_CONTAINER_REGISTRY_RESOURCE_ID=}"
     }
   }
 }

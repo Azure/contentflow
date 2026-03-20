@@ -63,9 +63,6 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Resource ID of existing App Insights from AI Landing Zone (optional, will create new if not provided)')
 param existingAppInsightsId string = ''
 
-@description('Resource ID of an existing Container Registry from AI Landing Zone (optional, will create new if not provided)')
-param existingContainerRegistryResourceId string = ''
-
 // ========== APPLICATION SPECIFIC PARAMETERS ==========
 @description('Cosmos DB database name')
 param cosmosDbName string = 'contentflow'
@@ -438,14 +435,8 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
 }
 
 // ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
-// Use existing Container Registry if provided (AILZ), otherwise create a new one
-var shouldCreateContainerRegistry = empty(existingContainerRegistryResourceId)
-
-// Derived values from existing ACR resource ID
-var existingAcrName = !shouldCreateContainerRegistry ? last(split(existingContainerRegistryResourceId, '/')) : ''
-var existingAcrResourceGroup = !shouldCreateContainerRegistry ? split(existingContainerRegistryResourceId, '/')[4] : resourceGroup().name
-
-module containerRegistry 'modules/container-registry.bicep' = if (shouldCreateContainerRegistry) {
+// Always create a new Container Registry per workload (Zero Trust / workload isolation)
+module containerRegistry 'modules/container-registry.bicep' = {
   name: 'acr-${resourceToken}'
   params: {
     containerRegistryName: containerRegistryName
@@ -455,58 +446,8 @@ module containerRegistry 'modules/container-registry.bicep' = if (shouldCreateCo
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
+    networkRuleBypassOptions: 'AzureServices'
     tags: tags
-  }
-}
-
-// Resolved ACR values that work for both existing and new registries
-var containerRegistryLoginServer = shouldCreateContainerRegistry ? containerRegistry!.outputs.loginServer : '${existingAcrName}.azurecr.io'
-var containerRegistryNameResolved = shouldCreateContainerRegistry ? containerRegistry!.outputs.name : existingAcrName
-
-// Private endpoint for existing ACR (needed when ACR is in a different VNet)
-resource existingAcrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = if (!shouldCreateContainerRegistry && isAILZIntegrated) {
-  name: '${existingAcrName}-pe'
-  location: location
-  tags: tags
-  properties: {
-    subnet: {
-      id: networkConfig.privateEndpointSubnetId
-    }
-    privateLinkServiceConnections: [
-      {
-        name: '${existingAcrName}-acr-plsc'
-        properties: {
-          privateLinkServiceId: existingContainerRegistryResourceId
-          groupIds: ['registry']
-        }
-      }
-    ]
-  }
-}
-
-resource existingAcrDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = if (!shouldCreateContainerRegistry && isAILZIntegrated && !empty(existingAcrPrivateDnsZoneId)) {
-  parent: existingAcrPrivateEndpoint
-  name: 'acr-dns-zone-group'
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'acr-config'
-        properties: {
-          privateDnsZoneId: existingAcrPrivateDnsZoneId
-        }
-      }
-    ]
-  }
-}
-
-// RBAC for managed identity on existing ACR (AcrPull + AcrPush)
-// Deployed to the ACR's resource group via module scope (cross-RG)
-module existingAcrRbac 'modules/acr-role-assignment.bicep' = if (!shouldCreateContainerRegistry) {
-  name: 'existingAcrRbac-${resourceToken}'
-  scope: resourceGroup(existingAcrResourceGroup)
-  params: {
-    containerRegistryName: existingAcrName
-    principalId: userAssignedIdentity.outputs.principalId
   }
 }
 
@@ -548,9 +489,8 @@ module apiContainerApp 'modules/container-app.bicep' = {
     name: apiContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistryLoginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
-    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: 8090
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -584,9 +524,8 @@ module workerContainerApp 'modules/container-app.bicep' = {
     name: workerContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistryLoginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
-    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: workerContainerAppTargetPort
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -620,9 +559,8 @@ module webContainerApp 'modules/container-app.bicep' = {
     name: webContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistryLoginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
-    placeholderImage: shouldCreateContainerRegistry ? 'mcr.microsoft.com/k8se/quickstart:latest' : '${containerRegistryLoginServer}/placeholder:latest'
     targetPort: 8080
     externalIngress: !isAILZIntegrated
     corsEnabled: true
@@ -648,8 +586,8 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 
 // Container Registry outputs
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistryLoginServer
-output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistryNameResolved
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Service endpoints
 output API_ENDPOINT string = 'https://${apiContainerApp.outputs.fqdn}'

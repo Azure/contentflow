@@ -39,8 +39,6 @@ Before deploying, ensure you have:
 - Access to existing AI Landing Zone infrastructure
 - Documentation of VNet and DNS zone resource IDs
 - Appropriate permissions in the AI LZ resource group
-- **(Recommended for no-egress VNets)** An existing Container Registry with a pre-imported placeholder image (see [Using an Existing Container Registry](#using-an-existing-container-registry-no-egress-vnets))
-  - You will need the ACR's full **resource ID** (e.g., `/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>`)
 
 **Verify tools are installed:**
 ```shell
@@ -223,10 +221,6 @@ azd env set EXISTING_CONTAINER_APPS_ENV_PRIVATE_DNS_ZONE_ID "$EXISTING_CONTAINER
 # (ContentFlow will create new ones if not provided)
 # azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_ID "$EXISTING_LOG_ANALYTICS_WORKSPACE_ID"
 # azd env set EXISTING_APP_INSIGHTS_ID "$EXISTING_APP_INSIGHTS_ID"
-
-# Optional: Use existing Container Registry (recommended for no-egress VNets)
-# See "Using an Existing Container Registry" section below
-# azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>"
 ```
 
 #### Step 4: Deploy ContentFlow
@@ -287,7 +281,6 @@ This will:
   - Key Vault (optional)
 - Existing Log Analytics Workspace (optional)
 - Existing Application Insights (optional)
-- Existing Container Registry (optional — recommended for no-egress VNets)
 
 **Duration:** 10-15 minutes (depends on existing AI LZ setup)
 
@@ -420,10 +413,6 @@ azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_ID /subscriptions/<sub-id>/resource
 
 azd env set EXISTING_APP_INSIGHTS_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Insights/components/<ai-name>
 
-# Optional: Use existing Container Registry (recommended for no-egress VNets)
-# First import placeholder image: az acr import --name <acr-name> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
-azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>
-
 # Step 7: Deploy
 azd up
 ```
@@ -441,50 +430,60 @@ az network private-dns-zone list --resource-group <rg> --output table
 
 ---
 
-### Using an Existing Container Registry (No-Egress VNets)
+### Automated ACR Placeholder Import (AILZ No-Egress VNets)
 
-In AILZ environments **without internet egress** (no NAT Gateway), Container Apps cannot pull placeholder images from the public Microsoft Container Registry (MCR) during initial provisioning. This causes a 20-minute timeout on the first deployment.
+In AILZ environments **without internet egress** (no NAT Gateway), Container Apps cannot pull placeholder images from the public Microsoft Container Registry (MCR) during initial provisioning.
 
-To solve this, ContentFlow supports referencing an **existing Container Registry** from your AI Landing Zone — the same pattern used for Log Analytics and App Insights.
+**ContentFlow solves this automatically:**
 
-#### Setup
+1. **Always creates a new ACR per workload** — maintains Zero Trust / workload isolation (never shares a central ACR)
+2. **Enables trusted Azure services** — sets `networkRuleBypassOptions: 'AzureServices'` on the ACR, allowing server-side operations even when the ACR has private endpoints
+3. **Automated postprovision hook** — after Bicep provisions infrastructure, automatically imports the placeholder:
+   ```bash
+   az acr import --name <new-acr> \
+     --source mcr.microsoft.com/k8se/quickstart:latest \
+     --image placeholder:latest
+   ```
+4. **Non-blocking design** — Container Apps use the ACA platform-cached image `k8se/quickstart` during provisioning; the import is defensive
 
-**1. Import a placeholder image** into your existing ACR (requires a machine with internet + ACR access):
+**Benefits:**
+
+✅ **Zero Trust compliance** — each workload has its own ACR  
+✅ **`azd up` remains one command** — fully automated, no manual steps  
+✅ **Works from jumpbox without Docker** — `az acr import` is server-side  
+✅ **Non-blocking** — ACA platform caches `k8se/quickstart`, provisioning succeeds even if import fails  
+✅ **CI/CD ready** — no human intervention required
+
+**How It Works:**
+
+The `postprovision` hook in [azure.yaml](../azure.yaml) runs [post-provision.sh](scripts/post-provision.sh) after Bicep completes:
 
 ```bash
-az acr import --name <existing-acr-name> \
+# Conditional import (only in AILZ mode)
+if [ "$DEPLOYMENT_MODE" = "ailz-integrated" ]; then
+  az acr import \
+    --name "$ACR_NAME" \
+    --source mcr.microsoft.com/k8se/quickstart:latest \
+    --image placeholder:latest
+fi
+```
+
+- **Basic mode**: Skip import (ACR is public, MCR reachable)
+- **AILZ mode**: Import runs server-side via trusted services bypass (no client-side Docker or internet needed)
+
+**Troubleshooting:**
+
+If the import fails (rare), you can manually import from a machine with internet + ACR access:
+
+```bash
+# Get ACR name from azd environment
+ACR_NAME=$(azd env get-value AZURE_CONTAINER_REGISTRY_NAME)
+
+# Manual import
+az acr import --name $ACR_NAME \
   --source mcr.microsoft.com/k8se/quickstart:latest \
   --image placeholder:latest
 ```
-
-**2. Set the environment variable** before deploying (use the full resource ID):
-
-```bash
-azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<existing-acr-name>"
-```
-
-**3. Deploy normally:**
-
-```bash
-azd up
-```
-
-#### What Happens
-
-When `EXISTING_CONTAINER_REGISTRY_RESOURCE_ID` is set:
-- A new ACR is **not** created — the existing one is referenced
-- A **private endpoint** is created for the existing ACR in the app's PE subnet (enables cross-VNet connectivity)
-- **RBAC roles** (AcrPull + AcrPush) are assigned to the managed identity on the existing ACR (cross-resource-group deployment)
-- Container Apps use `<acr>/placeholder:latest` instead of MCR — no internet required
-- `azd deploy` pushes application images to the existing ACR via remote build
-
-| Scenario | ACR | Placeholder Image | Internet Required |
-|----------|-----|-------------------|-------------------|
-| Basic mode (default) | New ACR created | MCR public image | Yes |
-| AILZ + no existing ACR | New ACR created | MCR public image | Yes |
-| AILZ + existing ACR | Existing ACR reused | `<acr>/placeholder:latest` | **No** |
-
-> **Note:** The existing ACR must be in the **same subscription**. The deploying identity needs permissions to create role assignments on the existing ACR's resource group (Owner or User Access Administrator).
 
 ---
 

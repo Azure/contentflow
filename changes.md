@@ -170,71 +170,79 @@ This works correctly for both interactive user logins and managed identity deplo
 
 ---
 
-## 4. Feature: Support Existing Container Registry from AI Landing Zone
+## 4. Feature: Automated ACR Placeholder Import for AILZ Deployments
 
 **Problem:**
 
-In AILZ-integrated deployments without internet egress (no NAT Gateway), the Container Apps provisioning fails with a **20-minute timeout** because it cannot pull the hardcoded placeholder image `mcr.microsoft.com/azuredocs/containerapps-helloworld:latest` from the public Microsoft Container Registry (MCR). The private VNet has no outbound internet connectivity, making any MCR pull impossible.
+In AILZ-integrated deployments without internet egress (no NAT Gateway), Container Apps provisioning previously failed with a **20-minute timeout** because it couldn't pull placeholder images from the public Microsoft Container Registry (MCR). The private VNet has no outbound internet connectivity.
 
 **Solution:**
 
-Added support for referencing an existing Azure Container Registry from the AI Landing Zone, following the same conditional pattern used for Log Analytics and App Insights. When an existing ACR is provided, the template:
+Implemented an automated approach that maintains **Zero Trust / workload isolation** principles:
 
-1. **Skips creating** a new Container Registry
-2. **References the existing ACR** using the Bicep `existing` keyword
-3. **Creates a private endpoint** for the existing ACR in the app's PE subnet (enables cross-VNet connectivity)
-4. **Assigns RBAC** (AcrPull + AcrPush) to the managed identity on the existing ACR
-5. **Uses a conditioned placeholder image** — MCR for basic mode (has internet), `${acr}/placeholder:latest` for AILZ (no internet)
+1. **Always create a new ACR per workload** — never share a central ACR across workloads (violates isolation)
+2. **Enable trusted Azure services** — set `networkRuleBypassOptions: 'AzureServices'` on the new ACR, allowing server-side operations like `az acr import` even when the ACR has private endpoints and `publicNetworkAccess: Disabled`
+3. **Automated postprovision hook** — after Bicep provisions infrastructure, automatically import the placeholder image: `mcr.microsoft.com/k8se/quickstart:latest` → `${acr}/placeholder:latest`
+4. **Non-blocking design** — Container Apps use the ACA platform-cached image `mcr.microsoft.com/k8se/quickstart:latest` during provisioning. The import is defensive, ensuring subsequent operations can resolve the image from ACR.
 
-**Prerequisites for AILZ mode:**
+**How It Works:**
 
-Before running `azd provision`, import a placeholder image into the existing ACR:
+The `postprovision` hook in [azure.yaml](azure.yaml) runs [post-provision.sh](infra/scripts/post-provision.sh) after Bicep completes:
+
 ```bash
-az acr import --name <existing-acr> --source mcr.microsoft.com/k8se/quickstart:latest --image placeholder:latest
+# Conditional import (only in AILZ mode)
+if [ "$DEPLOYMENT_MODE" = "ailz-integrated" ]; then
+  az acr import \
+    --name "$ACR_NAME" \
+    --source mcr.microsoft.com/k8se/quickstart:latest \
+    --image placeholder:latest
+fi
 ```
 
-Then set the environment variable (use the full resource ID):
-```bash
-azd env set EXISTING_CONTAINER_REGISTRY_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<acr-name>"
-```
+- **Basic mode**: Skip import (ACR is public, MCR reachable)
+- **AILZ mode**: Import runs server-side via trusted services bypass (no client-side Docker or internet needed)
 
 **Affected Files:**
 
 ### `infra/bicep/main.bicep`
 
-- Added `existingContainerRegistryResourceId` parameter (string, default empty)
-- Added `shouldCreateContainerRegistry` conditional variable
-- Added `existingAcrName` and `existingAcrResourceGroup` derived from resource ID
-- Wrapped existing `containerRegistry` module with `if (shouldCreateContainerRegistry)`
-- Added `containerRegistryLoginServer` (deterministic `<name>.azurecr.io`) and `containerRegistryNameResolved` variables
-- Added private endpoint + DNS zone group for existing ACR (conditioned on AILZ mode), using the resource ID in `privateLinkServiceId`
-- Added cross-resource-group RBAC module (`modules/acr-role-assignment.bicep`) with `scope: resourceGroup(existingAcrResourceGroup)` for AcrPull + AcrPush
-- Updated all 3 container app module calls to use `containerRegistryLoginServer` instead of `containerRegistry!.outputs.loginServer`
-- Added `placeholderImage` parameter to all 3 container app module calls
-- Updated outputs to use resolved variables
-
-### `infra/bicep/modules/acr-role-assignment.bicep` (new file)
-
-New module for cross-resource-group RBAC assignment on an existing ACR. Deployed with `scope: resourceGroup(existingAcrResourceGroup)` so it can reference the ACR in its own resource group. Assigns AcrPull and AcrPush to the managed identity.
+- **Removed** `existingContainerRegistryResourceId` parameter (and all related variables/logic)
+- **Removed** conditional ACR creation — now always creates new ACR
+- **Removed** private endpoint + RBAC for existing ACR
+- **Added** `networkRuleBypassOptions: 'AzureServices'` parameter to `containerRegistry` module call
+- **Simplified** container app module calls — removed conditional `placeholderImage` (use default `k8se/quickstart`)
+- **Simplified** outputs — use direct `containerRegistry.outputs.*`
 
 ### `infra/bicep/main.parameters.json`
 
-Added parameter mapping:
-```json
-"existingContainerRegistryResourceId": {
-  "value": "${EXISTING_CONTAINER_REGISTRY_RESOURCE_ID=}"
-}
-```
+- **Removed** `existingContainerRegistryResourceId` parameter mapping
+
+### `infra/bicep/modules/container-registry.bicep`
+
+- **Added** `networkRuleBypassOptions` parameter (default: `'AzureServices'`)
+- **Pass through** to AVM module for trusted services support
 
 ### `infra/bicep/modules/container-app.bicep`
 
-- Added `placeholderImage` parameter (string, default `mcr.microsoft.com/k8se/quickstart:latest`)
-- Replaced hardcoded MCR image with `placeholderImage` parameter
+- **No changes** — already has correct default `placeholderImage: 'mcr.microsoft.com/k8se/quickstart:latest'`
 
-**Scenario Matrix:**
+### `infra/bicep/modules/acr-role-assignment.bicep`
 
-| Mode | `EXISTING_CONTAINER_REGISTRY_RESOURCE_ID` | ACR Created | Placeholder Image | PE Created |
-|------|-------------------------------------|-------------|-------------------|------------|
-| basic | empty (default) | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | No |
-| ailz-integrated | empty | Yes (new) | `mcr.microsoft.com/k8se/quickstart:latest` | Yes (new ACR) |
-| ailz-integrated | `/subscriptions/.../registries/<acr>` | No (existing) | `<acr>/placeholder:latest` | Yes (existing ACR) |
+- **DELETED** — no longer needed (no cross-RG ACR RBAC)
+
+### `azure.yaml`
+
+- **Uncommented** `postprovision` hook to enable automated import
+
+### `infra/scripts/post-provision.sh`
+
+- **Added** conditional ACR import logic for AILZ mode
+- **Added** error handling with fallback instructions
+
+**Benefits:**
+
+✅ **Zero Trust compliance** — each workload has its own ACR, no shared central registry  
+✅ **`azd up` remains one command** — fully automated, no manual steps  
+✅ **Works from jumpbox without Docker** — `az acr import` is server-side  
+✅ **Non-blocking** — ACA platform caches `k8se/quickstart`, provisioning succeeds even if import fails  
+✅ **CI/CD ready** — no human intervention required
