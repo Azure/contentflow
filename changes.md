@@ -9,6 +9,7 @@
 - [5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround](#5-fix-container-apps-timeout---dns-zone-group-creation-workaround)
 - [6. Fix: App Configuration Keys Failure - Private Network Access Limitation](#6-fix-app-configuration-keys-failure---private-network-access-limitation)
 - [7. Fix: Storage Account Name Output Returns Module Name Instead of Resource Name](#7-fix-storage-account-name-output-returns-module-name-instead-of-resource-name)
+- [8. Fix: Queue Storage Private DNS Zone Missing in AILZ Resource Group](#8-fix-queue-storage-private-dns-zone-missing-in-ailz-resource-group)
 - [Solution Dependencies](#solution-dependencies)
 
 ---
@@ -1068,6 +1069,285 @@ Audited all other modules that use the same pattern. All others correctly use `m
 
 ---
 
+## 8. Fix: Queue Storage Private DNS Zone Missing in AILZ Resource Group
+
+**Error:**
+
+```
+LinkedInvalidPropertyId: Property id '' at path 'properties.privateDnsZoneConfigs[0].properties.privateDnsZoneId' 
+is invalid. Expect fully qualified resource Id that start with '/subscriptions/{subscriptionId}' 
+or '/providers/{resourceProviderNamespace}/'.
+```
+
+**Symptoms:**
+
+- Deployment fails after all resources provision successfully
+- Error occurs during `storageQueueDnsZoneGroup` module creation
+- `privateDnsZoneId` parameter is empty (`''`)
+- Script `get-ailz-resources.sh` cannot find Queue Storage DNS Zone
+- Azure Portal shows AILZ resource group (`rg-mini-ailz-jx05`) has only 6 Private DNS Zones:
+  - ✅ `privatelink.azconfig.io`
+  - ✅ `privatelink.azurecr.io`
+  - ✅ `privatelink.azurecontainerapps.io`
+  - ✅ `privatelink.blob.core.windows.net`
+  - ✅ `privatelink.cognitiveservices.azure.com`
+  - ✅ `privatelink.documents.azure.com`
+  - ❌ `privatelink.queue.core.windows.net` **(MISSING)**
+
+---
+
+**Root Cause:**
+
+Azure Storage Account creates **two separate private endpoints** when network isolation is enabled:
+1. **Blob endpoint** (`privatelink.blob.core.windows.net`) — ✅ Exists in AILZ RG
+2. **Queue endpoint** (`privatelink.queue.core.windows.net`) — ❌ Does NOT exist in AILZ RG
+
+Both endpoints are created by ContentFlow deployment, but only the Blob DNS Zone was provisioned in the AILZ resource group. Without the Queue DNS Zone, the `storageQueueDnsZoneGroup` module cannot create the DNS zone group configuration, causing deployment failure.
+
+**Why This Wasn't Caught Earlier:**
+
+Items 1-7 focused on **existing** Private DNS Zones (ACR, Blob, Cosmos, App Config). The Queue DNS Zone requirement was assumed to exist alongside Blob, but AILZ infrastructure only provisioned Blob zone initially.
+
+---
+
+**Solution: Conditional DNS Zone Group Creation**
+
+Since the Queue Storage Private DNS Zone is **infrastructure that must be created by the AILZ administrator** (not by this deployment template), we make the Queue DNS Zone Group creation **conditional** — it only executes if the DNS Zone exists.
+
+### Files Changed
+
+#### **Modified: `infra/bicep/main.bicep`** (line 247)
+
+**Before:**
+```bicep
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-queue-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-queue-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.queue
+    location: location
+  }
+  dependsOn: [storage]
+}
+```
+
+**After:**
+```bicep
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(networkConfig.privateDnsZoneIds.queue)) {
+  name: 'storage-queue-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-queue-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.queue
+    location: location
+  }
+  dependsOn: [storage]
+}
+```
+
+**Explanation:**
+
+Added `&& !empty(networkConfig.privateDnsZoneIds.queue)` condition:
+- **Before:** Module always executes in AILZ mode (even with empty DNS zone ID → deployment fails)
+- **After:** Module only executes if DNS zone ID is not empty (deployment succeeds, DNS zone group skipped)
+
+This allows deployment to proceed without error while the Queue DNS Zone is missing, but maintains the correct configuration when the zone exists.
+
+#### **Modified: `infra/bicep/main.bicep`** (parameter added at line ~44)
+
+**Added:**
+```bicep
+@description('Resource ID of existing Queue Storage Private DNS Zone (required for ailz-integrated mode)')
+param existingQueuePrivateDnsZoneId string = ''
+```
+
+#### **Modified: `infra/bicep/main.bicep`** (networkConfig object at line ~136)
+
+**Added:**
+```bicep
+privateDnsZoneIds: {
+  cognitiveServices: existingCognitiveServicesPrivateDnsZoneId
+  blob: existingBlobPrivateDnsZoneId
+  queue: existingQueuePrivateDnsZoneId  // ← Added
+  cosmos: existingCosmosPrivateDnsZoneId
+  appConfig: existingAppConfigPrivateDnsZoneId
+  acr: existingAcrPrivateDnsZoneId
+  keyVault: existingKeyVaultPrivateDnsZoneId
+  containerAppsEnv: existingContainerAppsEnvPrivateDnsZoneId
+}
+```
+
+#### **Modified: `infra/scripts/get-ailz-resources.sh`** (line ~180)
+
+**Added:**
+```bash
+get_resource_id "Queue Storage Private DNS Zone" "EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID" \
+    "az network private-dns zone show --name privatelink.queue.core.windows.net --resource-group $AILZ_RG --query id -o tsv"
+```
+
+---
+
+**Impact: Deployment Will Succeed BUT Queue Access Will Fail**
+
+With this fix:
+
+✅ **Deployment completes successfully** (no more `LinkedInvalidPropertyId` error)  
+✅ **All resources provision** (Storage Account, Container Apps, etc.)  
+✅ **Blob endpoint works** (has DNS zone + DNS zone group)  
+❌ **Queue endpoint DOES NOT WORK** (no DNS resolution)  
+❌ **Worker service cannot access queue** (cannot process content)
+
+**Why Queue Access Fails Without DNS Zone:**
+
+```
+Worker Container App (in VNet)
+    ↓
+Tries to connect: sta5s63braj5xj2.queue.core.windows.net
+    ↓
+DNS resolution fails (no A record in Private DNS Zone)
+    ↓
+Falls back to public DNS → gets public IP
+    ↓
+Storage Account has publicNetworkAccess: 'Disabled'
+    ↓
+Connection refused → HTTPSConnectionError
+```
+
+Without the DNS zone group, there's no A record registered in Private DNS Zone. DNS resolution fails, and the Worker cannot access the queue endpoint even though the private endpoint exists.
+
+---
+
+**Required Action: Request DNS Zone Creation from AILZ Administrator**
+
+To fully resolve this issue, the AILZ administrator must create the missing Private DNS Zone.
+
+### Request Context for Administrator
+
+**What's Needed:**
+- Create Private DNS Zone: `privatelink.queue.core.windows.net`
+- Location: AILZ Resource Group `rg-mini-ailz-jx05`
+- Link to VNet: Same VNet used for other Private DNS Zones
+- Reason: Storage Account creates 2 private endpoints (blob + queue), each requires its own DNS zone
+
+**Technical Context:**
+
+Azure Storage Account with private endpoints enabled creates **two separate service endpoints**:
+1. **Blob Service** (`*.blob.core.windows.net`) — DNS zone exists ✅
+2. **Queue Service** (`*.queue.core.windows.net`) — DNS zone missing ❌
+
+Without both DNS zones, ContentFlow Worker service cannot access Azure Storage Queue, which is required for asynchronous content processing tasks.
+
+**Impact:**
+- **Current:** Deployment succeeds but Worker service non-functional (cannot process content)
+- **After DNS Zone Created:** Worker can access queue → full functionality restored
+
+### Azure CLI Commands for Administrator
+
+```bash
+# 1. Create Queue Storage Private DNS Zone
+az network private-dns zone create \
+  --resource-group rg-mini-ailz-jx05 \
+  --name privatelink.queue.core.windows.net
+
+# 2. Link DNS Zone to VNet (replace with actual VNet name)
+az network private-dns link vnet create \
+  --resource-group rg-mini-ailz-jx05 \
+  --zone-name privatelink.queue.core.windows.net \
+  --name ailz-vnet-link \
+  --virtual-network <ailz-vnet-name> \
+  --registration-enabled false
+```
+
+**After DNS Zone Created:**
+
+1. Development team re-runs discovery script on jumpbox:
+   ```bash
+   cd ~/contentflow
+   ./infra/scripts/get-ailz-resources.sh
+   ```
+
+2. Verify Queue DNS Zone ID is set:
+   ```bash
+   azd env get-value EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID
+   # Should return: /subscriptions/.../privateDnsZones/privatelink.queue.core.windows.net
+   ```
+
+3. Re-deploy to create DNS zone group:
+   ```bash
+   azd provision --no-prompt
+   ```
+
+4. Verify DNS zone group created:
+   ```bash
+   az network private-endpoint dns-zone-group list \
+     --resource-group rg-contentflow-test004-jx05 \
+     --endpoint-name sta5s63braj5xj2-queue-pe
+   ```
+
+5. Verify A record registered:
+   ```bash
+   az network private-dns record-set a list \
+     --resource-group rg-mini-ailz-jx05 \
+     --zone-name privatelink.queue.core.windows.net
+   # Should show A record for sta5s63braj5xj2 → 10.0.0.x
+   ```
+
+6. Test DNS resolution from jumpbox:
+   ```bash
+   nslookup sta5s63braj5xj2.queue.core.windows.net
+   # Should resolve to private IP (10.0.0.x)
+   ```
+
+---
+
+**Why Not Make Queue Storage Optional?**
+
+The Worker service requires Azure Storage Queue for task distribution and content processing orchestration. Without queue access, the core functionality of ContentFlow does not work.
+
+**Alternatives Considered:**
+- ❌ **Enable public network access** — Violates Zero Trust / network isolation policies
+- ❌ **Use only blob storage** — Requires major application architecture changes
+- ❌ **Remove worker service** — ContentFlow becomes non-functional (cannot process content)
+- ✅ **Request DNS Zone creation** — Minimal infrastructure change, preserves security, enables full functionality
+
+---
+
+**Expected Results After DNS Zone Created and Redeployed:**
+
+✅ All 5 DNS zone groups exist (ACR, Blob, **Queue**, Cosmos, App Config)  
+✅ All 5 Private DNS Zones have A records registered  
+✅ Worker service can access Storage Queue via private endpoint  
+✅ Content processing workflows function correctly  
+✅ Complete end-to-end deployment successful
+
+---
+
+**Verification After Full Fix:**
+
+```bash
+# 1. Verify all 5 DNS zone groups exist
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <acr-name>-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <storage-name>-blob-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <storage-name>-queue-pe  # ← This one
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <cosmos-name>-pe
+az network private-endpoint dns-zone-group list --resource-group <workload-rg> --endpoint-name <appconfig-name>-pe
+
+# 2. Verify A records in all 5 Private DNS Zones
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.azurecr.io
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.blob.core.windows.net
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.queue.core.windows.net  # ← This one
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.documents.azure.com
+az network private-dns record-set a list --resource-group <ailz-rg> --zone-name privatelink.azconfig.io
+
+# 3. Test worker queue access (check Container App logs)
+az containerapp logs show \
+  --name worker-<resource-token> \
+  --resource-group <workload-rg> \
+  --follow \
+  --query "[?contains(Log, 'Queue')]"
+```
+
+---
+
 ## Solution Dependencies
 
 Some fixes depend on others to function correctly. Understanding these dependencies is important for deployment sequencing and troubleshooting.
@@ -1080,7 +1360,8 @@ Items 1-4 (Independent)
 Item 5: DNS Zone Groups (Foundation)
     ↓
     ├──→ Item 6: App Config Keys Postprovision Hook (Requires DNS resolution)
-    └──→ Item 7: Storage Account Name Output (Independent bug, but output consumed by Item 6)
+    ├──→ Item 7: Storage Account Name Output (Independent bug, but output consumed by Item 6)
+    └──→ Item 8: Queue Storage DNS Zone (Infrastructure prerequisite - BLOCKED)
 ```
 
 ### Dependency Details
@@ -1108,6 +1389,17 @@ Item 5: DNS Zone Groups (Foundation)
 
 **Why:** The postprovision hook reads `STORAGE_ACCOUNT_NAME` from azd environment (populated from Bicep output) and writes it to App Configuration keys. Container Apps read this value to connect to blob storage and queues.
 
+#### **Item 8 blocks Worker functionality** (Infrastructure Dependency)
+
+**Item 8** (Queue Storage DNS Zone) is **BLOCKED** by missing infrastructure in AILZ resource group:
+
+- **Without Item 8:** Deployment succeeds but Worker service cannot access Storage Queue (no DNS resolution)
+- **With Item 8:** Worker can access queue → full ContentFlow functionality
+
+**Why:** Storage Account creates two private endpoints (blob + queue). Item 5 implemented support for both DNS zone groups, but the Queue DNS Zone itself does not exist in AILZ RG. This is an **infrastructure prerequisite** that must be created by AILZ administrator before Worker service can function.
+
+**Current Status:** Code is ready (Items 5 + 8 completed), awaiting DNS zone creation by admin.
+
 #### **Items 1-4 are Independent**
 
 These fixes have no dependencies on other items:
@@ -1121,8 +1413,11 @@ These fixes have no dependencies on other items:
 
 All items are implemented in Bicep code and deployed together via `azd provision`. The dependency resolution happens automatically:
 
-1. **Bicep Provisioning** deploys Items 1-7 (in dependency order managed by Bicep's `dependsOn`)
+1. **Bicep Provisioning** deploys Items 1-8 (in dependency order managed by Bicep's `dependsOn`)
 2. **Item 5 modules execute** after resource modules (explicit `dependsOn: [storage]`, `dependsOn: [appConfigStore]`, etc.)
-3. **Postprovision Hook** (Item 6) executes after Bicep completes, relies on Item 5 DNS + Item 7 outputs
+3. **Item 8 Queue DNS Zone Group** conditionally skipped (DNS zone doesn't exist yet)
+4. **Postprovision Hook** (Item 6) executes after Bicep completes, relies on Item 5 DNS + Item 7 outputs
 
 **No manual sequencing needed** — the Bicep module dependencies and azd hooks ensure correct execution order.
+
+**Note:** Item 8 (Queue Storage DNS Zone) requires AILZ administrator action before full deployment can succeed. Current deployment completes but Worker service remains non-functional until Queue DNS Zone is created.
