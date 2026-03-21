@@ -244,7 +244,7 @@ module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' =
   ]
 }
 
-module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(networkConfig.privateDnsZoneIds.queue)) {
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(existingQueuePrivateDnsZoneId)) {
   name: 'storage-queue-dns-zone-group-${resourceToken}'
   params: {
     privateEndpointName: '${storageAccountName}-queue-pe'
