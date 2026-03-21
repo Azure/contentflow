@@ -42,6 +42,9 @@ param existingCognitiveServicesPrivateDnsZoneId string = ''
 @description('Resource ID of existing Blob Storage Private DNS Zone (required for ailz-integrated mode)')
 param existingBlobPrivateDnsZoneId string = ''
 
+@description('Resource ID of existing Queue Storage Private DNS Zone (required for ailz-integrated mode)')
+param existingQueuePrivateDnsZoneId string = ''
+
 @description('Resource ID of existing Cosmos DB Private DNS Zone (required for ailz-integrated mode)')
 param existingCosmosPrivateDnsZoneId string = ''
 
@@ -130,6 +133,7 @@ var networkConfig = isAILZIntegrated ? {
   privateDnsZoneIds: {
     cognitiveServices: existingCognitiveServicesPrivateDnsZoneId
     blob: existingBlobPrivateDnsZoneId
+    queue: existingQueuePrivateDnsZoneId
     cosmos: existingCosmosPrivateDnsZoneId
     appConfig: existingAppConfigPrivateDnsZoneId
     acr: existingAcrPrivateDnsZoneId

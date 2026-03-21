@@ -9,6 +9,7 @@
 - [5. Fix: Container Apps Timeout - DNS Zone Group Creation Workaround](#5-fix-container-apps-timeout---dns-zone-group-creation-workaround)
 - [6. Fix: App Configuration Keys Failure - Private Network Access Limitation](#6-fix-app-configuration-keys-failure---private-network-access-limitation)
 - [7. Fix: Storage Account Name Output Returns Module Name Instead of Resource Name](#7-fix-storage-account-name-output-returns-module-name-instead-of-resource-name)
+- [Solution Dependencies](#solution-dependencies)
 
 ---
 
@@ -1064,3 +1065,64 @@ Audited all other modules that use the same pattern. All others correctly use `m
 ✅ **App Configuration keys** contain correct storage account name  
 ✅ **Container Apps** can connect to storage successfully  
 ✅ **No breaking changes** — existing code in `main.bicep` uses variable `storageAccountName` for App Config keys (basic mode), not affected by this output
+
+---
+
+## Solution Dependencies
+
+Some fixes depend on others to function correctly. Understanding these dependencies is important for deployment sequencing and troubleshooting.
+
+### Dependency Graph
+
+```
+Items 1-4 (Independent)
+    ↓
+Item 5: DNS Zone Groups (Foundation)
+    ↓
+    ├──→ Item 6: App Config Keys Postprovision Hook (Requires DNS resolution)
+    └──→ Item 7: Storage Account Name Output (Independent bug, but output consumed by Item 6)
+```
+
+### Dependency Details
+
+#### **Item 5 enables Item 6** (Critical Dependency)
+
+**Item 5** (DNS Zone Groups) is a **prerequisite** for **Item 6** (App Config Keys Postprovision Hook):
+
+- **Without Item 5:** Postprovision hook fails with DNS resolution errors
+  ```
+  Failed to resolve 'sta5s63braj5xj2.queue.core.windows.net'
+  Failed to resolve 'appcs-a5s63braj5xj2.azconfig.io'
+  ```
+
+- **With Item 5:** DNS zone groups register A records → jumpbox can resolve FQDNs → postprovision hook succeeds
+
+**Why:** The postprovision hook runs from the jumpbox VM (inside VNet) and must access Storage Account and App Configuration via private endpoints. Without DNS zone groups, there are no A records in Private DNS Zones, so DNS resolution fails.
+
+#### **Item 7 consumed by Item 6** (Data Dependency)
+
+**Item 7** (Storage Account Name Output) is **independent** but its output is **consumed by Item 6**:
+
+- **Without Item 7:** Wrong storage account name (`storage-xyz.storageAccount`) inserted into App Config
+- **With Item 7:** Correct storage account name (`sta5s63braj5xj2`) inserted into App Config
+
+**Why:** The postprovision hook reads `STORAGE_ACCOUNT_NAME` from azd environment (populated from Bicep output) and writes it to App Configuration keys. Container Apps read this value to connect to blob storage and queues.
+
+#### **Items 1-4 are Independent**
+
+These fixes have no dependencies on other items:
+
+- **Item 1** (LogAnalytics CustomerId): Standalone Bicep reference() function fix
+- **Item 2** (Property Name Typo): Simple typo fix in parameter name
+- **Item 3** (UnmatchedPrincipalType): Standalone deployer() principalType detection
+- **Item 4** (ACR Configuration Simplification): Architectural cleanup, no dependencies
+
+### Deployment Order (Recommended)
+
+All items are implemented in Bicep code and deployed together via `azd provision`. The dependency resolution happens automatically:
+
+1. **Bicep Provisioning** deploys Items 1-7 (in dependency order managed by Bicep's `dependsOn`)
+2. **Item 5 modules execute** after resource modules (explicit `dependsOn: [storage]`, `dependsOn: [appConfigStore]`, etc.)
+3. **Postprovision Hook** (Item 6) executes after Bicep completes, relies on Item 5 DNS + Item 7 outputs
+
+**No manual sequencing needed** — the Bicep module dependencies and azd hooks ensure correct execution order.
