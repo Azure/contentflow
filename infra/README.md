@@ -20,7 +20,7 @@ ContentFlow supports **two deployment configurations** based on your infrastruct
 | **Compliance Ready** |  N/A | ✅ Yes |
 | **Enterprise Use** | Development | Production |
 | **Cost** | Lower | Slightly higher (Network infra costs added) |
-| **Container Registry** | Creates new ACR | Can reuse existing AI LZ ACR |
+| **Container Registry** | Creates new ACR | Creates new ACR |
 | **Prerequisites** | Azure subscription | Azure subscription + AI LZ |
 
 ---
@@ -158,7 +158,7 @@ pwsh .\get-ailz-resources.ps
 2. ✅ Asks for your AI Landing Zone resource group name
 3. ✅ Discovers all required resources automatically:
    - Virtual Network ID and Subnet Names
-   - Private DNS Zone IDs (blob, cosmos, acr, app config, cognitive services, key vault, container apps environment)
+   - Private DNS Zone IDs (blob, queue, cosmos, acr, app config, cognitive services, key vault, container apps environment)
    - JumpBox VM information (if available)
    - Log Analytics Workspace ID (optional)
    - Application Insights ID (optional)
@@ -175,6 +175,7 @@ EXISTING_VNET_RESOURCE_ID="/subscriptions/.../virtualNetworks/my-vnet"
 PRIVATE_ENDPOINT_SUBNET_NAME="pe-subnet"
 CONTAINER_APPS_SUBNET_NAME="aca-env-subnet"
 EXISTING_BLOB_PRIVATE_DNS_ZONE_ID="/subscriptions/.../privateDnsZones/privatelink.blob.core.windows.net"
+EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID="/subscriptions/.../privateDnsZones/privatelink.queue.core.windows.net"
 EXISTING_COSMOS_PRIVATE_DNS_ZONE_ID="/subscriptions/.../privateDnsZones/privatelink.documents.azure.com"
 JUMPBOX_VM_RESOURCE_ID="/subscriptions/.../resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/jumpbox"
 JUMPBOX_VM_NAME="jumpbox"
@@ -260,7 +261,7 @@ This will:
 
 **What Gets Deployed:**
 - Container Apps with private endpoints
-- Container Registry (new, or private endpoint to existing ACR)
+- Container Registry with private endpoints
 - Storage Account with private endpoints
 - Cosmos DB with private endpoints
 - App Configuration with private endpoints
@@ -274,6 +275,7 @@ This will:
 - Existing Private DNS Zones:
   - Cognitive Services
   - Blob Storage
+  - Queue Storage
   - Cosmos DB
   - App Configuration
   - Container Registry
@@ -281,6 +283,8 @@ This will:
   - Key Vault (optional)
 - Existing Log Analytics Workspace (optional)
 - Existing Application Insights (optional)
+
+> **⚠️ Important Note on Queue Storage DNS Zone**: Some AI Landing Zone deployments may not include the `privatelink.queue.core.windows.net` DNS Zone. The ContentFlow deployment will succeed without it, but the Worker service will not function until this zone is created. If the helper script reports that the Queue Storage DNS Zone is missing, coordinate with your AILZ administrator to create it. See the [troubleshooting section](#troubleshooting) for details.
 
 **Duration:** 10-15 minutes (depends on existing AI LZ setup)
 
@@ -399,6 +403,8 @@ azd env set CONTAINER_APPS_SUBNET_NAME aca-env-subnet
 azd env set EXISTING_COGNITIVE_SERVICES_PRIVATE_DNS_ZONE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/privateDnsZones/privatelink.cognitiveservices.azure.com
 
 azd env set EXISTING_BLOB_PRIVATE_DNS_ZONE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net
+
+azd env set EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/privateDnsZones/privatelink.queue.core.windows.net
 
 azd env set EXISTING_COSMOS_PRIVATE_DNS_ZONE_ID /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/privateDnsZones/privatelink.documents.azure.com
 
@@ -521,7 +527,7 @@ infra/
 Main infrastructure template that provisions:
 - Resource Group (if not already existing)
 - Managed Identity (for Container Apps)
-- Container Registry (or references existing ACR with private endpoint and RBAC)
+- Container Registry
 - Container Apps Environment
 - Storage Account (blob + queue)
 - Cosmos DB with all required containers
@@ -541,7 +547,7 @@ Each module is a reusable component:
 - **app-insights.bicep**: Application Insights for monitoring
 - **container-app.bicep**: Creates a Container App with configurable settings
 - **container-apps-environment.bicep**: Container Apps Environment
-- **container-registry.bicep**: Azure Container Registry (skipped when using existing ACR)
+- **container-registry.bicep**: Azure Container Registry
 - **cosmos-db.bicep**: Cosmos DB account with containers
 - **log-analytics-ws.bicep**: Log Analytics Workspace
 - **storage.bicep**: Storage Account with blob container and queue
@@ -788,6 +794,64 @@ azd env select
 # Or create a new environment
 azd env new <new-env-name>
 ```
+
+---
+
+#### 6. **Missing Queue Storage Private DNS Zone (AILZ Mode)**
+```
+Error: LinkedInvalidPropertyId: Property id '' at path 'properties.privateDnsZoneConfigs[0].properties.privateDnsZoneId' is invalid
+```
+**Or:**
+```
+Worker logs show: Failed to resolve '<storage-account>.queue.core.windows.net'
+```
+
+**Symptoms:**
+- Deployment completes successfully but Worker service cannot access Storage Queue
+- DNS resolution fails for queue endpoint
+- `get-ailz-resources.sh` script reports Queue Storage DNS Zone not found
+
+**Root Cause:**
+Azure Storage Account with private endpoints requires **two DNS Zones**:
+- ✅ Blob Storage (`privatelink.blob.core.windows.net`) - Usually exists in AILZ
+- ❌ Queue Storage (`privatelink.queue.core.windows.net`) - May be missing in some AILZ deployments
+
+**Solution - Request AILZ Administrator to Create DNS Zone:**
+
+1. **Coordinate with AILZ Admin** to create the missing DNS Zone:
+   ```bash
+   # Create Queue Storage Private DNS Zone
+   az network private-dns zone create \
+     --resource-group <ailz-resource-group> \
+     --name privatelink.queue.core.windows.net
+   
+   # Link to AILZ VNet
+   az network private-dns link vnet create \
+     --resource-group <ailz-resource-group> \
+     --zone-name privatelink.queue.core.windows.net \
+     --name ailz-vnet-link \
+     --virtual-network <ailz-vnet-name> \
+     --registration-enabled false
+   ```
+
+2. **After DNS Zone is created**, re-run configuration and deployment:
+   ```bash
+   # On JumpBox or local machine
+   cd contentflow/infra/scripts
+   ./get-ailz-resources.sh --auto-set
+   
+   # Re-deploy (will create DNS zone group and register A record)
+   azd provision --no-prompt
+   ```
+
+3. **Verify DNS resolution** from JumpBox:
+   ```bash
+   nslookup <storage-account-name>.queue.core.windows.net
+   # Should resolve to private IP (10.0.0.x)
+   ```
+
+**Workaround (Temporary - Reduced Functionality):**
+If Queue DNS Zone creation is pending, ContentFlow API and Web will work, but Worker service will not be able to process content until DNS zone is created.
 
 ---
 
