@@ -20,7 +20,6 @@ ContentFlow supports **two deployment configurations** based on your infrastruct
 | **Compliance Ready** |  N/A | ✅ Yes |
 | **Enterprise Use** | Development | Production |
 | **Cost** | Lower | Slightly higher (Network infra costs added) |
-| **Container Registry** | Creates new ACR | Creates new ACR |
 | **Prerequisites** | Azure subscription | Azure subscription + AI LZ |
 
 ---
