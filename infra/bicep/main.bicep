@@ -42,6 +42,9 @@ param existingCognitiveServicesPrivateDnsZoneId string = ''
 @description('Resource ID of existing Blob Storage Private DNS Zone (required for ailz-integrated mode)')
 param existingBlobPrivateDnsZoneId string = ''
 
+@description('Resource ID of existing Queue Storage Private DNS Zone (required for ailz-integrated mode)')
+param existingQueuePrivateDnsZoneId string = ''
+
 @description('Resource ID of existing Cosmos DB Private DNS Zone (required for ailz-integrated mode)')
 param existingCosmosPrivateDnsZoneId string = ''
 
@@ -130,6 +133,7 @@ var networkConfig = isAILZIntegrated ? {
   privateDnsZoneIds: {
     cognitiveServices: existingCognitiveServicesPrivateDnsZoneId
     blob: existingBlobPrivateDnsZoneId
+    queue: existingQueuePrivateDnsZoneId
     cosmos: existingCosmosPrivateDnsZoneId
     appConfig: existingAppConfigPrivateDnsZoneId
     acr: existingAcrPrivateDnsZoneId
@@ -224,6 +228,34 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
+// ========== STORAGE DNS ZONE GROUPS (EXPLICIT CREATION) ==========
+// Create DNS zone groups explicitly to ensure A records are registered in private DNS zones
+// Workaround: AVM storage module 0.27.1 does not properly handle privateDnsZoneGroups conditional
+// These separate modules create the DNS zone groups after the private endpoints exist
+module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'storage-blob-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-blob-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.blob
+    location: location
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(existingQueuePrivateDnsZoneId)) {
+  name: 'storage-queue-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${storageAccountName}-queue-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.queue
+    location: location
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
 
 // ========== COSMOS DB ==========
 // Create new Cosmos DB account with private endpoint support (if using AILZ integrated mode),
@@ -246,6 +278,22 @@ module cosmos 'modules/cosmos.bicep' = {
   }
 }
 
+// ========== COSMOS DB DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM cosmos module 0.13.1 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module cosmosDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'cosmos-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${cosmosAccountName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.cosmos
+    location: location
+  }
+  dependsOn: [
+    cosmos
+  ]
+}
+
 // ========== APP CONFIGURATION ==========
 // Create new App Configuration store, with private endpoint support (if using AILZ integrated mode),
 // or use public endpoints (basic mode)
@@ -264,7 +312,26 @@ module appConfigStore 'modules/app-config-store.bicep' = {
   }
 }
 
-module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
+// ========== APP CONFIGURATION DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM app-configuration module 0.9.2 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module appConfigDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'appconfig-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${appConfigStoreName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.appConfig
+    location: location
+  }
+  dependsOn: [
+    appConfigStore
+  ]
+}
+
+// ========== APP CONFIGURATION KEYS ==========
+// Basic mode: Create keys via Bicep (public access enabled, ARM can access)
+// AILZ mode: Skip Bicep creation, keys created via postprovision hook (jumpbox has VNet access)
+module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = if (!isAILZIntegrated) {
   name: 'appConfigKeys-${resourceToken}'
   params: {
     appConfigStoreName: appConfigStoreName
@@ -435,9 +502,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
 }
 
 // ========== CONTAINER REGISTRY WITH PRIVATE ENDPOINT SUPPORT ==========
-// Create new Container Registry, with private endpoint support (if using AILZ integrated mode),
-// or use public endpoints (basic mode)
-
+// Always create a new Container Registry per workload (Zero Trust / workload isolation)
 module containerRegistry 'modules/container-registry.bicep' = {
   name: 'acr-${resourceToken}'
   params: {
@@ -445,11 +510,28 @@ module containerRegistry 'modules/container-registry.bicep' = {
     location: location
     roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
     enablePrivateEndpoint: isAILZIntegrated
-    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointsSubnetId : ''
+    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
+    networkRuleBypassOptions: 'AzureServices'
     tags: tags
   }
+}
+
+// ========== ACR DNS ZONE GROUP (EXPLICIT CREATION) ==========
+// Create DNS zone group explicitly to ensure A records are registered in private DNS zone
+// Workaround: AVM containerregistry module 0.9.3 does not properly handle privateDnsZoneGroups conditional
+// This separate module creates the DNS zone group after the private endpoint exists
+module acrDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
+  name: 'acr-dns-zone-group-${resourceToken}'
+  params: {
+    privateEndpointName: '${containerRegistryName}-pe'
+    privateDnsZoneId: networkConfig.privateDnsZoneIds.acr
+    location: location
+  }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== CONTAINER APPS ENVIRONMENT ==========
@@ -460,7 +542,7 @@ module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
   name: 'cae-la-${resourceToken}'
   params: {
     containerAppsEnvironmentName: containerAppsEnvironmentName
-    logAnalyticsWorkspaceId: !empty(existingLogAnalyticsWorkspaceId) ? existingLogAnalyticsWorkspaceId : logAnalytics!.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceId: !empty(existingLogAnalyticsWorkspaceId) ? reference(existingLogAnalyticsWorkspaceId, '2021-12-01-preview').customerId : logAnalytics!.outputs.logAnalyticsWorkspaceId
     logAnalyticsPrimarySharedKey: !empty(existingLogAnalyticsWorkspaceId) ? listKeys(existingLogAnalyticsWorkspaceId, '2021-12-01-preview').primarySharedKey : logAnalytics.outputs.primarySharedKey
     userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     location: location
@@ -490,7 +572,7 @@ module apiContainerApp 'modules/container-app.bicep' = {
     name: apiContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
     externalIngress: !isAILZIntegrated
@@ -516,6 +598,9 @@ module apiContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'api' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== WORKER CONTAINER APP ==========
@@ -525,7 +610,7 @@ module workerContainerApp 'modules/container-app.bicep' = {
     name: workerContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: workerContainerAppTargetPort
     externalIngress: !isAILZIntegrated
@@ -551,6 +636,9 @@ module workerContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'worker' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== API CONTAINER APP ==========
@@ -560,7 +648,7 @@ module webContainerApp 'modules/container-app.bicep' = {
     name: webContainerAppName
     location: containerAppsEnvironment!.outputs.location
     containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
+    containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
     externalIngress: !isAILZIntegrated
@@ -578,6 +666,9 @@ module webContainerApp 'modules/container-app.bicep' = {
     ]
     tags: union(tags, { 'azd-service-name': 'web' })
   }
+  dependsOn: [
+    containerRegistry
+  ]
 }
 
 // ========== OUTPUTS ==========
@@ -587,7 +678,7 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 
 // Container Registry outputs
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry!.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Service endpoints
@@ -602,6 +693,7 @@ output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output STORAGE_QUEUE_URL string = storage.outputs.primaryQueueEndpoint
 output STORAGE_QUEUE_NAME string = workerQueueName
 output APP_CONFIG_ENDPOINT string = appConfigStore.outputs.endpoint
+output APP_CONFIG_NAME string = appConfigStoreName
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsConnectionString
 
 // Managed Identity outputs

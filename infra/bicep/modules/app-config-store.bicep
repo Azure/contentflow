@@ -35,7 +35,7 @@ var roleAssignments = [
 var deployerRoleAssignments = [
     {
       principalId: deployer().objectId
-      principalType: 'User'
+      principalType: empty(deployer().?userPrincipalName ?? '') ? 'ServicePrincipal' : 'User'
       roleDefinitionIdOrName: 'App Configuration Data Owner'        
     }
   ]
@@ -52,7 +52,7 @@ module appConfigStore 'br/public:avm/res/app-configuration/configuration-store:0
     disableLocalAuth: false
     dataPlaneProxy: {
       authenticationMode: 'Pass-through'
-      privateLinkDelegation: 'Disabled'
+      privateLinkDelegation: enablePrivateEndpoint ? 'Enabled' : 'Disabled'
     }
     enablePurgeProtection: false
     softDeleteRetentionInDays: 1

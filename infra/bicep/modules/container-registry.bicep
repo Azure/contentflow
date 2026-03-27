@@ -32,6 +32,10 @@ param publicNetworkAccess string = 'Enabled'
 @allowed(['Enabled', 'Disabled'])
 param zoneRedundancy string = 'Disabled'
 
+@description('Network rule bypass options - allows trusted Azure services to access the registry')
+@allowed(['AzureServices', 'None'])
+param networkRuleBypassOptions string = 'AzureServices'
+
 @description('Managed Identity that will be given access to the Container Registry')
 param roleAssignedManagedIdentityPrincipalIds string[]
 
@@ -72,6 +76,7 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
     acrAdminUserEnabled: adminUserEnabled
     publicNetworkAccess: publicNetworkAccess
     zoneRedundancy: zoneRedundancy
+    networkRuleBypassOptions: networkRuleBypassOptions
     roleAssignments: concat(roleAssignmentsAcrPull, roleAssignmentsAcrPush, roleAssignmentsAcrDelete)
     privateEndpoints: enablePrivateEndpoint ? [
       {
@@ -80,17 +85,8 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
         subnetResourceId: privateEndpointSubnetId
         service: 'registry'
         privateLinkServiceConnectionName: '${containerRegistryName}-acr-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'acr-dns-zone-group'
-            privateDnsZoneGroupConfigs: !empty(acrPrivateDnsZoneId) ? [
-              {
-                name: 'acr-config'
-                privateDnsZoneResourceId: acrPrivateDnsZoneId
-              }
-            ] : []
-          }
-        ]
+        // privateDnsZoneGroups removed - AVM module 0.9.3 does not handle conditional correctly
+        // DNS zone group will be created explicitly in main.bicep using separate module
       }
     ] : []
   }
