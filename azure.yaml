@@ -22,7 +22,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
     hooks:
       postdeploy:
         shell: sh
@@ -38,7 +37,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
 
   # ContentFlow Web - Container App
   web:
@@ -49,7 +47,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
     
 # Global hooks
 hooks:
