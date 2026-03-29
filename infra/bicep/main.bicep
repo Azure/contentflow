@@ -112,6 +112,7 @@ var ailzValidation = isAILZIntegrated ? {
   appConfigPrivateDnsZoneRequired: !empty(existingAppConfigPrivateDnsZoneId) ?? fail('existingAppConfigPrivateDnsZoneId is required for ailz-integrated mode')
   acrPrivateDnsZoneRequired: !empty(existingAcrPrivateDnsZoneId) ?? fail('existingAcrPrivateDnsZoneId is required for ailz-integrated mode')
   containerAppsEnvPrivateDnsZoneRequired: !empty(existingContainerAppsEnvPrivateDnsZoneId) ?? fail('existingContainerAppsEnvPrivateDnsZoneId is required for ailz-integrated mode')
+  queuePrivateDnsZoneRequired: !empty(existingQueuePrivateDnsZoneId) ?? fail('existingQueuePrivateDnsZoneId is required for ailz-integrated mode')
 } : {}
 
 // ========== VARIABLES ==========
@@ -222,6 +223,7 @@ module storage 'modules/storage.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     blobPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.blob : ''
+    queuePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.queue : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     tags: tags
@@ -244,7 +246,7 @@ module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' =
   ]
 }
 
-module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(existingQueuePrivateDnsZoneId)) {
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
   name: 'storage-queue-dns-zone-group-${resourceToken}'
   params: {
     privateEndpointName: '${storageAccountName}-queue-pe'
@@ -575,7 +577,7 @@ module apiContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 2
@@ -613,7 +615,7 @@ module workerContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: workerContainerAppTargetPort
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 2
@@ -651,7 +653,7 @@ module webContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 1

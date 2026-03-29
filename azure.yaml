@@ -64,6 +64,13 @@ hooks:
     interactive: false
     continueOnError: false
 
+  # Run before deploying services - validates ACR pull readiness
+  predeploy:
+    shell: sh
+    run: ./infra/scripts/pre-deploy.sh
+    interactive: false
+    continueOnError: false
+
   # Run after all services are deployed
   postdeploy:
     shell: sh
