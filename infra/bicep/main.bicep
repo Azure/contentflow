@@ -709,3 +709,12 @@ output AI_SERVICES_NAME string = aiFoundry.outputs.aiServicesName
 output VNET_RESOURCE_ID string = isAILZIntegrated ? existingVnetResourceId : ''
 output PRIVATE_ENDPOINT_SUBNET_ID string = isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
 output CONTAINER_APPS_SUBNET_ID string = isAILZIntegrated ? networkConfig.containerAppsSubnetId : ''
+
+// Container Apps Environment outputs
+// Required by platform team to configure Application Gateway routing to internal CAE:
+// - CAE_STATIC_IP: Private IP assigned to the CAE infrastructure, used as Application Gateway backend pool target
+// - CAE_DEFAULT_DOMAIN: Dynamic domain suffix for the CAE, used to create the Private DNS Zone and backend HTTPS host headers
+output CAE_STATIC_IP string = containerAppsEnvironment.outputs.staticIp
+output CAE_DEFAULT_DOMAIN string = containerAppsEnvironment.outputs.defaultDomain
+// - RESOURCE_TOKEN: Unique suffix used in all resource names, needed to construct Container App FQDNs for App Gateway backend host headers
+output RESOURCE_TOKEN string = resourceToken
