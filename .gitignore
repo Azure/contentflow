@@ -207,3 +207,12 @@ __marimo__/
 
 
 gitignore*
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Local analysis files
+Analysis/
+.Analysis/

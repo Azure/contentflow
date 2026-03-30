@@ -32,6 +32,9 @@
     "existingBlobPrivateDnsZoneId": {
       "value": "${EXISTING_BLOB_PRIVATE_DNS_ZONE_ID=}"
     },
+    "existingQueuePrivateDnsZoneId": {
+      "value": "${EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID=}"
+    },
     "existingCosmosPrivateDnsZoneId": {
       "value": "${EXISTING_COSMOS_PRIVATE_DNS_ZONE_ID=}"
     },
