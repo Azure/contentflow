@@ -22,7 +22,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
     hooks:
       postdeploy:
         shell: sh
@@ -38,7 +37,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
 
   # ContentFlow Web - Container App
   web:
@@ -49,7 +47,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
     
 # Global hooks
 hooks:
@@ -64,6 +61,13 @@ hooks:
   postprovision:
     shell: sh
     run: ./infra/scripts/post-provision.sh
+    interactive: false
+    continueOnError: false
+
+  # Run before deploying services - validates ACR pull readiness
+  predeploy:
+    shell: sh
+    run: ./infra/scripts/pre-deploy.sh
     interactive: false
     continueOnError: false
 

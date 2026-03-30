@@ -575,8 +575,8 @@ All scripts are bash scripts designed to run as azd hooks.
    - Validates infrastructure exists
 
 5. **Service Deployment** (azd deploy)
-   - Builds Docker images (remote build)
-   - Pushes to ACR
+   - Builds Docker images locally (requires Docker daemon running on the machine executing `azd`)
+   - Pushes to ACR (via public endpoint in `basic` mode, via private endpoint in `ailz-integrated` mode — must be executed from within the AI LZ VNet, e.g. from the JumpBox VM)
    - Updates Container Apps
 
 6. **post-deploy-{service}.sh** - After each service deployment

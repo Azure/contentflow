@@ -112,6 +112,7 @@ var ailzValidation = isAILZIntegrated ? {
   appConfigPrivateDnsZoneRequired: !empty(existingAppConfigPrivateDnsZoneId) ?? fail('existingAppConfigPrivateDnsZoneId is required for ailz-integrated mode')
   acrPrivateDnsZoneRequired: !empty(existingAcrPrivateDnsZoneId) ?? fail('existingAcrPrivateDnsZoneId is required for ailz-integrated mode')
   containerAppsEnvPrivateDnsZoneRequired: !empty(existingContainerAppsEnvPrivateDnsZoneId) ?? fail('existingContainerAppsEnvPrivateDnsZoneId is required for ailz-integrated mode')
+  queuePrivateDnsZoneRequired: !empty(existingQueuePrivateDnsZoneId) ?? fail('existingQueuePrivateDnsZoneId is required for ailz-integrated mode')
 } : {}
 
 // ========== VARIABLES ==========
@@ -222,6 +223,7 @@ module storage 'modules/storage.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     blobPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.blob : ''
+    queuePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.queue : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     tags: tags
@@ -244,7 +246,7 @@ module storageBlobDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' =
   ]
 }
 
-module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated && !empty(existingQueuePrivateDnsZoneId)) {
+module storageQueueDnsZoneGroup 'modules/private-endpoint-dns-zone-group.bicep' = if (isAILZIntegrated) {
   name: 'storage-queue-dns-zone-group-${resourceToken}'
   params: {
     privateEndpointName: '${storageAccountName}-queue-pe'
@@ -575,7 +577,7 @@ module apiContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 2
@@ -613,7 +615,7 @@ module workerContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: workerContainerAppTargetPort
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 2
@@ -651,7 +653,7 @@ module webContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '/'
     cpuCores: 1
@@ -709,3 +711,12 @@ output AI_SERVICES_NAME string = aiFoundry.outputs.aiServicesName
 output VNET_RESOURCE_ID string = isAILZIntegrated ? existingVnetResourceId : ''
 output PRIVATE_ENDPOINT_SUBNET_ID string = isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
 output CONTAINER_APPS_SUBNET_ID string = isAILZIntegrated ? networkConfig.containerAppsSubnetId : ''
+
+// Container Apps Environment outputs
+// Required by platform team to configure Application Gateway routing to internal CAE:
+// - CAE_STATIC_IP: Private IP assigned to the CAE infrastructure, used as Application Gateway backend pool target
+// - CAE_DEFAULT_DOMAIN: Dynamic domain suffix for the CAE, used to create the Private DNS Zone and backend HTTPS host headers
+output CAE_STATIC_IP string = containerAppsEnvironment.outputs.staticIp
+output CAE_DEFAULT_DOMAIN string = containerAppsEnvironment.outputs.defaultDomain
+// - RESOURCE_TOKEN: Unique suffix used in all resource names, needed to construct Container App FQDNs for App Gateway backend host headers
+output RESOURCE_TOKEN string = resourceToken
