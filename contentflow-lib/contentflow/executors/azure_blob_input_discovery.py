@@ -200,8 +200,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
             # Initialize blob connector if not already done
             await self.blob_connector.initialize()
             
-            if self.debug_mode:
-                logger.debug(
+            logger.debug(
                     f"Crawling container '{self.blob_container_name}' "
                     f"with prefix '{self.prefix}', "
                     f"checkpoint={checkpoint_timestamp}"
@@ -347,6 +346,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
             
             # Skip if it's a virtual directory marker
             if blob_name.endswith('/'):
+                logger.debug(f"Skipping virtual directory marker: {blob_name}")
                 continue
             
             # Check depth
@@ -358,19 +358,26 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                 relative_depth = depth - prefix_depth
                 
                 if relative_depth > self.max_depth:
+                    logger.debug(
+                        f"Skipping blob '{blob_name}' due to depth {relative_depth} "
+                        f"exceeding max_depth {self.max_depth}"
+                    )
                     continue
             
             # Check file extension
             if self.file_extensions:
                 blob_ext = Path(blob_name).suffix.lower()
                 if blob_ext not in [ext.lower() for ext in self.file_extensions]:
+                    logger.debug(f"Skipping blob '{blob_name}' due to unsupported file extension '{blob_ext}'. Supported extensions: {self.file_extensions}")
                     continue
             
             # Check size filters
             blob_size = blob.get('size', 0)
             if self.min_size_bytes > 0 and blob_size < self.min_size_bytes:
+                logger.debug(f"Skipping blob '{blob_name}' due to size {blob_size} bytes being smaller than min_size_bytes {self.min_size_bytes}")
                 continue
             if self.max_size_bytes > 0 and blob_size > self.max_size_bytes:
+                logger.debug(f"Skipping blob '{blob_name}' due to size {blob_size} bytes being larger than max_size_bytes {self.max_size_bytes}")
                 continue
             
             # Check date filters
@@ -390,6 +397,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                         checkpoint = checkpoint.replace(tzinfo=timezone.utc)
                     
                     if last_modified <= checkpoint:
+                        logger.debug(f"Skipping blob '{blob_name}' due to last_modified {last_modified} being older than or equal to checkpoint {checkpoint}")
                         continue
                 
                 if self.modified_after_dt:
@@ -400,6 +408,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                         modified_after = modified_after.replace(tzinfo=timezone.utc)
                     
                     if last_modified < modified_after:
+                        logger.debug(f"Skipping blob '{blob_name}' due to last_modified {last_modified} being earlier than modified_after {modified_after}")
                         continue
                 
                 if self.modified_before_dt:
@@ -410,6 +419,7 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                         modified_before = modified_before.replace(tzinfo=timezone.utc)
                     
                     if last_modified > modified_before:
+                        logger.debug(f"Skipping blob '{blob_name}' due to last_modified {last_modified} being later than modified_before {modified_before}")
                         continue
             
             filtered.append(blob)

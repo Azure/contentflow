@@ -20,7 +20,8 @@ pipelines:
         settings:
           blob_storage_account: "${AZURE_STORAGE_ACCOUNT_NAME}"
           blob_storage_credential_type: "default_azure_credential"
-          blob_container_name: "input-docs"
+          blob_container_name: "content"
+          prefix: "pdfs/"
           max_results: 3
 
       # Load content

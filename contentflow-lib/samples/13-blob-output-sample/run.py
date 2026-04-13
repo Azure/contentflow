@@ -62,7 +62,7 @@ async def example_basic_blob_output():
         settings={
             "storage_account_name": "${AZURE_STORAGE_ACCOUNT_NAME}",
             "credential_type": "default_azure_credential",
-            "container_name": "processed-output",
+            "container_name": "pipeline-output",
             "path_template": "{executor_id}/{year}/{month}/{day}",
             "filename_template": "{id.unique_id}_{timestamp}.json",
             "content_field": "title",  # Write the 'title' field from Content.data
