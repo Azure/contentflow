@@ -43,18 +43,6 @@ async def run_pipeline():
     print("Spreadsheet Data Processing Pipeline")
     print("=" * 80)
     
-    # Validate required environment variables
-    required_vars = [
-        "AZURE_STORAGE_ACCOUNT",
-        "AZURE_OUTPUT_CONTAINER_NAME"
-    ]
-    
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    if missing_vars:
-        print(f"\n❌ Missing required environment variables: {', '.join(missing_vars)}")
-        print("Please set them in your .env file")
-        return
-    
     # Load config
     config_path = Path(__file__).parent / "pipeline-config.yaml"
     executor_catalog_path = Path(__file__).parent.parent.parent / "executor_catalog.yaml"
@@ -77,15 +65,15 @@ async def run_pipeline():
         # Sample spreadsheet document
         # For this example, we'll use a sample Excel file path
         # You can replace this with your actual Excel file
-        sample_excel_path = f"{samples_dir}/99-assets/sample-data.xlsx"
+        sample_excel_path = f"{samples_dir}/99-assets/sample.xlsx"
         
         document = Content(
             id=ContentIdentifier(
                 canonical_id="excel_001",
                 unique_id="excel_001",
                 source_id="sample_spreadsheets",
-                source_name="Customer Orders",
-                source_type="file",
+                source_name="local_file",
+                source_type="local_file",
                 path=sample_excel_path,
             )
         )

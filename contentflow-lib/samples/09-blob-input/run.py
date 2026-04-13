@@ -89,10 +89,10 @@ async def basic_blob_discovery():
             print(f"\n📁 Discovered {len(blobs)} files:")
             
             for i, blob in enumerate(blobs[:10], 1):  # Show first 10
-                print(f"\n  {i}. {blob.data.get('blob_name', 'N/A')}")
-                print(f"     Size: {blob.data.get('size', 0):,} bytes")
-                print(f"     Modified: {blob.data.get('last_modified', 'N/A')}")
-                print(f"     Type: {blob.data.get('content_type', 'N/A')}")
+                print(f"\n  {i}. {blob.id.path if blob.id else 'N/A'}")
+                print(f"     Size: {blob.id.metadata.get('size', 0) if blob.id and blob.id.metadata else 0} bytes")
+                print(f"     Modified: {blob.id.metadata.get('last_modified', 'N/A') if blob.id and blob.id.metadata else 'N/A'}")
+                print(f"     Type: {blob.id.metadata.get('content_type', 'N/A') if blob.id and blob.id.metadata else 'N/A'}")
             
             if len(blobs) > 10:
                 print(f"\n  ... and {len(blobs) - 10} more files")
@@ -165,19 +165,19 @@ async def filtered_blob_discovery():
             print(f"\n📁 Discovered {len(blobs)} matching files:")
             
             # Show statistics
-            total_size = sum(blob.data.get('size', 0) for blob in blobs)
-            pdf_count = sum(1 for blob in blobs if blob.data.get('blob_name', '').endswith('.pdf'))
-            docx_count = sum(1 for blob in blobs if blob.data.get('blob_name', '').endswith('.docx'))
+            total_size = sum(blob.id.metadata.get('size', 0) if blob.id.metadata else 0 for blob in blobs)
+            pdf_count = sum(1 for blob in blobs if blob.id.metadata and blob.id.metadata.get('blob_name', '').endswith('.pdf'))
+            docx_count = sum(1 for blob in blobs if blob.id.metadata and blob.id.metadata.get('blob_name', '').endswith('.docx'))
             
             print(f"\n  Statistics:")
             print(f"    PDF files: {pdf_count}")
             print(f"    DOCX files: {docx_count}")
             print(f"    Total size: {total_size:,} bytes ({total_size / 1024 / 1024:.2f} MB)")
             
-            print(f"\n  Recent files (sorted by last modified):")
+            print(f"\n  Recent files:")
             for i, blob in enumerate(blobs[:5], 1):
-                print(f"    {i}. {blob.data.get('blob_name', 'N/A')}")
-                print(f"       {blob.data.get('size', 0):,} bytes | {blob.data.get('last_modified', 'N/A')}")
+                print(f"    {i}. {blob.id.path if blob.id else 'N/A'}")
+                print(f"       {blob.id.metadata.get('size', 0) if blob.id and blob.id.metadata else 0:,} bytes | {blob.id.metadata.get('last_modified', 'N/A') if blob.id and blob.id.metadata else 'N/A'}")
         else:
             print(f"\n📁 No files matched the filters.")
         
@@ -231,11 +231,11 @@ async def blob_discovery_with_streaming():
         # Execute with streaming
         discovered_blobs = []
         async for event in pipeline_executor.execute_stream([]):
-            if event.event_type == "ExecutorInvokedEvent":
+            if event.event_type == "executor_invoked":
                 print(f"  ▶ Executor '{event.executor_id}' started")
-            elif event.event_type == "ExecutorCompletedEvent":
+            elif event.event_type == "executor_completed":
                 print(f"  ✓ Executor '{event.executor_id}' completed")
-            elif event.event_type == "WorkflowOutputEvent":
+            elif event.event_type == "output":
                 print(f"  📤 Output received")
                 output_folder = Path(__file__).parent / "output"
                 output_folder.mkdir(exist_ok=True)

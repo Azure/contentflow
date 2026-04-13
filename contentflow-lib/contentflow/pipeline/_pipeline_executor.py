@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
-from agent_framework import ExecutorFailedEvent, Workflow, WorkflowFailedEvent, WorkflowRunResult, WorkflowOutputEvent, WorkflowStatusEvent
+from agent_framework import Workflow, WorkflowRunResult, WorkflowEvent
 import yaml
 
 from ..models import Content
@@ -296,14 +296,14 @@ class PipelineExecutor:
             logger.debug(f"Workflow Run Result obtained...")
 
             events = [PipelineEvent(
-                event_type=type(event).__name__,
+                event_type=event.type,
                 executor_id=event.executor_id if hasattr(event, "executor_id") else (event.source_executor_id if hasattr(event, "source_executor_id") else None),
                 data=event.data if hasattr(event, "data") else {},
                 error=None
             ) for event in workflow_run_result]
             
             # get the data from the last output event
-            workflow_output_events = [event for event in workflow_run_result if isinstance(event, WorkflowOutputEvent)]
+            workflow_output_events = [event for event in workflow_run_result if event.type == "output"]
             if len(workflow_output_events) > 0:
                 last_output_event = workflow_output_events[-1]
                 if last_output_event.data:
@@ -372,16 +372,16 @@ class PipelineExecutor:
         logger.debug(f"Streaming pipeline execution: {self.pipeline_name}")
         
         try:
-            async for event in self._pipeline.run_stream(input):
+            async for event in self._pipeline.run(message=input, stream=True):
                 # Create pipeline event
                 pipeline_event = PipelineEvent(
-                    event_type=type(event).__name__,
+                    event_type=event.type,
                     executor_id=event.executor_id if hasattr(event, "executor_id") else (event.source_executor_id if hasattr(event, "source_executor_id") else None),
                     data=event.data if hasattr(event, "data") else {}
                 )
                 
                 # Special handling for status events
-                if (isinstance(event, WorkflowStatusEvent)):
+                if (event.type == "status"):
                     logger.debug(
                         f"Pipeline execution status update: {self.pipeline_name} - Status: {pipeline_event.data}"
                     )
@@ -390,7 +390,7 @@ class PipelineExecutor:
                     pipeline_event.additional_info = _additional_info
                 
                 # Special handling for failure events
-                if (isinstance(event, WorkflowFailedEvent) or isinstance(event, ExecutorFailedEvent)):
+                if (event.type == "failed" or event.type == "executor_failed"):
                     logger.error(
                         f"Pipeline execution failed during streaming: {self.pipeline_name} - Error: {pipeline_event.error}"
                     )
