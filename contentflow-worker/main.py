@@ -51,13 +51,19 @@ def main(settings: WorkerSettings):
         print(f"API Enabled: http://{settings.API_HOST}:{settings.API_PORT}")
     print("=" * 60)
     
-    # Run startup checks
+    # Run startup checks with retries (Azure services may need time for DNS/RBAC propagation)
+    import time
+    max_startup_retries = 5
     print("Running startup validation checks...")
-    if not run_startup_checks(settings):
-        print("\033[91m❌ Startup validation failed. Exiting.\033[0m")
-        sys.exit(1)
+    for _attempt in range(max_startup_retries):
+        if run_startup_checks(settings):
+            print("✅ Startup validation passed.")
+            break
+        wait = min(30, 5 * (_attempt + 1))
+        print(f"⏳ Startup check failed (attempt {_attempt + 1}/{max_startup_retries}), retrying in {wait}s...")
+        time.sleep(wait)
     else:
-        print("✅ Startup validation passed.")
+        print("\033[93m⚠️ Startup validation did not pass after retries, continuing with available config...\033[0m")
     
     # Create worker engine
     print("Creating worker engine...")

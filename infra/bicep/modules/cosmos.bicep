@@ -63,17 +63,15 @@ module cosmosAccount 'br:mcr.microsoft.com/bicep/avm/res/document-db/database-ac
         subnetResourceId: privateEndpointSubnetId
         service: 'Sql'
         privateLinkServiceConnectionName: '${cosmosAccountName}-cosmos-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'cosmos-dns-zone-group'
-            privateDnsZoneGroupConfigs: !empty(cosmosPrivateDnsZoneId) ? [
-              {
-                name: 'cosmos-config'
-                privateDnsZoneResourceId: cosmosPrivateDnsZoneId
-              }
-            ] : []
-          }
-        ]
+        privateDnsZoneGroup: !empty(cosmosPrivateDnsZoneId) ? {
+          name: 'cosmos-dns-zone-group'
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'cosmos-config'
+              privateDnsZoneResourceId: cosmosPrivateDnsZoneId
+            }
+          ]
+        } : null
       }
     ] : []
     zoneRedundant: zoneRedundant

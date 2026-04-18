@@ -64,17 +64,15 @@ module appConfigStore 'br/public:avm/res/app-configuration/configuration-store:0
         resourceGroupResourceId: resourceGroup().id
         subnetResourceId: privateEndpointSubnetId
         privateLinkServiceConnectionName: '${appConfigStoreName}-app-config-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'app-config-dns-zone-group'
-            privateDnsZoneGroupConfigs: !empty(appConfigPrivateDnsZoneId) ? [
-              {
-                name: 'app-config'
-                privateDnsZoneResourceId: appConfigPrivateDnsZoneId
-              }
-            ] : []
-          }
-        ]
+        privateDnsZoneGroup: !empty(appConfigPrivateDnsZoneId) ? {
+          name: 'app-config-dns-zone-group'
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'app-config'
+              privateDnsZoneResourceId: appConfigPrivateDnsZoneId
+            }
+          ]
+        } : null
       }
     ] : []
   }

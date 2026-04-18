@@ -67,7 +67,10 @@ class AppSettings(BaseModel):
     def __init__(self, **kwargs):
         """Initialize AppSettings and load configuration from Azure App Configuration"""
         super().__init__(**kwargs)
-        self._load_from_app_config()
+        try:
+            self._load_from_app_config()
+        except Exception as e:
+            print(f"\033[93m⚠️ Could not load from App Config: {e}. Using defaults/env vars.\033[0m")
 
     def _load_from_app_config(self):
         """Load configuration values from Azure App Configuration"""
