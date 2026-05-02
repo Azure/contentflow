@@ -6247,3 +6247,204 @@ executor_catalog:
       icon: "database"
       description_short: "Look up records in Cosmos DB NoSQL"
       description_long: "Queries Azure Cosmos DB NoSQL containers to validate or enrich content fields. Supports both direct point-reads (by id and partition key) and parameterised SQL queries. Lookup values are extracted from content.data via configurable field mappings and results are written back into each content item."
+
+  ########################################################
+  # Document Validation Executor
+  - id: document_validation
+    name: "Document Validation"
+    description: "Validates fetched document details against provided details using configurable rules. Supports exact match, date match, expiry check, name match, and AI-powered address matching."
+    module_path: contentflow.executors.document_validation_executor
+    class_name: DocumentValidationExecutor
+    tags: [validation, comparison, rules, documents, azure-openai]
+    category: "analyse"
+    version: "1.2"
+
+    settings_schema:
+      # Common settings
+      enabled:
+        type: boolean
+        title: "Enabled"
+        description: "Enable or disable this executor"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      fail_pipeline_on_error:
+        type: boolean
+        title: "Fail Pipeline On Error"
+        description: "Fail the entire pipeline if validation execution fails"
+        required: false
+        default: true
+        ui_component: "checkbox"
+
+      debug_mode:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug mode for detailed logging"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      # Blob storage settings
+      blob_storage_account:
+        type: string
+        title: "Blob Storage Account"
+        description: "Azure Blob Storage account name where input files reside"
+        placeholder: "<enter storage account name>"
+        required: true
+        default: null
+        ui_component: "input"
+
+      blob_container_name:
+        type: string
+        title: "Container Name"
+        description: "Azure Blob Storage container name containing the case folders"
+        placeholder: "<enter container name>"
+        required: true
+        default: null
+        ui_component: "input"
+
+      blob_storage_credential_type:
+        type: string
+        title: "Blob Storage Credential Type"
+        description: "Credential type for accessing Azure Blob Storage"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      blob_storage_account_key:
+        type: string
+        title: "Blob Storage Account Key"
+        description: "Azure Blob Storage account key (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "password"
+
+      # File configuration
+      provided_details_filename:
+        type: string
+        title: "Provided Details Filename"
+        description: "Name of the file containing provided/expected details"
+        required: false
+        default: "ProvidedDetails.json"
+        ui_component: "input"
+
+      rules_filename:
+        type: string
+        title: "Rules Filename"
+        description: "Name of the file containing validation rules"
+        required: false
+        default: "rules.json"
+        ui_component: "input"
+
+      fetched_details_prefix:
+        type: string
+        title: "Fetched Details Prefix"
+        description: "Filename prefix for fetched details files (e.g., 'FetchedDetails_')"
+        required: false
+        default: "FetchedDetails_"
+        ui_component: "input"
+
+      output_filename:
+        type: string
+        title: "Output Filename"
+        description: "Name of the output results file"
+        required: false
+        default: "results.json"
+        ui_component: "input"
+
+      # Path settings
+      base_path:
+        type: string
+        title: "Base Path"
+        description: "Static blob folder path where ProvidedDetails.json, rules.json reside and results.json will be written (e.g., 'inputs'). If not set, derived from content."
+        placeholder: "inputs"
+        required: false
+        default: null
+        ui_component: "input"
+
+      fetched_details_path:
+        type: string
+        title: "Fetched Details Path"
+        description: "Static blob folder path where FetchedDetails_*.json files are stored. If not set, automatically derived from upstream blob output executor's written path."
+        placeholder: "azure_blob_output-xxx_2026_05_01"
+        required: false
+        default: null
+        ui_component: "input"
+
+      fetched_details_path_field:
+        type: string
+        title: "Fetched Details Path Field"
+        description: "Dot-notation path in content.summary_data to the blob path written by upstream blob output executor (e.g., 'blob_output.blob_path')"
+        required: false
+        default: "blob_output.blob_path"
+        ui_component: "input"
+
+      # Comparison settings
+      case_sensitive_comparison:
+        type: boolean
+        title: "Case Sensitive Comparison"
+        description: "Whether string comparisons should be case-sensitive"
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      input_prefix_field:
+        type: string
+        title: "Input Prefix Field"
+        description: "Field in content.data containing the blob folder path for this case"
+        required: false
+        default: "blob_path"
+        ui_component: "input"
+
+      # Azure OpenAI settings for AI-powered address matching
+      endpoint:
+        type: string
+        title: "Azure OpenAI Endpoint"
+        description: "Azure OpenAI endpoint URL for AI-powered address matching"
+        placeholder: "https://<your-resource>.openai.azure.com/"
+        required: false
+        default: null
+        ui_component: "input"
+
+      deployment_name:
+        type: string
+        title: "Deployment Name"
+        description: "Azure OpenAI model deployment name (e.g., gpt-4.1)"
+        placeholder: "gpt-4.1"
+        required: false
+        default: null
+        ui_component: "input"
+
+      credential_type:
+        type: string
+        title: "OpenAI Credential Type"
+        description: "Authentication method for Azure OpenAI"
+        required: false
+        default: "default_azure_credential"
+        options: ["default_azure_credential", "azure_key_credential"]
+        ui_component: "select"
+
+      api_key:
+        type: string
+        title: "OpenAI API Key"
+        description: "API key for Azure OpenAI (if using azure_key_credential)"
+        required: false
+        default: null
+        ui_component: "password"
+
+      temperature:
+        type: number
+        title: "Temperature"
+        description: "Sampling temperature for AI address matching (0.0-1.0)"
+        required: false
+        default: 0.1
+        min: 0.0
+        max: 1.0
+        ui_component: "number"
+
+    ui_metadata:
+      icon: "check-circle"
+      description_short: "Validate documents against provided details"
+      description_long: "Compares fetched document details (from Azure Content Understanding) against provided/expected details using configurable validation rules. Supports exact match, date match, expiry check, name matching, and AI-powered fuzzy address comparison. Reads ProvidedDetails.json, rules.json, and FetchedDetails_*.json from a blob folder and writes consolidated results.json back to the same location."

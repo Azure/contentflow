@@ -21,6 +21,9 @@ param location string = resourceGroup().location
 @description('Location for AI Foundry resources')
 param foundryLocation string
 
+@description('Location for Cosmos DB resources (override if primary region has capacity issues)')
+param cosmosLocation string = location
+
 @description('ID of the user running the deployment')
 param principalId string = ''
 
@@ -232,7 +235,7 @@ module storage 'modules/storage.bicep' = {
 module cosmos 'modules/cosmos.bicep' = {
   name: 'cosmos-${resourceToken}'
   params: {
-    location: location
+    location: cosmosLocation
     cosmosAccountName: cosmosAccountName
     cosmosDbName: cosmosDbName
     cosmosDBContainerNames: cosmosDBContainerNames

@@ -72,8 +72,14 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
         settings = settings or {}
         categories = settings.get("categories", None)
         
+        # Handle categories passed as JSON string from UI
+        if isinstance(categories, str):
+            categories = [c.strip() for c in categories.strip("[]").split(",") if c.strip()]
+            categories = [c.strip("'\"") for c in categories]
+            settings["categories"] = categories
+        
         if not categories or not isinstance(categories, list) or len(categories) == 0:
-            raise ValueError(f"{self.id}: ContentClassifierExecutor requires 'categories' setting with at least one category")
+            raise ValueError(f"{id}: ContentClassifierExecutor requires 'categories' setting with at least one category")
         
         multi_label = settings.get("multi_label", False)
         include_confidence = settings.get("include_confidence", True)
