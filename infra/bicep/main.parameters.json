@@ -17,6 +17,9 @@
     "cosmosLocation": {
       "value": "${AZURE_COSMOS_LOCATION=eastus2}"
     },
+    "existingOpenAIResourceId": {
+      "value": "${EXISTING_OPENAI_RESOURCE_ID=}"
+    },
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
     },

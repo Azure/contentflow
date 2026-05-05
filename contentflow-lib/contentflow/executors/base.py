@@ -172,7 +172,22 @@ class BaseExecutor(Executor, ABC):
                 )
             return default
         
-        return self._resolve_setting_value(value)
+        resolved = self._resolve_setting_value(value)
+        
+        # Warn if a sensitive setting appears to contain a literal value instead of ${ENV_VAR}
+        _sensitive_keywords = ('key', 'secret', 'password', 'credential', 'token', 'api_key')
+        if (
+            isinstance(value, str)
+            and any(kw in setting_key.lower() for kw in _sensitive_keywords)
+            and not (value.startswith('${') and value.endswith('}'))
+            and value != default
+        ):
+            logger.warning(
+                f"Executor '{self.id}': Setting '{setting_key}' appears to contain a literal secret. "
+                f"Use ${{ENV_VAR}} syntax to reference environment variables for ZTA compliance."
+            )
+        
+        return resolved
     
     def try_extract_nested_field_from_content(
         self,

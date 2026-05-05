@@ -25,7 +25,7 @@ except ImportError:
 from agent_framework import WorkflowContext
 
 from .base import BaseExecutor
-from ..models import Content
+from ..models import Content, ExecutorLogEntry
 from ..connectors import AzureBlobConnector
 from ..utils.credential_provider import get_azure_credential
 
@@ -192,55 +192,140 @@ class DocumentValidationExecutor(BaseExecutor):
         input: Union[Content, List[Content]],
         ctx: WorkflowContext[Union[Content, List[Content]], Union[Content, List[Content]]]
     ) -> Union[Content, List[Content]]:
-        """Main processing: load files, compare, produce results."""
+        """Main processing: load files, compare, produce results.
+        
+        Collects the exact blob paths written by upstream executors in the current run
+        to ensure only current-execution FetchedDetails files are validated.
+        """
+        contents = input if isinstance(input, list) else [input]
+
+        # Collect all specific FetchedDetails blob paths from current execution's content items.
+        # Each content item processed by the upstream blob output executor carries its own
+        # blob_output.blob_path in summary_data — these are the ONLY files from this run.
+        current_run_blob_paths = self._collect_current_run_fetched_paths(contents)
+
         if isinstance(input, list):
             results = []
-            for content in input:
-                results.append(await self._process_single(content))
+            for content in contents:
+                results.append(await self._process_single(content, current_run_blob_paths))
             return results
-        return await self._process_single(input)
+        return await self._process_single(contents[0], current_run_blob_paths)
 
-    async def _process_single(self, content: Content) -> Content:
+    def _collect_current_run_fetched_paths(self, contents: List[Content]) -> List[str]:
+        """Collect all FetchedDetails blob paths written by upstream executors in the current run.
+        
+        Iterates all content items and extracts their blob_output.blob_path values,
+        filtering only those that match the fetched details prefix pattern.
+        This ensures we ONLY process files from the current pipeline execution.
+        """
+        paths = []
+        for content in contents:
+            blob_path = self._resolve_nested_field(content.summary_data, self.fetched_details_path_field)
+            if blob_path and isinstance(blob_path, str):
+                filename = blob_path.split("/")[-1] if "/" in blob_path else blob_path
+                if filename.startswith(self.fetched_details_prefix) and filename.endswith(".json"):
+                    paths.append(blob_path)
+        
+        # Also check executor_logs from earlier executors in the same pipeline run
+        # that may have written multiple files (e.g., content items processed in parallel)
+        for content in contents:
+            for log in content.executor_logs:
+                if log.details and "blob_path" in log.details:
+                    bp = log.details["blob_path"]
+                    if isinstance(bp, str):
+                        filename = bp.split("/")[-1] if "/" in bp else bp
+                        if filename.startswith(self.fetched_details_prefix) and filename.endswith(".json"):
+                            if bp not in paths:
+                                paths.append(bp)
+
+        return paths
+
+    async def _process_single(self, content: Content, current_run_blob_paths: List[str]) -> Content:
         """Process a single case (folder)."""
-        await self.blob_connector.initialize()
+        start_time = datetime.now(timezone.utc)
+        content_id = content.id.canonical_id if content.id else "unknown"
+        logger.info(f"{self.id}: Starting validation for content: {content_id}")
 
-        # Determine the blob prefix for ProvidedDetails, rules, and output
-        base_prefix = self._get_base_prefix(content)
-        # Determine where FetchedDetails files are stored (may differ from base)
-        fetched_prefix = self._get_fetched_details_prefix(content)
+        try:
+            # Initialize blob connector
+            init_start = datetime.now(timezone.utc)
+            await self.blob_connector.initialize()
+            if self.debug_mode:
+                init_elapsed = (datetime.now(timezone.utc) - init_start).total_seconds()
+                logger.debug(f"{self.id}: Blob connector initialized in {init_elapsed:.2f}s")
 
-        logger.info(f"{self.id}: Base path: {base_prefix}, Fetched details path: {fetched_prefix}")
+            # Determine the blob prefix for ProvidedDetails, rules, and output
+            base_prefix = self._get_base_prefix(content)
+            # Determine where FetchedDetails files are stored (may differ from base)
+            fetched_prefix = self._get_fetched_details_prefix(content)
 
-        # Step 1: Load ProvidedDetails.json
-        provided_details = await self._load_json_from_blob(base_prefix, self.provided_details_filename)
-        if self.debug_mode:
-            logger.debug(f"{self.id}: Loaded ProvidedDetails with {len(provided_details.get('documents', []))} documents")
+            logger.info(f"{self.id}: Base path: {base_prefix}, Fetched details path: {fetched_prefix}")
 
-        # Step 2: Load rules.json
-        rules = await self._load_json_from_blob(base_prefix, self.rules_filename)
-        if self.debug_mode:
-            logger.debug(f"{self.id}: Loaded rules with {len(rules.get('rules', []))} document type rules")
+            # Step 1: Load ProvidedDetails.json
+            provided_details = await self._load_json_from_blob(base_prefix, self.provided_details_filename)
+            if self.debug_mode:
+                logger.debug(f"{self.id}: Loaded ProvidedDetails with {len(provided_details.get('documents', []))} documents")
 
-        # Step 3: Discover and load all FetchedDetails_*.json files
-        fetched_details_list = await self._load_all_fetched_details(fetched_prefix)
-        if self.debug_mode:
-            logger.debug(f"{self.id}: Loaded {len(fetched_details_list)} fetched detail entries")
+            # Step 2: Load rules.json
+            rules = await self._load_json_from_blob(base_prefix, self.rules_filename)
+            if self.debug_mode:
+                logger.debug(f"{self.id}: Loaded rules with {len(rules.get('rules', []))} document type rules")
 
-        # Step 4: Run validation
-        results = await self._run_validation(provided_details, fetched_details_list, rules)
+            # Step 3: Load FetchedDetails - prefer exact paths from current run over folder listing
+            fetched_details_list = await self._load_fetched_details_for_current_run(
+                current_run_blob_paths, fetched_prefix
+            )
+            if self.debug_mode:
+                logger.debug(f"{self.id}: Loaded {len(fetched_details_list)} fetched detail entries")
 
-        # Step 5: Write results.json to base path
-        await self._write_results_to_blob(base_prefix, results)
+            # Step 4: Run validation
+            results = await self._run_validation(provided_details, fetched_details_list, rules)
 
-        # Step 6: Store results in content for downstream use
-        content.data["validation_results"] = results
-        content.summary_data["validation_status"] = results.get("summary", {}).get("overallStatus", "unknown")
+            # Step 5: Write results.json to base path
+            await self._write_results_to_blob(base_prefix, results)
 
-        logger.info(
-            f"{self.id}: Validation complete - "
-            f"Status: {results['summary']['overallStatus']}, "
-            f"Passed: {results['summary']['passed']}, Failed: {results['summary']['failed']}"
-        )
+            # Step 6: Store results in content for downstream use
+            content.data["validation_results"] = results
+            content.summary_data["validation_status"] = results.get("summary", {}).get("overallStatus", "unknown")
+            content.summary_data["executor_status"] = "success"
+
+            elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
+            logger.info(
+                f"{self.id}: Validation complete for {content_id} in {elapsed:.2f}s - "
+                f"Status: {results['summary']['overallStatus']}, "
+                f"Passed: {results['summary']['passed']}, Failed: {results['summary']['failed']}"
+            )
+
+            # Append executor log entry for pipeline status tracking
+            content.executor_logs.append(ExecutorLogEntry(
+                executor_id=self.id,
+                start_time=start_time,
+                end_time=datetime.now(timezone.utc),
+                status="completed",
+                details={
+                    "total_documents": results["summary"]["totalDocuments"],
+                    "passed": results["summary"]["passed"],
+                    "failed": results["summary"]["failed"],
+                },
+                errors=[]
+            ))
+
+        except Exception as e:
+            elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
+            logger.error(
+                f"{self.id}: Validation failed for {content_id} after {elapsed:.2f}s: {e}",
+                exc_info=True
+            )
+            content.summary_data["executor_status"] = "failed"
+            content.executor_logs.append(ExecutorLogEntry(
+                executor_id=self.id,
+                start_time=start_time,
+                end_time=datetime.now(timezone.utc),
+                status="failed",
+                details={},
+                errors=[str(e)]
+            ))
+            raise
 
         return content
 
@@ -318,11 +403,63 @@ class DocumentValidationExecutor(BaseExecutor):
             )
             return json.loads(content_bytes.decode("utf-8"))
         except Exception as e:
-            logger.error(f"{self.id}: Failed to load {blob_path}: {e}")
+            logger.error(f"{self.id}: Failed to load {blob_path}: {e}", exc_info=True)
             raise ValueError(f"Failed to load required file '{filename}' from {blob_path}: {e}")
 
-    async def _load_all_fetched_details(self, fetched_prefix: str) -> List[dict]:
-        """Find and load all FetchedDetails_*.json files in the fetched details path."""
+    async def _load_fetched_details_for_current_run(
+        self, current_run_blob_paths: List[str], fetched_prefix: str
+    ) -> List[dict]:
+        """Load FetchedDetails files scoped to the current pipeline execution only.
+        
+        Strategy:
+          1. If exact blob paths from the current run are available (collected from
+             upstream blob output executor's summary_data), load ONLY those specific files.
+             This guarantees no cross-run contamination.
+          2. Fallback: If no specific paths are available (e.g., manual/static config),
+             list the folder but log a warning about potential cross-run inclusion.
+        """
+        if current_run_blob_paths:
+            # PREFERRED: Load only the exact files written in this execution
+            logger.info(
+                f"{self.id}: Loading {len(current_run_blob_paths)} FetchedDetails file(s) "
+                f"from current run (exact path resolution)"
+            )
+            return await self._load_fetched_details_by_paths(current_run_blob_paths)
+        
+        # FALLBACK: No exact paths available — use folder listing with warning
+        logger.warning(
+            f"{self.id}: No exact FetchedDetails paths from current run available. "
+            f"Falling back to folder listing at '{fetched_prefix}'. "
+            f"This may include files from previous executions if the folder is shared."
+        )
+        return await self._load_all_fetched_details_from_folder(fetched_prefix)
+
+    async def _load_fetched_details_by_paths(self, blob_paths: List[str]) -> List[dict]:
+        """Load FetchedDetails from specific blob paths (current run only)."""
+        all_fetched = []
+        for blob_path in blob_paths:
+            try:
+                content_bytes = await self.blob_connector.download_blob(
+                    container_name=self.blob_container_name,
+                    blob_path=blob_path
+                )
+                fetched = json.loads(content_bytes.decode("utf-8"))
+                if isinstance(fetched, list):
+                    all_fetched.extend(fetched)
+                else:
+                    all_fetched.append(fetched)
+                if self.debug_mode:
+                    logger.debug(f"{self.id}: Loaded FetchedDetails from exact path: {blob_path}")
+            except Exception as e:
+                logger.warning(f"{self.id}: Failed to load fetched details from {blob_path}: {e}")
+        return all_fetched
+
+    async def _load_all_fetched_details_from_folder(self, fetched_prefix: str) -> List[dict]:
+        """Fallback: Find and load all FetchedDetails_*.json files in the fetched details path.
+        
+        WARNING: This may include files from previous pipeline executions if the folder
+        is shared across runs (e.g., date-based folder naming).
+        """
         all_fetched = []
         async for blobs in self.blob_connector.list_blobs(
             container_name=self.blob_container_name,
@@ -436,6 +573,15 @@ class DocumentValidationExecutor(BaseExecutor):
                 results["summary"]["failed"] += 1
             else:
                 results["summary"]["passed"] += 1
+
+            if self.debug_mode:
+                passed_fields = sum(1 for fr in doc_result["fieldResults"] if fr["result"] == "pass")
+                failed_fields = sum(1 for fr in doc_result["fieldResults"] if fr["result"] == "fail")
+                logger.debug(
+                    f"{self.id}: Document '{fetched_doc_type}' - "
+                    f"{len(doc_result['fieldResults'])} fields validated: "
+                    f"{passed_fields} passed, {failed_fields} failed"
+                )
 
             results["documentResults"].append(doc_result)
 
@@ -734,7 +880,10 @@ class DocumentValidationExecutor(BaseExecutor):
                 return "true" in lower_response or "match" in lower_response
 
         except Exception as e:
-            logger.warning(f"{self.id}: AI address match failed, falling back to string comparison: {e}")
+            logger.warning(
+                f"{self.id}: AI address match failed, falling back to string comparison: {e}",
+                exc_info=True
+            )
             return self._values_match(address1, address2)
 
     def _values_match(self, fetched: str, provided: str) -> bool:

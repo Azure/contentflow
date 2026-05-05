@@ -236,6 +236,10 @@ class ContentProcessingWorker:
                 self._update_execution_status(execution_id=task.execution_id, status="failed", error="No input content")
                 return True
             
+            # Inject execution_id into content items for downstream executor use
+            for c in content:
+                c.summary_data["execution_id"] = task.execution_id
+            
             # Execute pipeline synchronously (using asyncio.run)
             result = self._run_pipeline(pipeline_config, content, task)
             

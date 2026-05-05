@@ -24,6 +24,9 @@ param foundryLocation string
 @description('Location for Cosmos DB resources (override if primary region has capacity issues)')
 param cosmosLocation string = location
 
+@description('Resource ID of an existing Azure OpenAI resource for RBAC assignment (if not using AI Foundry integrated endpoint)')
+param existingOpenAIResourceId string = ''
+
 @description('ID of the user running the deployment')
 param principalId string = ''
 
@@ -483,6 +486,17 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
     roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
     location: foundryLocation
     tags: tags
+  }
+}
+
+// ========== OPENAI RBAC ROLE ASSIGNMENT (for standalone Azure OpenAI resources) ==========
+module openaiRoleAssignment 'modules/openai-role-assignment.bicep' = if (!empty(existingOpenAIResourceId)) {
+  name: 'openai-role-${resourceToken}'
+  params: {
+    openAIResourceId: existingOpenAIResourceId
+    principalIds: !empty(principalId)
+      ? [userAssignedIdentity.outputs.principalId, principalId]
+      : [userAssignedIdentity.outputs.principalId]
   }
 }
 
