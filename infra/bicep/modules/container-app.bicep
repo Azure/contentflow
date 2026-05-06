@@ -46,6 +46,9 @@ param environmentVariables array = []
 @description('Tags to apply to resources')
 param tags object = {}
 
+@description('Container image to use. Defaults to MCR quickstart (no ACR dependency during provisioning).')
+param containerImage string = ''
+
 
 // Use Azure Verified Module for Container App
 module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0' = {
@@ -66,8 +69,8 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
     containers: [
       {
         name: name
-        // Use base image as required by azd - will be replaced during deployment
-        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        // Use MCR quickstart image for initial provisioning (reachable even with private ACR); azd deploy replaces with real image
+        image: !empty(containerImage) ? containerImage : 'mcr.microsoft.com/k8se/quickstart:latest'
         resources: {
           cpu: cpuCores
           memory: memoryInGB
@@ -88,7 +91,8 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
     ]
     ingressAllowInsecure: false
     ingressExternal: externalIngress
-    ingressTargetPort: targetPort
+    // Use port 80 to match placeholder image; azd deploy will update to targetPort with real image
+    ingressTargetPort: 80
     ingressTransport: 'auto'
     activeRevisionsMode: 'Single'
     managedIdentities: {
@@ -100,10 +104,10 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
         identity: managedIdentityId
       }
     ]
-    scaleSettings: maxReplicas > 1 ? {
+    scaleSettings: {
       minReplicas: minReplicas
       maxReplicas: maxReplicas
-      rules: [ 
+      rules: maxReplicas > 1 ? [ 
         {
           name: 'http-scaler'
           http: {
@@ -112,8 +116,8 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
             }
           }
         }
-      ]
-    } : null
+      ] : []
+    }
   }
 }
 

@@ -48,6 +48,9 @@ param existingCognitiveServicesPrivateDnsZoneId string = ''
 @description('Resource ID of existing Blob Storage Private DNS Zone (required for ailz-integrated mode)')
 param existingBlobPrivateDnsZoneId string = ''
 
+@description('Resource ID of existing Queue Storage Private DNS Zone (optional for ailz-integrated mode)')
+param existingQueuePrivateDnsZoneId string = ''
+
 @description('Resource ID of existing Cosmos DB Private DNS Zone (required for ailz-integrated mode)')
 param existingCosmosPrivateDnsZoneId string = ''
 
@@ -136,6 +139,7 @@ var networkConfig = isAILZIntegrated ? {
   privateDnsZoneIds: {
     cognitiveServices: existingCognitiveServicesPrivateDnsZoneId
     blob: existingBlobPrivateDnsZoneId
+    queue: existingQueuePrivateDnsZoneId
     cosmos: existingCosmosPrivateDnsZoneId
     appConfig: existingAppConfigPrivateDnsZoneId
     acr: existingAcrPrivateDnsZoneId
@@ -224,6 +228,7 @@ module storage 'modules/storage.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     blobPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.blob : ''
+    queuePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.queue : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     tags: tags
@@ -265,7 +270,7 @@ module appConfigStore 'modules/app-config-store.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     appConfigPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.appConfig : ''
-    publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Must be Enabled during provisioning for ARM to write key-values via data-plane proxy
     tags: tags
   }
 }
@@ -347,11 +352,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.api.CORS_ALLOW_ORIGINS'
         value: '*'
       }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.api.WORKER_ENGINE_API_ENDPOINT'
-        value: 'https://${workerContainerApp.outputs.fqdn}'
-      }
+      // NOTE: WORKER_ENGINE_API_ENDPOINT moved to apiContainerApp env vars to break circular dependency
       // Worker settings
       {
         contentType: 'text/plain'
@@ -436,7 +437,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
     ]
   }
   dependsOn: [
-    // appConfigStore
+    appConfigStore
   ]
 }
 
@@ -451,7 +452,7 @@ module containerRegistry 'modules/container-registry.bicep' = {
     location: location
     roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
     enablePrivateEndpoint: isAILZIntegrated
-    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointsSubnetId : ''
+    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
@@ -462,17 +463,17 @@ module containerRegistry 'modules/container-registry.bicep' = {
 // Create new Container Apps Environment, with private endpoint support (if using AILZ integrated mode),
 // or use public endpoints (basic mode)
 
+// Pass resolved Log Analytics workspace resource ID to the module (it derives customerId/sharedKey internally)
+
 module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
   name: 'cae-la-${resourceToken}'
   params: {
     containerAppsEnvironmentName: containerAppsEnvironmentName
-    logAnalyticsWorkspaceId: !empty(existingLogAnalyticsWorkspaceId) ? existingLogAnalyticsWorkspaceId : logAnalytics!.outputs.logAnalyticsWorkspaceId
-    logAnalyticsPrimarySharedKey: !empty(existingLogAnalyticsWorkspaceId) ? listKeys(existingLogAnalyticsWorkspaceId, '2021-12-01-preview').primarySharedKey : logAnalytics.outputs.primarySharedKey
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceId
     userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     location: location
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.containerAppsSubnetId : null
-    // caePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.existingContainerAppsEnvPrivateDnsZoneId : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
   }
@@ -500,22 +501,35 @@ module openaiRoleAssignment 'modules/openai-role-assignment.bicep' = if (!empty(
   }
 }
 
+// ========== CAE PRIVATE DNS ZONE (AILZ mode only) ==========
+// Internal CAE requires a private DNS zone matching its default domain
+// with a wildcard A record pointing to its static IP for DNS resolution
+module caeDnsZone 'modules/cae-dns-zone.bicep' = if (isAILZIntegrated) {
+  name: 'cae-dns-${resourceToken}'
+  params: {
+    caeDefaultDomain: containerAppsEnvironment.outputs.defaultDomain
+    caeStaticIp: containerAppsEnvironment.outputs.staticIp
+    vnetResourceId: existingVnetResourceId
+    tags: tags
+  }
+}
+
 // ========== API CONTAINER APP ==========
 module apiContainerApp 'modules/container-app.bicep' = {
   name: 'ca-api-${resourceToken}'
   params: {
     name: apiContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
+    location: containerAppsEnvironment.outputs.location
+    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
     externalIngress: !isAILZIntegrated
     corsEnabled: true
-    livenessProbePath: '/'
+    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 2
     memoryInGB: '4Gi'
-    minReplicas: 1
+    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
     maxReplicas: 2
     environmentVariables: [
       {
@@ -530,6 +544,10 @@ module apiContainerApp 'modules/container-app.bicep' = {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
       }
+      {
+        name: 'WORKER_ENGINE_API_ENDPOINT'
+        value: 'https://${workerContainerApp.outputs.fqdn}'
+      }
     ]
     tags: union(tags, { 'azd-service-name': 'api' })
   }
@@ -540,17 +558,17 @@ module workerContainerApp 'modules/container-app.bicep' = {
   name: 'ca-worker-${resourceToken}'
   params: {
     name: workerContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
+    location: containerAppsEnvironment.outputs.location
+    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: workerContainerAppTargetPort
     externalIngress: !isAILZIntegrated
     corsEnabled: true
-    livenessProbePath: '/'
+    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 2
     memoryInGB: '4Gi'
-    minReplicas: 1
+    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
     maxReplicas: 3
     environmentVariables: [
       {
@@ -570,22 +588,22 @@ module workerContainerApp 'modules/container-app.bicep' = {
   }
 }
 
-// ========== API CONTAINER APP ==========
+// ========== WEB CONTAINER APP ==========
 module webContainerApp 'modules/container-app.bicep' = {
   name: 'ca-web-${resourceToken}'
   params: {
     name: webContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
+    location: containerAppsEnvironment.outputs.location
+    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
     externalIngress: !isAILZIntegrated
     corsEnabled: true
-    livenessProbePath: '/'
+    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 1
     memoryInGB: '2Gi'
-    minReplicas: 1
+    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
     maxReplicas: 1
     environmentVariables: [
       {
