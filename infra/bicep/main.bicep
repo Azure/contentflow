@@ -214,6 +214,23 @@ var appInsightsConnectionString = !empty(existingAppInsightsId)
   : (shouldCreateAppInsights ? appInsights!.outputs.connectionString : '')
 
 
+// ========== QUEUE PRIVATE DNS ZONE (AILZ mode, auto-create if not provided) ==========
+// When no existing queue DNS zone is provided, create one so the storage queue
+// private endpoint can resolve via private IP within the VNet
+var shouldCreateQueueDnsZone = isAILZIntegrated && empty(existingQueuePrivateDnsZoneId)
+
+module queueDnsZone 'modules/queue-dns-zone.bicep' = if (shouldCreateQueueDnsZone) {
+  name: 'queue-dns-${resourceToken}'
+  params: {
+    vnetResourceId: existingVnetResourceId
+    tags: tags
+  }
+}
+
+var resolvedQueueDnsZoneId = isAILZIntegrated
+  ? (!empty(existingQueuePrivateDnsZoneId) ? existingQueuePrivateDnsZoneId : (shouldCreateQueueDnsZone ? queueDnsZone.outputs.dnsZoneId : ''))
+  : ''
+
 // ========== STORAGE ACCOUNT  ==========
 // Create new Storage Account, with private endpoint support (if using AILZ integrated mode), 
 // or use public endpoints (basic mode)
@@ -228,7 +245,7 @@ module storage 'modules/storage.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     blobPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.blob : ''
-    queuePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.queue : ''
+    queuePrivateDnsZoneId: resolvedQueueDnsZoneId
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     tags: tags
@@ -524,7 +541,7 @@ module apiContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 2
@@ -548,6 +565,18 @@ module apiContainerApp 'modules/container-app.bicep' = {
         name: 'WORKER_ENGINE_API_ENDPOINT'
         value: 'https://${workerContainerApp.outputs.fqdn}'
       }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT_NAME'
+        value: storageAccountName
+      }
+      {
+        name: 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
     ]
     tags: union(tags, { 'azd-service-name': 'api' })
   }
@@ -563,7 +592,7 @@ module workerContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: workerContainerAppTargetPort
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 2
@@ -583,6 +612,18 @@ module workerContainerApp 'modules/container-app.bicep' = {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
       }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT_NAME'
+        value: storageAccountName
+      }
+      {
+        name: 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
     ]
     tags: union(tags, { 'azd-service-name': 'worker' })
   }
@@ -598,7 +639,7 @@ module webContainerApp 'modules/container-app.bicep' = {
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
     livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 1

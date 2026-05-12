@@ -22,7 +22,7 @@ pipeline:
         blob_container_name: content
         discover_mode: files
         prefix_from_input_field: ''
-        prefix: inputs/
+        prefix: input/
         file_extensions: .pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff
         max_depth: 1
         max_results: 5
@@ -234,7 +234,7 @@ pipeline:
         rules_filename: rules.json
         fetched_details_prefix: FetchedDetails_
         output_filename: results.json
-        base_path: inputs
+        base_path: input
         fetched_details_path: ''
         fetched_details_path_field: blob_output.blob_path
         case_sensitive_comparison: false

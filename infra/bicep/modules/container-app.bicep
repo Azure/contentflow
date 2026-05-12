@@ -91,8 +91,7 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
     ]
     ingressAllowInsecure: false
     ingressExternal: externalIngress
-    // Use port 80 to match placeholder image; azd deploy will update to targetPort with real image
-    ingressTargetPort: 80
+    ingressTargetPort: targetPort
     ingressTransport: 'auto'
     activeRevisionsMode: 'Single'
     managedIdentities: {
