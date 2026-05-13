@@ -6257,7 +6257,7 @@ executor_catalog:
     class_name: DocumentValidationExecutor
     tags: [validation, comparison, rules, documents, azure-openai]
     category: "analyse"
-    version: "1.2"
+    version: "1.3"
 
     settings_schema:
       # Common settings
@@ -6396,6 +6396,31 @@ executor_catalog:
         description: "Field in content.data containing the blob folder path for this case"
         required: false
         default: "blob_path"
+        ui_component: "input"
+
+      rules_base_path:
+        type: string
+        title: "Rules Base Path"
+        description: "Separate blob folder path for rules.json. Use empty string for container root. If not set, rules.json is loaded from the same location as base_path."
+        placeholder: ""
+        required: false
+        default: null
+        ui_component: "input"
+
+      cleanup_input_after_results:
+        type: boolean
+        title: "Cleanup Input After Results"
+        description: "Delete all blobs in the case folder after results.json is written. Preserved files are configured via 'Cleanup Preserve Files'."
+        required: false
+        default: false
+        ui_component: "checkbox"
+
+      cleanup_preserve_files:
+        type: string
+        title: "Cleanup Preserve Files"
+        description: "Comma-separated list of filenames to preserve during cleanup (e.g., 'results.json'). Only used when 'Cleanup Input After Results' is enabled."
+        required: false
+        default: "results.json"
         ui_component: "input"
 
       # Azure OpenAI settings for AI-powered address matching

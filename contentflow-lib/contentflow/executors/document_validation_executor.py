@@ -125,6 +125,16 @@ class DocumentValidationExecutor(BaseExecutor):
         self.base_path = self.get_setting("base_path", default=None)
         self.fetched_details_path = self.get_setting("fetched_details_path", default=None)
         self.fetched_details_path_field = self.get_setting("fetched_details_path_field", default="blob_output.blob_path")
+        # Read rules_base_path directly from settings dict because get_setting
+        # converts empty string to None, but empty string is a valid value
+        # meaning "container root".
+        self.rules_base_path = self.settings.get("rules_base_path", None)
+        if isinstance(self.rules_base_path, str):
+            self.rules_base_path = self.rules_base_path.strip()
+
+        # Cleanup settings
+        self.cleanup_input_after_results = self.get_setting("cleanup_input_after_results", default=False)
+        self.cleanup_preserve_files = self.get_setting("cleanup_preserve_files", default="results.json")
 
         # Comparison settings
         self.case_sensitive = self.get_setting("case_sensitive_comparison", default=False)
@@ -208,8 +218,20 @@ class DocumentValidationExecutor(BaseExecutor):
             results = []
             for content in contents:
                 results.append(await self._process_single(content, current_run_blob_paths))
+            # Run cleanup ONCE after all content items are processed
+            if self.cleanup_input_after_results and results:
+                base_prefix = self._get_base_prefix(contents[0])
+                await self.blob_connector.initialize()
+                await self._cleanup_case_folder(base_prefix)
             return results
-        return await self._process_single(contents[0], current_run_blob_paths)
+
+        result = await self._process_single(contents[0], current_run_blob_paths)
+        # Run cleanup after the single item is processed
+        if self.cleanup_input_after_results:
+            base_prefix = self._get_base_prefix(contents[0])
+            await self.blob_connector.initialize()
+            await self._cleanup_case_folder(base_prefix)
+        return result
 
     def _collect_current_run_fetched_paths(self, contents: List[Content]) -> List[str]:
         """Collect all FetchedDetails blob paths written by upstream executors in the current run.
@@ -266,8 +288,11 @@ class DocumentValidationExecutor(BaseExecutor):
             if self.debug_mode:
                 logger.debug(f"{self.id}: Loaded ProvidedDetails with {len(provided_details.get('documents', []))} documents")
 
-            # Step 2: Load rules.json
-            rules = await self._load_json_from_blob(base_prefix, self.rules_filename)
+            # Step 2: Load rules.json (from rules_base_path if set, else from base_prefix)
+            rules_prefix = self._get_rules_prefix()
+            if rules_prefix is None:
+                rules_prefix = base_prefix
+            rules = await self._load_json_from_blob(rules_prefix, self.rules_filename)
             if self.debug_mode:
                 logger.debug(f"{self.id}: Loaded rules with {len(rules.get('rules', []))} document type rules")
 
@@ -285,6 +310,7 @@ class DocumentValidationExecutor(BaseExecutor):
             await self._write_results_to_blob(base_prefix, results)
 
             # Step 6: Store results in content for downstream use
+            # Note: cleanup is handled in process_input() after ALL items are done
             content.data["validation_results"] = results
             content.summary_data["validation_status"] = results.get("summary", {}).get("overallStatus", "unknown")
             content.summary_data["executor_status"] = "success"
@@ -345,7 +371,11 @@ class DocumentValidationExecutor(BaseExecutor):
             return prefix if prefix.endswith("/") else prefix + "/"
         if content.id and content.id.path:
             path = content.id.path
-            return path if path.endswith("/") else path + "/"
+            # content.id.path is typically a file path (e.g., input/case_001/doc.pdf)
+            # Extract the parent directory to get the case folder prefix
+            if "/" in path:
+                path = path.rsplit("/", 1)[0]
+            return f"{path}/" if path else ""
         raise ValueError(f"{self.id}: Cannot determine base path. Set 'base_path' in settings.")
 
     def _get_fetched_details_prefix(self, content: Content) -> str:
@@ -376,6 +406,53 @@ class DocumentValidationExecutor(BaseExecutor):
 
         # 3. Fall back to base path
         return self._get_base_prefix(content)
+
+    def _get_rules_prefix(self) -> str:
+        """Get the path prefix for loading rules.json.
+        
+        If rules_base_path is set (even to empty string), use it.
+        Returns None if not configured, so caller can fall back to base_prefix.
+        """
+        if self.rules_base_path is not None:
+            path = self.rules_base_path.strip("/")
+            return f"{path}/" if path else ""
+        return None
+
+    async def _cleanup_case_folder(self, base_prefix: str) -> None:
+        """Delete all blobs under the case folder prefix except preserved files.
+        
+        Preserves files listed in cleanup_preserve_files (comma-separated).
+        """
+        preserve_set = set()
+        if self.cleanup_preserve_files:
+            preserve_set = {f.strip() for f in self.cleanup_preserve_files.split(",") if f.strip()}
+
+        deleted_count = 0
+        async for blobs in self.blob_connector.list_blobs(
+            container_name=self.blob_container_name,
+            prefix=base_prefix,
+            max_results=1000,
+            batch_size=100
+        ):
+            if not blobs:
+                continue
+            for blob in blobs:
+                blob_name = blob.get("name", "")
+                filename = blob_name.split("/")[-1] if "/" in blob_name else blob_name
+                if filename in preserve_set:
+                    if self.debug_mode:
+                        logger.debug(f"{self.id}: Preserving {blob_name}")
+                    continue
+                try:
+                    await self.blob_connector.delete_blob(
+                        container_name=self.blob_container_name,
+                        blob_path=blob_name
+                    )
+                    deleted_count += 1
+                except Exception as e:
+                    logger.warning(f"{self.id}: Failed to delete {blob_name}: {e}")
+
+        logger.info(f"{self.id}: Cleanup complete — deleted {deleted_count} blob(s) from {base_prefix}")
 
     def _resolve_nested_field(self, data: dict, field_path: str):
         """Resolve a dot-notation field path from a dictionary.
@@ -512,10 +589,20 @@ class DocumentValidationExecutor(BaseExecutor):
             "documentResults": []
         }
 
-        provided_docs = {
-            doc["documentType"]: doc["details"]
-            for doc in provided_details.get("documents", [])
-        }
+        # Support two ProvidedDetails formats:
+        # 1. Per-document: {"documents": [{"documentType": "Passport", "details": {...}}, ...]}
+        # 2. Flat/shared: {"caseId": "...", "details": {"firstName": "...", ...}}
+        #    In flat format, the same details apply to ALL document types.
+        if "documents" in provided_details and provided_details["documents"]:
+            provided_docs = {
+                doc["documentType"]: doc["details"]
+                for doc in provided_details["documents"]
+            }
+            shared_details = None
+        else:
+            provided_docs = {}
+            shared_details = provided_details.get("details", {})
+
         rules_by_type = {
             rule["documentType"]: rule["validations"]
             for rule in rules.get("rules", [])
@@ -531,8 +618,12 @@ class DocumentValidationExecutor(BaseExecutor):
             }
             results["summary"]["totalDocuments"] += 1
 
-            # Find matching provided document
-            provided = self._find_matching_provided(fetched_doc_type, provided_docs)
+            # Find matching provided document details
+            # If flat format (shared_details), use the same details for all doc types
+            if shared_details is not None:
+                provided = shared_details
+            else:
+                provided = self._find_matching_provided(fetched_doc_type, provided_docs)
             if provided is None:
                 doc_result["status"] = "not_found"
                 doc_result["errors"].append({

@@ -64,6 +64,15 @@ class AppSettings(BaseModel):
 
     WORKER_ENGINE_API_ENDPOINT: str = "http://localhost:8099"
 
+    # Ingest API settings
+    INGEST_MAX_FILE_COUNT: int = 20
+    INGEST_MAX_FILE_SIZE_MB: int = 100
+    INGEST_MAX_TOTAL_SIZE_MB: int = 500
+    INGEST_ALLOWED_EXTENSIONS: list[str] = [
+        ".pdf", ".docx", ".pptx", ".xlsx",
+        ".png", ".jpg", ".jpeg", ".tiff"
+    ]
+
     def __init__(self, **kwargs):
         """Initialize AppSettings and load configuration from Azure App Configuration"""
         super().__init__(**kwargs)

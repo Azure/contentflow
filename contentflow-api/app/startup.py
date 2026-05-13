@@ -5,7 +5,7 @@ import asyncio
 import logging
 from opentelemetry import trace
 
-from app.dependencies import initialize_cosmos, initialize_blob_storage, initialize_executor_catalog
+from app.dependencies import initialize_cosmos, initialize_blob_storage, initialize_executor_catalog, initialize_seed_pipelines
 
 logger = logging.getLogger("contentflow.api.startup")
 
@@ -17,6 +17,7 @@ async def startup_tasks():
         initialize_cosmos(),
         initialize_blob_storage(),
         initialize_executor_catalog(),
+        initialize_seed_pipelines(),
         # Add other startup tasks here
     ]
     

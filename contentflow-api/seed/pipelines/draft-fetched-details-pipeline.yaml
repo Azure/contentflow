@@ -1,6 +1,8 @@
 pipeline:
-  name: Draft Fetched Details
-  description: Processes documents from blob folder, classifies types, extracts details, outputs fetched_details.json
+  name: Draft details extraction and validation pipeline
+  description: |-
+    Processes documents from blob folder, classifies types, extracts details, outputs fetched_details.json
+    and validates the fetched details
   executors:
     - id: azure_blob_input_discovery-1777658905426
       name: Discover Input Files
@@ -21,11 +23,11 @@ pipeline:
         blob_storage_account_key: ''
         blob_container_name: content
         discover_mode: files
-        prefix_from_input_field: ''
+        prefix_from_input_field: case_prefix
         prefix: input/
         file_extensions: .pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff
         max_depth: 1
-        max_results: 5
+        max_results: 20
         batch_size: 10
         include_metadata: true
         sort_by: name
@@ -202,8 +204,8 @@ pipeline:
         credential_type: default_azure_credential
         credential_key: ''
         container_name: content
-        path_template: 'Fetched_Details/exec_{execution_id}_{timestamp}/'
-        filename_template: 'FetchedDetails_{id.unique_id}_{timestamp}.json'
+        path_template: Fetched_Details/{execution_id}/
+        filename_template: FetchedDetails_{id.unique_id}_{timestamp}.json
         content_field: document_record
         metadata_fields: ''
         compression: ''
@@ -217,8 +219,8 @@ pipeline:
       name: Document Validation
       type: document_validation
       position:
-        x: 406
-        'y': 1162
+        x: 407
+        'y': 1161
       description: >-
         Validates fetched document details against provided details using configurable rules. Supports exact match, date
         match, expiry check, name match, and AI-powered address matching.
@@ -234,15 +236,18 @@ pipeline:
         rules_filename: rules.json
         fetched_details_prefix: FetchedDetails_
         output_filename: results.json
-        base_path: input
+        base_path: ''
         fetched_details_path: ''
         fetched_details_path_field: blob_output.blob_path
         case_sensitive_comparison: false
         input_prefix_field: blob_path
+        rules_base_path: ''
+        cleanup_input_after_results: true
+        cleanup_preserve_files: results.json
         endpoint: ${AZURE_OPENAI_ENDPOINT}
         deployment_name: ''
         credential_type: default_azure_credential
-        api_key: ''
+        api_key: https://aiaifdoa37xivbqipl5.openai.azure.com/
         temperature: 0.1
   edges:
     - from: azure_blob_input_discovery-1777658905426

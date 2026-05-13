@@ -17,6 +17,7 @@ from ._vault import (
     VaultExecution,
     VaultCrawlCheckpoint,
 )
+from ._ingest import IngestPayload, IngestResponse
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -39,4 +40,6 @@ __all__ = [
             "VaultUpdateRequest",
             "VaultExecution",
             "VaultCrawlCheckpoint",
+            "IngestPayload",
+            "IngestResponse",
           ]
