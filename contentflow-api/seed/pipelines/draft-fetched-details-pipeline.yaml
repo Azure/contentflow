@@ -1,5 +1,5 @@
 pipeline:
-  name: Draft details extraction and validation pipeline
+  name: Details extraction and validation pipeline
   description: |-
     Processes documents from blob folder, classifies types, extracts details, outputs fetched_details.json
     and validates the fetched details
@@ -88,8 +88,8 @@ pipeline:
       name: Classify Document Type
       type: content_classifier
       position:
-        x: 403
-        'y': 541
+        x: 405
+        'y': 543
       description: Classify text into predefined categories with confidence scores
       settings:
         enabled: true
@@ -97,12 +97,19 @@ pipeline:
         fail_pipeline_on_error: true
         debug_mode: true
         categories: >-
-          {"Driving License": "Driver's license, driving permit, or DL issued by government", "Passport": "International
-          travel passport document", "Water Utility bill": "Water service bill or statement", "Power Utility bill":
-          "Electricity or power service bill", "Telecom Utility bill": "Phone, internet, or telecom service bill", "Real
-          ID": "Real ID": "REAL ID compliant identification card, REAL ID driver's license, or federally compliant
-          government ID with star marking issued under the REAL ID Act", "Unrecognized": "Document does not match any of
-          the above categories"}
+          {   "Driving License": "Government-issued driver's license, driving permit, or DL used as an official proof of
+          identity",   "Passport": "Government-issued passport document used for international travel and identity
+          verification",   "Real ID": "REAL ID–compliant identification card or driver's license issued by a government
+          authority under the REAL ID Act, typically marked with a star",   "Water Utility bill": "Water service utility
+          bill or statement issued by a municipal or private water service provider",   "Power Utility bill":
+          "Electricity or power service utility bill or statement issued by an energy or power provider",   "Telecom
+          utility bill_claro": "Telecommunications service bill issued by Claro, including mobile, internet, or related
+          telecom services",   "Telecom utility bill_liberty": "Telecommunications service bill issued by Liberty,
+          including mobile, internet, or related telecom services",   "Telecom utility bill_tmobile":
+          "Telecommunications service bill issued by T-Mobile, including mobile, internet, or related telecom
+          services",   "Certification of death": "Official death certificate or certification of death issued by a
+          government authority, hospital, or civil registry",   "Unrecognized": "Document does not match any of the
+          predefined document categories" }
         multi_label: false
         include_confidence: true
         category_descriptions: ''

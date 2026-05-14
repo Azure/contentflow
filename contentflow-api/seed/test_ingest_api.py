@@ -56,16 +56,16 @@ POLL_MAX_ATTEMPTS = 60  # 5 minutes max
 #  SAMPLE CASE DATA — edit to match your rules
 # ──────────────────────────────────────────────
 CASE_DATA = {
-    "caseId": "20261117253",
-    "firstName": "Lizandra",
-    "lastName": "Martes Sierra",
-    "mailingAddress": "123 Calle Luna, San Juan, PR 00901",
-    "dateOfBirth": "1985-06-15",
-    "dateOfDeath": "",
-    "fatherFirstName": "Juan",
-    "fatherLastName": "Orozco",
-    "motherFirstName": "Maria",
-    "motherLastName": "Dones",
+    "caseId": "20261117254",
+    "firstName": "JONATHAN",
+    "lastName": "DIAZ CARTAGENA",
+    "mailingAddress": "URB PRADERA A-K5 CALLE 8, Toa Baja PR 00949",
+    "dateOfBirth": "2010-11-12",
+    # "dateOfDeath": "",
+    # "fatherFirstName": "Juan",
+    # "fatherLastName": "Orozco",
+    # "motherFirstName": "Maria",
+    # "motherLastName": "Dones",
 }
 
 
@@ -227,7 +227,77 @@ def print_summary(ingest_response: dict, execution_result: dict):
     print(f"    Cosmos DB:     executions container → id = {ingest_response.get('execution_id')}")
     print(f"    Swagger UI:    {BASE_URL}/docs")
     print(f"    Polling URL:   {BASE_URL}/api/pipelines/executions/{ingest_response.get('execution_id')}")
+    print(f"    Results URL:   {BASE_URL}/api/ingest/{ingest_response.get('execution_id')}/results")
     print()
+
+
+def fetch_results(base_url: str, execution_id: str, save_dir: str = None) -> dict:
+    """
+    GET /api/ingest/{execution_id}/results — fetch validation results.
+    Optionally saves the results JSON to save_dir for local verification.
+    Returns the parsed JSON response or empty dict on failure.
+    """
+    url = f"{base_url}/api/ingest/{execution_id}/results"
+
+    print()
+    print("=" * 60)
+    print("STEP 3 — Fetching validation results")
+    print("=" * 60)
+    print(f"  URL: {url}")
+    print()
+
+    try:
+        resp = requests.get(url, timeout=30)
+    except requests.RequestException as e:
+        print(f"  Connection error: {e}")
+        return {}
+
+    print(f"  HTTP Status: {resp.status_code}")
+
+    if resp.status_code == 200:
+        data = resp.json()
+        results = data.get("results", {})
+        summary = results.get("summary", {})
+        print(f"  Overall status:  {summary.get('overallStatus', 'N/A')}")
+        print(f"  Total documents: {summary.get('totalDocuments', 'N/A')}")
+        print(f"  Passed:          {summary.get('passed', 'N/A')}")
+        print(f"  Failed:          {summary.get('failed', 'N/A')}")
+        print()
+        print("  Full results JSON:")
+        print(json.dumps(data, indent=4, default=str))
+
+        # Save to local file for verification
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+            out_path = os.path.join(save_dir, f"results_{execution_id}.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, default=str)
+            print()
+            print(f"  Saved results to: {out_path}")
+
+        return data
+    elif resp.status_code == 202:
+        print("  Pipeline still running. Results not available yet.")
+        return {}
+    elif resp.status_code == 404:
+        print("  Execution or results not found.")
+        try:
+            print(f"  Detail: {resp.json().get('detail', '')}")
+        except Exception:
+            pass
+        return {}
+    elif resp.status_code == 422:
+        print("  Execution did not complete successfully.")
+        try:
+            detail = resp.json().get("detail", {})
+            print(f"  Status: {detail.get('status', 'unknown')}")
+            print(f"  Error:  {detail.get('error', 'N/A')}")
+        except Exception:
+            print(f"  Response: {resp.text[:300]}")
+        return {}
+    else:
+        print(f"  Unexpected response: {resp.text[:300]}")
+        return {}
 
 
 if __name__ == "__main__":
@@ -235,6 +305,16 @@ if __name__ == "__main__":
     print("ContentFlow Ingest API — Integration Test")
     print("=" * 60)
 
+    # ── GET-only mode: pass an execution_id as argument ──
+    #   python test_ingest_api.py exec_abc123def456
+    if len(sys.argv) > 1:
+        execution_id = sys.argv[1].strip()
+        print(f"  Mode:         GET results only")
+        print(f"  Execution ID: {execution_id}")
+        fetch_results(BASE_URL, execution_id, save_dir=INPUT_DIR)
+        sys.exit(0)
+
+    # ── Full mode: POST + poll + GET results ──
     if PIPELINE_ID == "<YOUR_PIPELINE_ID>":
         print("ERROR: Set PIPELINE_ID to a valid pipeline ID before running.")
         print("       Either edit this file or set CONTENTFLOW_PIPELINE_ID env var.")
@@ -253,5 +333,13 @@ if __name__ == "__main__":
     execution_id = ingest_response["execution_id"]
     execution_result = poll_execution(BASE_URL, execution_id)
 
-    # Step 3: Summary
+    # Step 3: Fetch results
+    final_status = execution_result.get("status", "unknown")
+    if final_status == "completed":
+        results = fetch_results(BASE_URL, execution_id, save_dir=INPUT_DIR)
+    else:
+        print()
+        print(f"  Skipping results fetch — execution status is '{final_status}'")
+
+    # Step 4: Summary
     print_summary(ingest_response, execution_result)

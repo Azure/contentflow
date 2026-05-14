@@ -28,3 +28,11 @@ class IngestResponse(BaseModel):
     blob_prefix: str
     pipeline_id: str
     pipeline_name: str
+
+
+class IngestResultsResponse(BaseModel):
+    """Response for GET /ingest/{execution_id}/results"""
+    execution_id: str
+    status: str
+    results: Optional[dict] = None
+    error: Optional[str] = None

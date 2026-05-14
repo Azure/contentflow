@@ -1,13 +1,16 @@
 """
 Ingest router for multipart document submission API.
 """
+import json
 import logging
 import os
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from azure.core.exceptions import ResourceNotFoundError
 
-from app.models import IngestPayload, IngestResponse, ExecutionStatus
+from app.models import IngestPayload, IngestResponse, IngestResultsResponse, ExecutionStatus
 from app.services.pipeline_service import PipelineService
 from app.services.pipeline_execution_service import PipelineExecutionService
 from app.services.ingest_service import IngestService
@@ -17,6 +20,7 @@ from app.dependencies import (
     get_ingest_service,
 )
 from app.settings import get_settings
+from app.utils.blob_storage import BlobStorageService, get_blob_storage_service
 
 logger = logging.getLogger("contentflow.api.routers.ingest")
 
@@ -183,4 +187,99 @@ async def ingest_documents(
         blob_prefix=folder_prefix,
         pipeline_id=pipeline.id,
         pipeline_name=pipeline.name,
+    )
+
+
+@router.get("/{execution_id}/results", response_model=IngestResultsResponse)
+async def get_ingest_results(
+    execution_id: str,
+    execution_service: PipelineExecutionService = Depends(get_pipeline_execution_service),
+):
+    """
+    Retrieve validation results for a completed ingest execution.
+
+    - **200**: Execution completed — returns results.json content.
+    - **202**: Execution is still running — retry later.
+    - **404**: Execution ID not found.
+    - **422**: Execution failed — returns error details.
+    """
+    # --- Validate execution_id format ---
+    if not execution_id or not execution_id.strip():
+        raise HTTPException(status_code=400, detail="execution_id is required.")
+
+    # --- Fetch execution record from Cosmos DB ---
+    try:
+        execution = await execution_service.get_execution(execution_id)
+    except Exception as e:
+        logger.error(f"Failed to look up execution {execution_id}: {e}")
+        raise HTTPException(status_code=500, detail="Unable to retrieve execution record.")
+
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found.")
+
+    # --- Handle non-terminal states ---
+    status = execution.status
+    if isinstance(status, ExecutionStatus):
+        status = status.value
+
+    if status in (ExecutionStatus.PENDING.value, ExecutionStatus.RUNNING.value):
+        return JSONResponse(
+            status_code=202,
+            content=IngestResultsResponse(
+                execution_id=execution_id,
+                status=status,
+            ).model_dump(),
+        )
+
+    # --- Handle failed / cancelled ---
+    if status in (ExecutionStatus.FAILED.value, ExecutionStatus.CANCELLED.value):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "execution_id": execution_id,
+                "status": status,
+                "error": execution.error or "Execution did not complete successfully.",
+            },
+        )
+
+    # --- Execution completed — download results.json from blob ---
+    case_prefix = (execution.inputs or {}).get("case_prefix")
+    if not case_prefix:
+        raise HTTPException(
+            status_code=500,
+            detail="Execution record is missing case_prefix — cannot locate results.",
+        )
+
+    results_blob_path = f"{case_prefix}results.json"
+
+    settings = get_settings()
+    try:
+        blob_service = await get_blob_storage_service(
+            account_name=settings.BLOB_STORAGE_ACCOUNT_NAME,
+            container_name=settings.BLOB_STORAGE_CONTAINER_NAME,
+        )
+        raw_bytes = await blob_service.download_file(results_blob_path)
+        results_data = json.loads(raw_bytes)
+    except ResourceNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Results file not found at {results_blob_path}. The pipeline may not have produced results.",
+        )
+    except json.JSONDecodeError:
+        logger.error(f"Malformed results.json at {results_blob_path}")
+        raise HTTPException(
+            status_code=500,
+            detail="Results file exists but contains invalid JSON.",
+        )
+    except Exception as e:
+        logger.error(f"Error downloading results for {execution_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve results from storage.",
+        )
+
+    return IngestResultsResponse(
+        execution_id=execution_id,
+        status=status,
+        results=results_data,
     )
