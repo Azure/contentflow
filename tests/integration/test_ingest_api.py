@@ -43,7 +43,9 @@ BASE_URL = os.environ.get("CONTENTFLOW_API_URL", "https://api-doa37xivbuto4.witt
 
 # A valid pipeline ID from Cosmos DB that is enabled and linked to the
 # blob input discovery → content understanding → document validation flow.
-PIPELINE_ID = os.environ.get("CONTENTFLOW_PIPELINE_ID", "draft_details_extraction_and_validation_pipeline_d0e4eeb7")
+# NOTE: pipeline_id is no longer sent by the client — the API resolves it
+# internally by name. This variable is kept only for display/reference.
+PIPELINE_ID = os.environ.get("CONTENTFLOW_PIPELINE_ID", "resolved-server-side")
 
 # Folder containing the test documents to upload (PDFs, images, etc.)
 INPUT_DIR = os.environ.get("CONTENTFLOW_INPUT_DIR", os.path.join(os.path.dirname(__file__), "input"))
@@ -57,15 +59,10 @@ POLL_MAX_ATTEMPTS = 60  # 5 minutes max
 # ──────────────────────────────────────────────
 CASE_DATA = {
     "caseId": "20261117254",
-    "firstName": "JONATHAN",
-    "lastName": "DIAZ CARTAGENA",
-    "mailingAddress": "URB PRADERA A-K5 CALLE 8, Toa Baja PR 00949",
-    "dateOfBirth": "2010-11-12",
-    # "dateOfDeath": "",
-    # "fatherFirstName": "Juan",
-    # "fatherLastName": "Orozco",
-    # "motherFirstName": "Maria",
-    # "motherLastName": "Dones",
+    "firstName": "ESTERBINA",
+    "lastName": "SIERRA RIOS",
+    "mailingAddress": "BO CIALITOS CRUCE CARR 608 KM 60 141 CIALES. PR 00638",
+    "dateOfBirth": "1983-03-16",
 }
 
 
@@ -91,15 +88,17 @@ def collect_files(input_dir: str) -> list[str]:
     return files
 
 
-def submit_ingest(base_url: str, pipeline_id: str, case_data: dict, file_paths: list[str]) -> dict:
+def submit_ingest(base_url: str, case_data: dict, file_paths: list[str]) -> dict:
     """
     POST /api/ingest — multipart form data with case fields + files.
+    Pipeline is resolved server-side by name (not sent by client).
     Returns the parsed JSON response (IngestResponse).
     """
     url = f"{base_url}/api/ingest/"
 
     # Build form fields (sent as multipart form data, not JSON)
-    form_data = {**case_data, "pipeline_id": pipeline_id}
+    # NOTE: pipeline_id is NOT sent — the API resolves the pipeline internally by name
+    form_data = {**case_data}
 
     # Build file tuples: ("files", (filename, file_handle, content_type))
     file_handles = []
@@ -114,7 +113,7 @@ def submit_ingest(base_url: str, pipeline_id: str, case_data: dict, file_paths: 
     print("STEP 1 — Submitting ingest request")
     print("=" * 60)
     print(f"  URL:         {url}")
-    print(f"  Pipeline:    {pipeline_id}")
+    print(f"  Pipeline:    (resolved server-side by name)")
     print(f"  Case ID:     {case_data['caseId']}")
     print(f"  Files ({len(file_paths)}):")
     for p in file_paths:
@@ -315,19 +314,11 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # ── Full mode: POST + poll + GET results ──
-    if PIPELINE_ID == "<YOUR_PIPELINE_ID>":
-        print("ERROR: Set PIPELINE_ID to a valid pipeline ID before running.")
-        print("       Either edit this file or set CONTENTFLOW_PIPELINE_ID env var.")
-        print()
-        print("       Find pipeline IDs via:")
-        print(f"         GET {BASE_URL}/api/pipelines/")
-        sys.exit(1)
-
     # Collect document files from input folder
     file_paths = collect_files(INPUT_DIR)
 
     # Step 1: Submit ingest
-    ingest_response = submit_ingest(BASE_URL, PIPELINE_ID, CASE_DATA, file_paths)
+    ingest_response = submit_ingest(BASE_URL, CASE_DATA, file_paths)
 
     # Step 2: Poll until complete
     execution_id = ingest_response["execution_id"]

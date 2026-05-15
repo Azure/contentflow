@@ -65,16 +65,6 @@ class IngestService:
             "Address": payload.mailingAddress,
             "BirthDate": payload.dateOfBirth,
         }
-        if payload.dateOfDeath:
-            details["dateOfDeath"] = payload.dateOfDeath
-        if payload.fatherFirstName:
-            details["FatherFirstName"] = payload.fatherFirstName
-        if payload.fatherLastName:
-            details["FatherLastName"] = payload.fatherLastName
-        if payload.motherFirstName:
-            details["MotherFirstName"] = payload.motherFirstName
-        if payload.motherLastName:
-            details["MotherLastName"] = payload.motherLastName
 
         provided_details = {
             "caseId": payload.caseId,

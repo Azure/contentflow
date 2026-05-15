@@ -12,11 +12,6 @@ class IngestPayload(BaseModel):
     lastName: str
     mailingAddress: str
     dateOfBirth: str
-    dateOfDeath: Optional[str] = ""
-    fatherFirstName: Optional[str] = ""
-    fatherLastName: Optional[str] = ""
-    motherFirstName: Optional[str] = ""
-    motherLastName: Optional[str] = ""
 
 
 class IngestResponse(BaseModel):

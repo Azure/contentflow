@@ -36,13 +36,6 @@ async def ingest_documents(
     last_name: str = Form(..., alias="lastName"),
     mailing_address: str = Form(..., alias="mailingAddress"),
     date_of_birth: str = Form(..., alias="dateOfBirth"),
-    date_of_death: Optional[str] = Form("", alias="dateOfDeath"),
-    father_first_name: Optional[str] = Form("", alias="fatherFirstName"),
-    father_last_name: Optional[str] = Form("", alias="fatherLastName"),
-    mother_first_name: Optional[str] = Form("", alias="motherFirstName"),
-    mother_last_name: Optional[str] = Form("", alias="motherLastName"),
-    # Pipeline
-    pipeline_id: str = Form(..., description="Pipeline ID to execute"),
     # Files
     files: List[UploadFile] = File(..., description="Document files to process"),
     # Dependencies
@@ -106,12 +99,20 @@ async def ingest_documents(
             detail=f"Total upload size exceeds maximum of {settings.INGEST_MAX_TOTAL_SIZE_MB} MB.",
         )
 
-    # --- Validate pipeline ---
-    pipeline = await pipeline_service.get_pipeline_by_id(pipeline_id)
+    # --- Resolve pipeline by name (abstracted from client) ---
+    pipeline_name = settings.INGEST_PIPELINE_NAME
+    pipeline = await pipeline_service.get_pipeline_by_name(pipeline_name)
     if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found.")
+        logger.error(f"Ingest pipeline not found by name: '{pipeline_name}'")
+        raise HTTPException(
+            status_code=503,
+            detail="Processing pipeline is not available. Please contact support.",
+        )
     if not pipeline.enabled:
-        raise HTTPException(status_code=400, detail="Pipeline is disabled.")
+        raise HTTPException(
+            status_code=503,
+            detail="Processing pipeline is temporarily disabled. Please try again later.",
+        )
 
     # --- Create execution record first (to get execution_id for folder name) ---
     try:
@@ -135,11 +136,6 @@ async def ingest_documents(
         lastName=last_name,
         mailingAddress=mailing_address,
         dateOfBirth=date_of_birth,
-        dateOfDeath=date_of_death or "",
-        fatherFirstName=father_first_name or "",
-        fatherLastName=father_last_name or "",
-        motherFirstName=mother_first_name or "",
-        motherLastName=mother_last_name or "",
     )
 
     # --- Upload files and ProvidedDetails.json ---

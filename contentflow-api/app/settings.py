@@ -65,6 +65,7 @@ class AppSettings(BaseModel):
     WORKER_ENGINE_API_ENDPOINT: str = "http://localhost:8099"
 
     # Ingest API settings
+    INGEST_PIPELINE_NAME: str = "Details extraction and validation pipeline"
     INGEST_MAX_FILE_COUNT: int = 20
     INGEST_MAX_FILE_SIZE_MB: int = 100
     INGEST_MAX_TOTAL_SIZE_MB: int = 500
