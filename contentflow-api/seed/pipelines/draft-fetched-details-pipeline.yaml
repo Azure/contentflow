@@ -8,7 +8,7 @@ pipeline:
       name: Discover Input Files
       type: azure_blob_input_discovery
       position:
-        x: 405
+        x: 409
         'y': 61
       description: >-
         Discovers and lists content files from Azure Blob Storage containers. Must be used with an Azure Blob Content
@@ -211,7 +211,7 @@ pipeline:
         credential_type: default_azure_credential
         credential_key: ''
         container_name: content
-        path_template: Fetched_Details/{execution_id}/
+        path_template: '{case_prefix}'
         filename_template: FetchedDetails_{id.unique_id}_{timestamp}.json
         content_field: document_record
         metadata_fields: ''
