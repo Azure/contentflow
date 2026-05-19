@@ -1,0 +1,131 @@
+{
+  "description": "to fetch details from uploaded documents",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": false,
+    "enableOcr": true,
+    "enableLayout": false,
+    "enableFormula": true,
+    "enableFigureDescription": false,
+    "enableFigureAnalysis": false,
+    "chartFormat": "chartjs",
+    "tableFormat": "html",
+    "enableSegment": false,
+    "omitContent": false,
+    "segmentPerPage": false,
+    "annotationFormat": "markdown"
+  },
+  "fieldSchema": {
+    "fields": {
+      "CountryRegion": {
+        "type": "string",
+        "method": "extract",
+        "description": "CountryRegion extracted from the document"
+      },
+      "Region": {
+        "type": "string",
+        "method": "extract",
+        "description": "Region extracted from the document"
+      },
+      "DocumentNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "DocumentNumber extracted from the document"
+      },
+      "DocumentDiscriminator": {
+        "type": "string",
+        "method": "extract",
+        "description": "DocumentDiscriminator extracted from the document"
+      },
+      "FirstName": {
+        "type": "string",
+        "method": "extract",
+        "description": "FirstName extracted from the document"
+      },
+      "LastName": {
+        "type": "string",
+        "method": "extract",
+        "description": "LastName extracted from the document"
+      },
+      "Address": {
+        "type": "string",
+        "method": "extract",
+        "description": "Address extracted from the document"
+      },
+      "BirthDate": {
+        "type": "date",
+        "method": "extract",
+        "description": "BirthDate extracted from the document"
+      },
+      "ExpirationDate": {
+        "type": "date",
+        "method": "extract",
+        "description": "ExpirationDate extracted from the document"
+      },
+      "IssueDate": {
+        "type": "date",
+        "method": "extract",
+        "description": "IssueDate extracted from the document"
+      },
+      "EyeColor": {
+        "type": "string",
+        "method": "extract",
+        "description": "EyeColor extracted from the document"
+      },
+      "HairColor": {
+        "type": "string",
+        "method": "extract",
+        "description": "HairColor extracted from the document"
+      },
+      "Height": {
+        "type": "string",
+        "method": "extract",
+        "description": "Height extracted from the document"
+      },
+      "Weight": {
+        "type": "string",
+        "method": "extract",
+        "description": "Weight extracted from the document"
+      },
+      "Sex": {
+        "type": "string",
+        "method": "extract",
+        "description": "Sex extracted from the document"
+      },
+      "Endorsements": {
+        "type": "string",
+        "method": "extract",
+        "description": "Endorsements extracted from the document"
+      },
+      "Restrictions": {
+        "type": "string",
+        "method": "extract",
+        "description": "Restrictions extracted from the document"
+      },
+      "PersonalNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "PersonalNumber extracted from the document"
+      },
+      "PlaceOfBirth": {
+        "type": "string",
+        "method": "extract",
+        "description": "PlaceOfBirth extracted from the document"
+      },
+      "VehicleClass": {
+        "type": "string",
+        "method": "extract",
+        "description": "VehicleClass extracted from the document"
+      },
+      "Category": {
+        "type": "string",
+        "method": "extract",
+        "description": "Category extracted from the document"
+      }
+    }
+  }
+}

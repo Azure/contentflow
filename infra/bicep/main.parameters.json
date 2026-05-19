@@ -14,6 +14,12 @@
     "foundryLocation": {
       "value": "${AZURE_AI_FOUNDRY_LOCATION}"
     },
+    "cosmosLocation": {
+      "value": "${AZURE_COSMOS_LOCATION=eastus}"
+    },
+    "existingOpenAIResourceId": {
+      "value": "${EXISTING_OPENAI_RESOURCE_ID=}"
+    },
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
     },

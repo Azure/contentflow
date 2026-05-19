@@ -26,7 +26,7 @@ from .base_service import BaseService
 
 # Import contentflow library components
 from contentflow.pipeline import PipelineExecutor as ContentFlowPipelineExecutor
-from contentflow.models import Content
+from contentflow.models import Content, ContentIdentifier
 from contentflow.utils import make_safe_json
 
 logger = logging.getLogger("contentflow.api.services.pipeline_execution_service")
@@ -154,8 +154,31 @@ class PipelineExecutionService(BaseService):
                     
                     has_pipeline_failed = False
                     
+                    # Build initial input from execution record inputs
+                    # If case_prefix is present (ingest API flow), pass a Content
+                    # object so the blob input discovery executor can use
+                    # prefix_from_input_field to scope to the correct folder.
+                    initial_input = []
+                    execution_record = await self.get_execution(execution_id)
+                    if (
+                        execution_record
+                        and execution_record.inputs
+                        and execution_record.inputs.get("case_prefix")
+                    ):
+                        initial_input = Content(
+                            id=ContentIdentifier(
+                                canonical_id=f"ingest-{execution_id}",
+                                unique_id=execution_id,
+                                source_name="ingest_api",
+                            ),
+                            data={
+                                "case_prefix": execution_record.inputs["case_prefix"],
+                                "execution_id": execution_id,
+                            },
+                        )
+                    
                     # Execute and collect events
-                    async for event in executor.execute_stream([]):
+                    async for event in executor.execute_stream(initial_input):
                         # Convert to our event model
                         exec_event = PipelineExecutionEvent(
                             event_type=event.event_type,

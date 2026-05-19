@@ -1,0 +1,280 @@
+pipeline:
+  name: Details extraction and validation pipeline
+  description: |-
+    Processes documents from blob folder, classifies types, extracts details, outputs fetched_details.json
+    and validates the fetched details
+  executors:
+    - id: azure_blob_input_discovery-1777658905426
+      name: Discover Input Files
+      type: azure_blob_input_discovery
+      position:
+        x: 405
+        'y': 61
+      description: >-
+        Discovers and lists content files from Azure Blob Storage containers. Must be used with an Azure Blob Content
+        Retriever executor to fetch the actual content.
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        blob_storage_account: ${AZURE_STORAGE_ACCOUNT_NAME}
+        blob_storage_credential_type: default_azure_credential
+        blob_storage_account_key: ''
+        blob_container_name: content
+        discover_mode: files
+        prefix_from_input_field: case_prefix
+        prefix: input/
+        file_extensions: .pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.tiff
+        max_depth: 1
+        max_results: 20
+        batch_size: 10
+        include_metadata: true
+        sort_by: name
+        sort_ascending: true
+        min_size_bytes: 0
+        max_size_bytes: 0
+        polling_interval_seconds: 300
+        modified_after: ''
+        modified_before: ''
+    - id: azure_blob_content_retriever-1777658985345
+      name: Retrieve File Content
+      type: azure_blob_content_retriever
+      position:
+        x: 405
+        'y': 216
+      description: Retrieves document content from azure blob sources. Must be used after an Azure Blob Input Discovery executor.
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        include_content_bytes_as_field: false
+        use_temp_file_for_content: true
+        temp_folder: ./tmp/contentflow
+        max_concurrent: 3
+        timeout_secs: 300
+        continue_on_error: true
+    - id: azure_content_understanding_extractor-1777662467773
+      name: Extract Document type
+      type: azure_content_understanding_extractor
+      position:
+        x: 402
+        'y': 372
+      description: Extracts content from documents using Azure AI Content Understanding with 70+ prebuilt analyzers
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        content_field: ''
+        temp_file_path_field: temp_file_path
+        output_field: content_understanding_result
+        analyzer_id: prebuilt-read
+        retrieve_figures: false
+        figures_output_field: figures
+        content_understanding_endpoint: ${AZURE_CONTENT_UNDERSTANDING_ENDPOINT}
+        content_understanding_credential_type: default_azure_credential
+        content_understanding_subscription_key: ''
+        content_understanding_api_version: '2025-11-01'
+        content_understanding_timeout: 60
+        content_understanding_polling_interval: 2
+        content_understanding_max_retries: 3
+        content_understanding_retry_backoff_factor: 2
+        content_understanding_model_mappings: '{}'
+        max_concurrent: 3
+        continue_on_error: false
+    - id: content_classifier-1777659569769
+      name: Classify Document Type
+      type: content_classifier
+      position:
+        x: 405
+        'y': 543
+      description: Classify text into predefined categories with confidence scores
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        categories: >-
+          {   "Driving License": "Government-issued driver's license, driving permit, or DL used as an official proof of
+          identity",   "Passport": "Government-issued passport document used for international travel and identity
+          verification",   "Real ID": "REAL ID–compliant identification card or driver's license issued by a government
+          authority under the REAL ID Act, typically marked with a star",   "Water Utility bill": "Water service utility
+          bill or statement issued by a municipal or private water service provider",   "Power Utility bill":
+          "Electricity or power service utility bill or statement issued by an energy or power provider",   "Telecom
+          utility bill_claro": "Telecommunications service bill issued by Claro, including mobile, internet, or related
+          telecom services",   "Telecom utility bill_liberty": "Telecommunications service bill issued by Liberty,
+          including mobile, internet, or related telecom services",   "Telecom utility bill_tmobile":
+          "Telecommunications service bill issued by T-Mobile, including mobile, internet, or related telecom
+          services",   "Certification of death": "Official death certificate or certification of death issued by a
+          government authority, hospital, or civil registry",   "Unrecognized": "Document does not match any of the
+          predefined document categories" }
+        multi_label: false
+        include_confidence: true
+        category_descriptions: ''
+        min_confidence: 0
+        include_explanation: true
+        endpoint: ${AZURE_OPENAI_ENDPOINT}
+        deployment_name: gpt-4.1
+        credential_type: default_azure_credential
+        api_key: ''
+        input_field: content_understanding_result
+        output_field: classification
+        include_full_response: false
+        temperature: 0
+        max_tokens: 600
+        max_retries: 3
+        retry_backoff_seconds: 1
+        max_concurrent: 3
+        timeout_secs: 300
+        continue_on_error: true
+    - id: azure_content_understanding_extractor-1777660571122
+      name: Extract Document Details
+      type: azure_content_understanding_extractor
+      position:
+        x: 407
+        'y': 698
+      description: Extracts content from documents using Azure AI Content Understanding with 70+ prebuilt analyzers
+      settings:
+        enabled: true
+        condition: classification.category != 'Unrecognized'
+        fail_pipeline_on_error: true
+        debug_mode: true
+        content_field: ''
+        temp_file_path_field: temp_file_path
+        output_field: extracted_details
+        analyzer_id: details_extractor_documents_new1
+        retrieve_figures: false
+        figures_output_field: figures
+        content_understanding_endpoint: ${AZURE_CONTENT_UNDERSTANDING_ENDPOINT}
+        content_understanding_credential_type: default_azure_credential
+        content_understanding_subscription_key: ''
+        content_understanding_api_version: '2025-11-01'
+        content_understanding_timeout: 60
+        content_understanding_polling_interval: 2
+        content_understanding_max_retries: 3
+        content_understanding_retry_backoff_factor: 2
+        content_understanding_model_mappings: '{}'
+        max_concurrent: 3
+        continue_on_error: false
+    - id: field_mapper-1777661225834
+      name: Shape Document Record
+      type: field_mapper
+      position:
+        x: 399
+        'y': 856
+      description: Rename, move, and remap fields within Content items for standardization and compatibility
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        mappings: ''
+        object_mappings: |-
+          {
+            "document_record": {
+              "document_id": "id.canonical_id",
+              "filename": "id.filename",
+              "document_type": "classification.category",
+              "confidence": "classification.confidence",
+              "details": "extracted_details"
+            }
+          }
+        source_id_mappings: ''
+        copy_mode: copy
+        create_nested: true
+        overwrite_existing: true
+        template_fields: true
+        nested_delimiter: .
+        list_handling: merge
+        join_separator: |+
+
+        merge_filter_empty: true
+        merge_deduplicate: false
+        case_transform: ''
+        fail_on_missing_source: false
+        remove_empty_objects: false
+    - id: azure_blob_output-1777661894683
+      name: Write Fetched Details
+      type: azure_blob_output
+      position:
+        x: 402
+        'y': 1000
+      description: Write content entries as JSON files to Azure Blob Storage
+      settings:
+        enabled: true
+        condition: ''
+        fail_pipeline_on_error: true
+        debug_mode: true
+        storage_account_name: ${AZURE_STORAGE_ACCOUNT_NAME}
+        credential_type: default_azure_credential
+        credential_key: ''
+        container_name: content
+        path_template: Fetched_Details/{execution_id}/
+        filename_template: FetchedDetails_{id.unique_id}_{timestamp}.json
+        content_field: document_record
+        metadata_fields: ''
+        compression: ''
+        overwrite_existing: true
+        add_timestamp: true
+        pretty_print: true
+        max_concurrent: 3
+        timeout_secs: 60
+        continue_on_error: true
+    - id: document_validation-1777725315940
+      name: Document Validation
+      type: document_validation
+      position:
+        x: 407
+        'y': 1161
+      description: >-
+        Validates fetched document details against provided details using configurable rules. Supports exact match, date
+        match, expiry check, name match, and AI-powered address matching.
+      settings:
+        enabled: true
+        fail_pipeline_on_error: true
+        debug_mode: true
+        blob_storage_account: ${AZURE_STORAGE_ACCOUNT_NAME}
+        blob_container_name: content
+        blob_storage_credential_type: default_azure_credential
+        blob_storage_account_key: ''
+        provided_details_filename: ProvidedDetails.json
+        rules_filename: rules.json
+        fetched_details_prefix: FetchedDetails_
+        output_filename: results.json
+        base_path: ''
+        fetched_details_path: ''
+        fetched_details_path_field: blob_output.blob_path
+        case_sensitive_comparison: false
+        input_prefix_field: blob_path
+        rules_base_path: ''
+        cleanup_input_after_results: true
+        cleanup_preserve_files: results.json
+        endpoint: ${AZURE_OPENAI_ENDPOINT}
+        deployment_name: ''
+        credential_type: default_azure_credential
+        api_key: https://aiaifdoa37xivbqipl5.openai.azure.com/
+        temperature: 0.1
+  edges:
+    - from: azure_blob_input_discovery-1777658905426
+      to: azure_blob_content_retriever-1777658985345
+      type: sequential
+    - from: azure_blob_content_retriever-1777658985345
+      to: azure_content_understanding_extractor-1777662467773
+      type: sequential
+    - from: azure_content_understanding_extractor-1777662467773
+      to: content_classifier-1777659569769
+      type: sequential
+    - from: content_classifier-1777659569769
+      to: azure_content_understanding_extractor-1777660571122
+      type: sequential
+    - from: azure_content_understanding_extractor-1777660571122
+      to: field_mapper-1777661225834
+      type: sequential
+    - from: field_mapper-1777661225834
+      to: azure_blob_output-1777661894683
+      type: sequential
+    - from: azure_blob_output-1777661894683
+      to: document_validation-1777725315940
+      type: sequential

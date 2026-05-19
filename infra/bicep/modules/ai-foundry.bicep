@@ -65,6 +65,18 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
           name: 'GlobalStandard'
         }
       }
+      {
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-large'
+          version: '1'
+        }
+        name: 'text-embedding-3-large'
+        sku: {
+          capacity: 100
+          name: 'Standard'
+        }
+      }
     ]
     // aiSearchConfiguration: {
     //   name: '<name>'
