@@ -582,6 +582,7 @@ class DocumentValidationExecutor(BaseExecutor):
                 "totalDocuments": 0,
                 "passed": 0,
                 "failed": 0,
+                "invalid": 0,
                 "warnings": 0,
                 "notFound": 0,
                 "overallStatus": "passed"
@@ -612,6 +613,7 @@ class DocumentValidationExecutor(BaseExecutor):
             fetched_doc_type = fetched.get("document_type", "")
             doc_result = {
                 "documentType": fetched_doc_type,
+                "filename": fetched.get("filename", ""),
                 "status": "passed",
                 "errors": [],
                 "fieldResults": []
@@ -638,14 +640,14 @@ class DocumentValidationExecutor(BaseExecutor):
             # Find matching rules
             validations = self._find_matching_rules(fetched_doc_type, rules_by_type)
             if not validations:
-                # No rules means no validation needed - pass through
-                doc_result["status"] = "passed"
-                doc_result["fieldResults"].append({
-                    "field": "_meta",
-                    "result": "skipped",
-                    "message_en": f"No validation rules defined for document type '{fetched_doc_type}'."
+                # No rules — document type is not recognized or has no validation rules
+                doc_result["status"] = "invalid"
+                doc_result["errors"].append({
+                    "errorCode": "UNRECOGNIZED_DOCUMENT",
+                    "message_en": f"Document type '{fetched_doc_type}' could not be validated — no matching rules.",
+                    "message_es": f"El tipo de documento '{fetched_doc_type}' no pudo ser validado — sin reglas coincidentes."
                 })
-                results["summary"]["passed"] += 1
+                results["summary"]["invalid"] += 1
                 results["documentResults"].append(doc_result)
                 continue
 
@@ -677,7 +679,7 @@ class DocumentValidationExecutor(BaseExecutor):
             results["documentResults"].append(doc_result)
 
         # Set overall status
-        if results["summary"]["failed"] > 0 or results["summary"]["notFound"] > 0:
+        if results["summary"]["failed"] > 0 or results["summary"]["notFound"] > 0 or results["summary"]["invalid"] > 0:
             results["summary"]["overallStatus"] = "failed"
 
         return results

@@ -174,14 +174,13 @@ pipeline:
         object_mappings: |-
           {
             "document_record": {
-              "document_id": "id.canonical_id",
-              "filename": "id.filename",
+              "filename": "_filename",
               "document_type": "classification.category",
               "confidence": "classification.confidence",
               "details": "extracted_details"
             }
           }
-        source_id_mappings: ''
+        source_id_mappings: '{"_filename": "id.filename"}'
         copy_mode: copy
         create_nested: true
         overwrite_existing: true
