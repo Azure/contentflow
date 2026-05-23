@@ -151,7 +151,7 @@ if [ ! -z "$VNET_NAME" ]; then
     fi
 
     echo -n "Searching for Container Apps Environment Subnet..."
-    ACA_SUBNET=$(az network vnet subnet list --resource-group $AILZ_RG --vnet-name "$VNET_NAME" --query "[?name=='aca-env-subnet'].name" -o tsv)
+    ACA_SUBNET=$(az network vnet subnet list --resource-group $AILZ_RG --vnet-name "$VNET_NAME" --query "[?name=='aca-env-subnet' || name=='aca-environment-subnet' || contains(name, 'aca')].name" -o tsv | head -n1)
     if [ ! -z "$ACA_SUBNET" ]; then
         echo " FOUND ✓"
         echo "CONTAINER_APPS_SUBNET_NAME=\"$ACA_SUBNET\"" >> $OUTPUT_FILE

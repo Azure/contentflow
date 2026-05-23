@@ -117,7 +117,8 @@ var ailzValidation = isAILZIntegrated ? {
   cosmosPrivateDnsZoneRequired: !empty(existingCosmosPrivateDnsZoneId) ?? fail('existingCosmosPrivateDnsZoneId is required for ailz-integrated mode')
   appConfigPrivateDnsZoneRequired: !empty(existingAppConfigPrivateDnsZoneId) ?? fail('existingAppConfigPrivateDnsZoneId is required for ailz-integrated mode')
   acrPrivateDnsZoneRequired: !empty(existingAcrPrivateDnsZoneId) ?? fail('existingAcrPrivateDnsZoneId is required for ailz-integrated mode')
-  containerAppsEnvPrivateDnsZoneRequired: !empty(existingContainerAppsEnvPrivateDnsZoneId) ?? fail('existingContainerAppsEnvPrivateDnsZoneId is required for ailz-integrated mode')
+  // CAE DNS zone is NOT validated here — it is created dynamically by cae-dns-zone.bicep
+  // using the CAE's defaultDomain and staticIp after provisioning. No pre-existing zone needed.
 } : {}
 
 // ========== VARIABLES ==========
