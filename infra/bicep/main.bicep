@@ -93,6 +93,7 @@ param docsContainerName string = 'content'
 @description('API Container App target port')
 param apiContainerAppTargetPort int = 8090
 
+/* --- WORKER DISABLED: uncomment to re-enable worker container app ---
 @description('Worker Container App target port')
 param workerContainerAppTargetPort int = 8099
 
@@ -101,6 +102,7 @@ param workerAPIEnabled bool = true
 
 @description('Queue name for worker tasks')
 param workerQueueName string = 'contentflow-execution-requests'
+--- END WORKER DISABLED */
 
 // ========== DEPLOYMENT MODE VALIDATION ==========
 var isBasic = deploymentMode == 'basic'
@@ -162,7 +164,7 @@ var appConfigStoreName = 'appcs-${resourceToken}'
 var containerRegistryName = 'cr${resourceToken}'
 var containerAppsEnvironmentName = 'cae-${resourceToken}'
 var apiContainerAppName = 'api-${resourceToken}'
-var workerContainerAppName = 'worker-${resourceToken}'
+// WORKER DISABLED: var workerContainerAppName = 'worker-${resourceToken}'
 var webContainerAppName = 'web-${resourceToken}'
 
 // ========== MODULES DEPLOYMENT =========
@@ -319,6 +321,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.common.BLOB_STORAGE_CONTAINER_NAME'
         value: docsContainerName
       }
+      /* WORKER DISABLED: uncomment to re-enable queue App Config keys
       {
         contentType: 'text/plain'
         name: 'contentflow.common.STORAGE_ACCOUNT_WORKER_QUEUE_URL'
@@ -329,6 +332,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.common.STORAGE_WORKER_QUEUE_NAME'
         value: workerQueueName
       }
+      */
       // API settings
       {
         contentType: 'text/plain'
@@ -371,6 +375,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         value: '*'
       }
       // NOTE: WORKER_ENGINE_API_ENDPOINT moved to apiContainerApp env vars to break circular dependency
+      /* --- WORKER DISABLED: uncomment to re-enable worker App Config keys ---
       // Worker settings
       {
         contentType: 'text/plain'
@@ -447,6 +452,7 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.worker.LOCK_TTL_SECONDS'
         value: '300'
       }
+      --- END WORKER DISABLED */
       {
         contentType: 'text/plain'
         name: 'sentinel'
@@ -562,10 +568,12 @@ module apiContainerApp 'modules/container-app.bicep' = {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
       }
+      /* WORKER DISABLED: uncomment to re-enable worker endpoint
       {
         name: 'WORKER_ENGINE_API_ENDPOINT'
         value: 'https://${workerContainerApp.outputs.fqdn}'
       }
+      */
       {
         name: 'AZURE_STORAGE_ACCOUNT_NAME'
         value: storageAccountName
@@ -583,6 +591,7 @@ module apiContainerApp 'modules/container-app.bicep' = {
   }
 }
 
+/* --- WORKER DISABLED: uncomment to re-enable worker container app ---
 // ========== WORKER CONTAINER APP ==========
 module workerContainerApp 'modules/container-app.bicep' = {
   name: 'ca-worker-${resourceToken}'
@@ -629,6 +638,7 @@ module workerContainerApp 'modules/container-app.bicep' = {
     tags: union(tags, { 'azd-service-name': 'worker' })
   }
 }
+--- END WORKER DISABLED */
 
 // ========== WEB CONTAINER APP ==========
 module webContainerApp 'modules/container-app.bicep' = {
@@ -669,7 +679,7 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Service endpoints
 output API_ENDPOINT string = 'https://${apiContainerApp.outputs.fqdn}'
-output WORKER_ENDPOINT string = 'https://${workerContainerApp.outputs.fqdn}'
+// WORKER DISABLED: output WORKER_ENDPOINT string = 'https://${workerContainerApp.outputs.fqdn}'
 output WEB_ENDPOINT string = 'https://${webContainerApp.outputs.fqdn}'
 
 // Resource outputs
@@ -677,7 +687,7 @@ output COSMOS_DB_ENDPOINT string = cosmos.outputs.cosmosEndpoint
 output COSMOS_DB_NAME string = cosmosDbName
 output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output STORAGE_QUEUE_URL string = storage.outputs.primaryQueueEndpoint
-output STORAGE_QUEUE_NAME string = workerQueueName
+// WORKER DISABLED: output STORAGE_QUEUE_NAME string = workerQueueName
 output APP_CONFIG_ENDPOINT string = appConfigStore.outputs.endpoint
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsConnectionString
 

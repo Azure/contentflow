@@ -24,16 +24,18 @@ services:
       target: ""
       remoteBuild: false
 
-  # ContentFlow Worker - Container App
-  worker:
-    project: ./contentflow-worker
-    language: python
-    host: containerapp
-    docker:
-      path: ./Dockerfile
-      context: ..
-      target: ""
-      remoteBuild: false
+  # --- WORKER DISABLED: uncomment to re-enable worker deployment ---
+  # # ContentFlow Worker - Container App
+  # worker:
+  #   project: ./contentflow-worker
+  #   language: python
+  #   host: containerapp
+  #   docker:
+  #     path: ./Dockerfile
+  #     context: ..
+  #     target: ""
+  #     remoteBuild: false
+  # --- END WORKER DISABLED ---
 
   # ContentFlow Web - Container App
   web:
