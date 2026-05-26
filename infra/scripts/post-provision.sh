@@ -28,21 +28,43 @@ az storage queue create \
 # ========== DEPLOYER ROLE ASSIGNMENT ==========
 echo ""
 echo "=================================================="
-echo "Deployer Role - Cognitive Services Contributor"
+echo "Deployer Role - Cognitive Services Contributor & Azure AI Developer"
 echo "=================================================="
 
 AI_SERVICES_NAME=$(azd env get-value AI_SERVICES_NAME 2>/dev/null || echo "")
 DEPLOYER_OID=$(az ad signed-in-user show --query id -o tsv 2>/dev/null || echo "")
 
 if [ -n "$DEPLOYER_OID" ] && [ -n "$AI_SERVICES_NAME" ]; then
+    AI_SERVICES_SCOPE="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.CognitiveServices/accounts/${AI_SERVICES_NAME}"
+
     echo "Ensuring deployer ($DEPLOYER_OID) has Cognitive Services Contributor on $AI_SERVICES_NAME..."
-    az role assignment create \
-        --assignee "$DEPLOYER_OID" \
+    ROLE_OUT=$(az role assignment create \
+        --assignee-object-id "$DEPLOYER_OID" \
+        --assignee-principal-type User \
         --role "Cognitive Services Contributor" \
-        --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.CognitiveServices/accounts/${AI_SERVICES_NAME}" \
-        --only-show-errors 2>/dev/null \
-        && echo "  ✅ Deployer has Cognitive Services Contributor" \
-        || echo "  ⚠️  Could not assign role (may need Owner/UAA permissions on the scope)"
+        --scope "$AI_SERVICES_SCOPE" \
+        --only-show-errors 2>&1) && \
+        echo "  ✅ Deployer has Cognitive Services Contributor" || \
+        { echo "$ROLE_OUT" | grep -qi "RoleAssignmentExists" && \
+            echo "  ✅ Deployer already has Cognitive Services Contributor" || \
+            echo "  ⚠️  Could not assign Cognitive Services Contributor (may need Owner/UAA permissions on the scope)"; }
+
+    # Azure AI Developer is the DATA-PLANE write role required for:
+    #   - Setting CU defaults (PATCH /contentunderstanding/defaults)
+    #   - Creating/updating analyzers (PUT /contentunderstanding/analyzers/{id})
+    #   - Accessing CU Studio (superset of Azure AI User — covers read access too)
+    # Azure AI User (read-only) is NOT sufficient; it causes 401 on any write operation.
+    echo "Ensuring deployer ($DEPLOYER_OID) has Azure AI Developer on $AI_SERVICES_NAME..."
+    ROLE_OUT=$(az role assignment create \
+        --assignee-object-id "$DEPLOYER_OID" \
+        --assignee-principal-type User \
+        --role "Azure AI Developer" \
+        --scope "$AI_SERVICES_SCOPE" \
+        --only-show-errors 2>&1) && \
+        echo "  ✅ Deployer has Azure AI Developer (data-plane read+write — required for CU setup & Studio)" || \
+        { echo "$ROLE_OUT" | grep -qi "RoleAssignmentExists" && \
+            echo "  ✅ Deployer already has Azure AI Developer" || \
+            echo "  ⚠️  Could not assign Azure AI Developer (may need Owner/UAA permissions on the scope)"; }
 else
     echo "⚠️  Could not determine deployer identity or AI Services name. Skipping role assignment."
 fi
@@ -63,6 +85,12 @@ else
     CU_ENDPOINT="https://${AI_SERVICES_NAME}.services.ai.azure.com"
     CU_API_VERSION="2025-11-01"
     echo "CU Endpoint: $CU_ENDPOINT"
+
+    # Wait for RBAC role assignments to propagate before calling data-plane APIs.
+    # Azure RBAC propagation typically takes 1–5 minutes; without this wait the CU
+    # API calls immediately after role assignment will fail with HTTP 403.
+    echo "Waiting 90 seconds for RBAC role assignments to propagate..."
+    sleep 90
 
     # Obtain a bearer token for Cognitive Services scope
     echo "Acquiring access token..."
