@@ -219,12 +219,51 @@ async def initialize_seed_pipelines():
                 with open(yaml_path, "r") as f:
                     yaml_str = f.read()
 
+                # Parse executors from YAML into nodes for canvas visualization
+                executors = pipeline_def.get("executors", [])
+                nodes = []
+                for executor in executors:
+                    nodes.append({
+                        "id": executor.get("id", ""),
+                        "type": "executor",
+                        "position": executor.get("position", {"x": 0, "y": 0}),
+                        "data": {
+                            "label": executor.get("name", ""),
+                            "executor": {
+                                "id": executor.get("type", ""),
+                                "name": executor.get("name", ""),
+                                "category": "unknown",
+                                "description": executor.get("description", ""),
+                            },
+                            "config": {
+                                "name": executor.get("name", ""),
+                                "description": executor.get("description", ""),
+                                "settings": executor.get("settings", {}),
+                            },
+                        },
+                    })
+
+                # Parse edges from YAML for canvas connections
+                yaml_edges = pipeline_def.get("edges", [])
+                edges = []
+                for edge_def in yaml_edges:
+                    src = edge_def.get("from", "")
+                    tgt = edge_def.get("to", "")
+                    if isinstance(src, str) and isinstance(tgt, str):
+                        edges.append({
+                            "id": f"{src}-{tgt}-{len(edges)}",
+                            "source": src,
+                            "target": tgt,
+                            "type": "default",
+                            "animated": True,
+                        })
+
                 pipeline_data = {
                     "name": name,
                     "description": pipeline_def.get("description", ""),
                     "yaml": yaml_str,
-                    "nodes": [],
-                    "edges": pipeline_def.get("edges", []),
+                    "nodes": nodes,
+                    "edges": edges,
                     "tags": pipeline_def.get("tags", []),
                     "enabled": True,
                 }

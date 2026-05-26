@@ -27,14 +27,35 @@ echo "Cosmos DB Endpoint: $COSMOS_ENDPOINT"
 #   --only-show-errors || echo "Queue already exists or error creating queue"
 # --- END WORKER DISABLED ---
 
+# ========== DEPLOYER ROLE ASSIGNMENT ==========
+echo ""
+echo "=================================================="
+echo "Deployer Role - Cognitive Services Contributor"
+echo "=================================================="
+
+AI_SERVICES_NAME=$(azd env get-value AI_SERVICES_NAME 2>/dev/null || echo "")
+DEPLOYER_OID=$(az ad signed-in-user show --query id -o tsv 2>/dev/null || echo "")
+
+if [ -n "$DEPLOYER_OID" ] && [ -n "$AI_SERVICES_NAME" ]; then
+    echo "Ensuring deployer ($DEPLOYER_OID) has Cognitive Services Contributor on $AI_SERVICES_NAME..."
+    az role assignment create \
+        --assignee "$DEPLOYER_OID" \
+        --role "Cognitive Services Contributor" \
+        --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.CognitiveServices/accounts/${AI_SERVICES_NAME}" \
+        --only-show-errors 2>/dev/null \
+        && echo "  ✅ Deployer has Cognitive Services Contributor" \
+        || echo "  ⚠️  Could not assign role (may need Owner/UAA permissions on the scope)"
+else
+    echo "⚠️  Could not determine deployer identity or AI Services name. Skipping role assignment."
+fi
+
 # ========== CONTENT UNDERSTANDING SETUP ==========
 echo ""
 echo "=================================================="
 echo "Content Understanding - Model Defaults & Analyzers"
 echo "=================================================="
 
-# Resolve AI Services endpoint from Bicep output
-AI_SERVICES_NAME=$(azd env get-value AI_SERVICES_NAME 2>/dev/null || echo "")
+# AI_SERVICES_NAME already resolved above
 
 if [ -z "$AI_SERVICES_NAME" ]; then
     echo "⚠️  AI_SERVICES_NAME not found in azd env. Skipping CU setup."
