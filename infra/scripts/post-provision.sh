@@ -93,96 +93,72 @@ else
             --query accessToken -o tsv 2>/dev/null || echo ""
     }
 
-    # --- RBAC Readiness Probe ---
-    # Instead of a fixed sleep, poll the CU data-plane until RBAC propagates.
-    # Retries every 30s for up to 30 minutes (60 attempts).
-    echo "Probing CU data-plane for RBAC readiness (up to 30 minutes)..."
-    RBAC_MAX_ATTEMPTS=60
-    RBAC_WAIT_SECONDS=30
-    RBAC_READY=false
+    # --- Combined RBAC + CU Defaults Probe ---
+    # The RBAC probe must test a WRITE operation, not just a read.
+    # On a brand-new AI Services resource, data-plane WRITE permission
+    # propagation takes 15-30 minutes — significantly longer than reads
+    # (~6 min). A read-only probe gives a false-positive, causing writes
+    # to fail with HTTP 401 while propagation is still in progress.
+    #
+    # Solution: use the actual PATCH defaults call as the probe.
+    # This retries every 30s for up to 30 minutes (60 attempts),
+    # ensuring we wait for write-level RBAC propagation.
+    echo ""
+    echo "[CU-1] Setting default model deployments (with RBAC write-readiness probe, up to 30 min)..."
+    DEFAULTS_MAX_ATTEMPTS=60
+    DEFAULTS_WAIT_SECONDS=30
+    DEFAULTS_OK=false
     ACCESS_TOKEN=""
 
-    for RBAC_ATTEMPT in $(seq 1 $RBAC_MAX_ATTEMPTS); do
+    for DEFAULTS_ATTEMPT in $(seq 1 $DEFAULTS_MAX_ATTEMPTS); do
         ACCESS_TOKEN=$(acquire_token)
         if [ -z "$ACCESS_TOKEN" ]; then
-            echo "  [attempt $RBAC_ATTEMPT/$RBAC_MAX_ATTEMPTS] Failed to acquire token — retrying in ${RBAC_WAIT_SECONDS}s..."
-            sleep "$RBAC_WAIT_SECONDS"
+            echo "  [attempt $DEFAULTS_ATTEMPT/$DEFAULTS_MAX_ATTEMPTS] Failed to acquire token — retrying in ${DEFAULTS_WAIT_SECONDS}s..."
+            sleep "$DEFAULTS_WAIT_SECONDS"
             continue
         fi
 
-        PROBE_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${CU_ENDPOINT}/contentunderstanding/analyzers?api-version=${CU_API_VERSION}" \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" 2>/dev/null)
+        CU_DEFAULTS_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
+            "${CU_ENDPOINT}/contentunderstanding/defaults?api-version=${CU_API_VERSION}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/merge-patch+json" \
+            -d '{
+                "modelDeployments": {
+                    "gpt-4.1": "gpt-4.1",
+                    "gpt-4.1-mini": "gpt-4.1-mini",
+                    "text-embedding-3-large": "text-embedding-3-large"
+                }
+            }' 2>/dev/null)
 
-        if [ "$PROBE_HTTP_CODE" -ge 200 ] 2>/dev/null && [ "$PROBE_HTTP_CODE" -lt 300 ] 2>/dev/null; then
-            echo "  ✅ RBAC is active (HTTP $PROBE_HTTP_CODE on attempt $RBAC_ATTEMPT)"
-            RBAC_READY=true
+        CU_DEFAULTS_HTTP_CODE=$(echo "$CU_DEFAULTS_RESPONSE" | tail -1)
+        CU_DEFAULTS_BODY=$(echo "$CU_DEFAULTS_RESPONSE" | sed '$d')
+
+        if [ "$CU_DEFAULTS_HTTP_CODE" -ge 200 ] 2>/dev/null && [ "$CU_DEFAULTS_HTTP_CODE" -lt 300 ] 2>/dev/null; then
+            echo "  ✅ Default model deployments configured (HTTP $CU_DEFAULTS_HTTP_CODE, attempt $DEFAULTS_ATTEMPT)"
+            DEFAULTS_OK=true
             break
-        else
-            echo "  [attempt $RBAC_ATTEMPT/$RBAC_MAX_ATTEMPTS] RBAC not ready (HTTP $PROBE_HTTP_CODE) — retrying in ${RBAC_WAIT_SECONDS}s..."
-            sleep "$RBAC_WAIT_SECONDS"
         fi
+
+        # Retry on auth/propagation and transient errors
+        case "$CU_DEFAULTS_HTTP_CODE" in
+            401|403|429|500|502|503|504)
+                echo "  [attempt $DEFAULTS_ATTEMPT/$DEFAULTS_MAX_ATTEMPTS] CU defaults PATCH failed (HTTP $CU_DEFAULTS_HTTP_CODE) — retrying in ${DEFAULTS_WAIT_SECONDS}s..."
+                sleep "$DEFAULTS_WAIT_SECONDS"
+                ;;
+            *)
+                echo "  ❌ CU defaults failed with non-retryable error (HTTP $CU_DEFAULTS_HTTP_CODE)"
+                echo "     Response: $CU_DEFAULTS_BODY"
+                break
+                ;;
+        esac
     done
 
-    if [ "$RBAC_READY" != "true" ]; then
-        echo "❌ RBAC did not propagate within $((RBAC_MAX_ATTEMPTS * RBAC_WAIT_SECONDS)) seconds."
-        echo "   Re-run 'azd up' or 'azd hooks run postprovision' after a few minutes."
+    if [ "$DEFAULTS_OK" != "true" ]; then
+        echo "❌ Failed to set CU defaults after $DEFAULTS_MAX_ATTEMPTS attempts ($((DEFAULTS_MAX_ATTEMPTS * DEFAULTS_WAIT_SECONDS))s)."
+        echo "   RBAC write-level propagation may not have completed."
+        echo "   Re-run 'azd hooks run postprovision' after a few minutes."
         exit 1
     else
-        # --- Step 1: Set default model deployments (with retry) ---
-        echo ""
-        echo "[CU-1] Setting default model deployments..."
-        DEFAULTS_MAX_RETRIES=5
-        DEFAULTS_BACKOFF=15
-        DEFAULTS_OK=false
-
-        for DEFAULTS_ATTEMPT in $(seq 1 $DEFAULTS_MAX_RETRIES); do
-            # Refresh token before each attempt (handles expiry edge case)
-            if [ "$DEFAULTS_ATTEMPT" -gt 1 ]; then
-                ACCESS_TOKEN=$(acquire_token)
-            fi
-
-            CU_DEFAULTS_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
-                "${CU_ENDPOINT}/contentunderstanding/defaults?api-version=${CU_API_VERSION}" \
-                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-                -H "Content-Type: application/merge-patch+json" \
-                -d '{
-                    "modelDeployments": {
-                        "gpt-4.1": "gpt-4.1",
-                        "gpt-4.1-mini": "gpt-4.1-mini",
-                        "text-embedding-3-large": "text-embedding-3-large"
-                    }
-                }' 2>/dev/null)
-
-            CU_DEFAULTS_HTTP_CODE=$(echo "$CU_DEFAULTS_RESPONSE" | tail -1)
-            CU_DEFAULTS_BODY=$(echo "$CU_DEFAULTS_RESPONSE" | sed '$d')
-
-            if [ "$CU_DEFAULTS_HTTP_CODE" -ge 200 ] 2>/dev/null && [ "$CU_DEFAULTS_HTTP_CODE" -lt 300 ] 2>/dev/null; then
-                echo "  ✅ Default model deployments configured successfully (attempt $DEFAULTS_ATTEMPT)"
-                DEFAULTS_OK=true
-                break
-            fi
-
-            # Retry on transient errors (401, 403, 429, 5xx)
-            case "$CU_DEFAULTS_HTTP_CODE" in
-                401|403|429|500|502|503|504)
-                    echo "  [attempt $DEFAULTS_ATTEMPT/$DEFAULTS_MAX_RETRIES] CU defaults failed (HTTP $CU_DEFAULTS_HTTP_CODE) — retrying in ${DEFAULTS_BACKOFF}s..."
-                    sleep "$DEFAULTS_BACKOFF"
-                    DEFAULTS_BACKOFF=$((DEFAULTS_BACKOFF * 2))
-                    [ "$DEFAULTS_BACKOFF" -gt 120 ] && DEFAULTS_BACKOFF=120
-                    ;;
-                *)
-                    echo "  ⚠️  CU defaults failed with non-retryable error (HTTP $CU_DEFAULTS_HTTP_CODE)"
-                    echo "     Response: $CU_DEFAULTS_BODY"
-                    break
-                    ;;
-            esac
-        done
-
-        if [ "$DEFAULTS_OK" != "true" ]; then
-            echo "  ⚠️  Failed to set CU defaults after $DEFAULTS_MAX_RETRIES attempts."
-            echo "     Model deployments may not be available yet. Run post-provision again after models are ready."
-        fi
 
         # --- Step 2: Create/update custom analyzers from seed folder ---
         echo ""
