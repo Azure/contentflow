@@ -95,9 +95,9 @@ else
 
     # --- RBAC Readiness Probe ---
     # Instead of a fixed sleep, poll the CU data-plane until RBAC propagates.
-    # Retries every 30s for up to 10 minutes (20 attempts).
-    echo "Probing CU data-plane for RBAC readiness (up to 10 minutes)..."
-    RBAC_MAX_ATTEMPTS=20
+    # Retries every 30s for up to 30 minutes (60 attempts).
+    echo "Probing CU data-plane for RBAC readiness (up to 30 minutes)..."
+    RBAC_MAX_ATTEMPTS=60
     RBAC_WAIT_SECONDS=30
     RBAC_READY=false
     ACCESS_TOKEN=""
