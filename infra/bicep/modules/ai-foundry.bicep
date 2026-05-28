@@ -75,7 +75,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
         }
         name: 'text-embedding-3-large'
         sku: {
-          capacity: 40
+          capacity: 100
           name: 'Standard'
         }
       }

@@ -57,12 +57,6 @@ class AppSettings(BaseModel):
     # Azure Storage Blob settings
     BLOB_STORAGE_ACCOUNT_NAME: str = ""
     BLOB_STORAGE_CONTAINER_NAME: str = "content"
-    
-    # Azure Storage Queue settings
-    STORAGE_ACCOUNT_WORKER_QUEUE_URL: str = ""
-    STORAGE_WORKER_QUEUE_NAME: str = "contentflow-execution-requests"
-
-    WORKER_ENGINE_API_ENDPOINT: str = "http://localhost:8099"
 
     # Ingest API settings
     INGEST_PIPELINE_NAME: str = "Details extraction and validation pipeline"
@@ -97,9 +91,6 @@ class AppSettings(BaseModel):
                 "COSMOS_DB_NAME",
                 "BLOB_STORAGE_ACCOUNT_NAME",
                 "BLOB_STORAGE_CONTAINER_NAME",
-                "STORAGE_ACCOUNT_WORKER_QUEUE_URL",
-                "STORAGE_WORKER_QUEUE_NAME",
-                "WORKER_ENGINE_API_ENDPOINT",
                 "API_SERVER_HOST",
                 "API_SERVER_PORT",
                 "API_SERVER_WORKERS",

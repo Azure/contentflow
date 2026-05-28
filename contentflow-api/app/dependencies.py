@@ -55,10 +55,7 @@ def get_health_service():
                          cosmos_db_name=app_settings.COSMOS_DB_NAME,
                          cosmos_db_containers=app_settings.get_cosmos_db_containers(),
                          blob_storage_account=app_settings.BLOB_STORAGE_ACCOUNT_NAME,
-                         blob_storage_container=app_settings.BLOB_STORAGE_CONTAINER_NAME,
-                         storage_account_worker_queue_url=app_settings.STORAGE_ACCOUNT_WORKER_QUEUE_URL,
-                         storage_worker_queue_name=app_settings.STORAGE_WORKER_QUEUE_NAME,
-                         worker_engine_api_endpoint=app_settings.WORKER_ENGINE_API_ENDPOINT)
+                         blob_storage_container=app_settings.BLOB_STORAGE_CONTAINER_NAME)
 
 @ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
 async def get_pipeline_service():

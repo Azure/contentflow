@@ -93,17 +93,6 @@ param docsContainerName string = 'content'
 @description('API Container App target port')
 param apiContainerAppTargetPort int = 8090
 
-/* --- WORKER DISABLED: uncomment to re-enable worker container app ---
-@description('Worker Container App target port')
-param workerContainerAppTargetPort int = 8099
-
-@description('Enable API service in worker container app - used for health checks')
-param workerAPIEnabled bool = true
-
-@description('Queue name for worker tasks')
-param workerQueueName string = 'contentflow-execution-requests'
---- END WORKER DISABLED */
-
 // ========== DEPLOYMENT MODE VALIDATION ==========
 var isBasic = deploymentMode == 'basic'
 var isAILZIntegrated = deploymentMode == 'ailz-integrated'
@@ -164,7 +153,6 @@ var appConfigStoreName = 'appcs-${resourceToken}'
 var containerRegistryName = 'cr${resourceToken}'
 var containerAppsEnvironmentName = 'cae-${resourceToken}'
 var apiContainerAppName = 'api-${resourceToken}'
-// WORKER DISABLED: var workerContainerAppName = 'worker-${resourceToken}'
 var webContainerAppName = 'web-${resourceToken}'
 
 // ========== MODULES DEPLOYMENT =========
@@ -321,18 +309,6 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.common.BLOB_STORAGE_CONTAINER_NAME'
         value: docsContainerName
       }
-      /* WORKER DISABLED: uncomment to re-enable queue App Config keys
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.common.STORAGE_ACCOUNT_WORKER_QUEUE_URL'
-        value: storage!.outputs.primaryQueueEndpoint
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.common.STORAGE_WORKER_QUEUE_NAME'
-        value: workerQueueName
-      }
-      */
       // API settings
       {
         contentType: 'text/plain'
@@ -374,85 +350,6 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         name: 'contentflow.api.CORS_ALLOW_ORIGINS'
         value: '*'
       }
-      // NOTE: WORKER_ENGINE_API_ENDPOINT moved to apiContainerApp env vars to break circular dependency
-      /* --- WORKER DISABLED: uncomment to re-enable worker App Config keys ---
-      // Worker settings
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.NUM_PROCESSING_WORKERS'
-        value: '4'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.NUM_SOURCE_WORKERS'
-        value: '2'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.LOG_LEVEL'
-        value: 'INFO'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.DEBUG'
-        value: 'false'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_ENABLED'
-        value: '${workerAPIEnabled}'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_HOST'
-        value: '0.0.0.0'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_PORT'
-        value: '${workerContainerAppTargetPort}'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_POLL_INTERVAL_SECONDS'
-        value: '5'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_VISIBILITY_TIMEOUT_SECONDS'
-        value: '300'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_MAX_MESSAGES'
-        value: '32'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.MAX_TASK_RETRIES'
-        value: '3'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.TASK_TIMEOUT_SECONDS'
-        value: '600'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.DEFAULT_POLLING_INTERVAL_SECONDS'
-        value: '60'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.SCHEDULER_SLEEP_INTERVAL_SECONDS'
-        value: '5'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.LOCK_TTL_SECONDS'
-        value: '300'
-      }
-      --- END WORKER DISABLED */
       {
         contentType: 'text/plain'
         name: 'sentinel'
@@ -568,12 +465,6 @@ module apiContainerApp 'modules/container-app.bicep' = {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
       }
-      /* WORKER DISABLED: uncomment to re-enable worker endpoint
-      {
-        name: 'WORKER_ENGINE_API_ENDPOINT'
-        value: 'https://${workerContainerApp.outputs.fqdn}'
-      }
-      */
       {
         name: 'AZURE_STORAGE_ACCOUNT_NAME'
         value: storageAccountName
@@ -590,55 +481,6 @@ module apiContainerApp 'modules/container-app.bicep' = {
     tags: union(tags, { 'azd-service-name': 'api' })
   }
 }
-
-/* --- WORKER DISABLED: uncomment to re-enable worker container app ---
-// ========== WORKER CONTAINER APP ==========
-module workerContainerApp 'modules/container-app.bicep' = {
-  name: 'ca-worker-${resourceToken}'
-  params: {
-    name: workerContainerAppName
-    location: containerAppsEnvironment.outputs.location
-    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
-    managedIdentityId: userAssignedIdentity.outputs.resourceId
-    targetPort: workerContainerAppTargetPort
-    externalIngress: true
-    corsEnabled: true
-    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
-    cpuCores: 2
-    memoryInGB: '4Gi'
-    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
-    maxReplicas: 3
-    environmentVariables: [
-      {
-        name: 'AZURE_APP_CONFIG_ENDPOINT'
-        value: appConfigStore!.outputs.endpoint
-      }
-      {
-        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-        value: appInsightsConnectionString
-      }
-      {
-        name: 'AZURE_CLIENT_ID'
-        value: userAssignedIdentity.outputs.clientId
-      }
-      {
-        name: 'AZURE_STORAGE_ACCOUNT_NAME'
-        value: storageAccountName
-      }
-      {
-        name: 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT'
-        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
-      }
-      {
-        name: 'AZURE_OPENAI_ENDPOINT'
-        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
-      }
-    ]
-    tags: union(tags, { 'azd-service-name': 'worker' })
-  }
-}
---- END WORKER DISABLED */
 
 // ========== WEB CONTAINER APP ==========
 module webContainerApp 'modules/container-app.bicep' = {
@@ -679,7 +521,6 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Service endpoints
 output API_ENDPOINT string = 'https://${apiContainerApp.outputs.fqdn}'
-// WORKER DISABLED: output WORKER_ENDPOINT string = 'https://${workerContainerApp.outputs.fqdn}'
 output WEB_ENDPOINT string = 'https://${webContainerApp.outputs.fqdn}'
 
 // Resource outputs
@@ -687,7 +528,6 @@ output COSMOS_DB_ENDPOINT string = cosmos.outputs.cosmosEndpoint
 output COSMOS_DB_NAME string = cosmosDbName
 output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output STORAGE_QUEUE_URL string = storage.outputs.primaryQueueEndpoint
-// WORKER DISABLED: output STORAGE_QUEUE_NAME string = workerQueueName
 output APP_CONFIG_ENDPOINT string = appConfigStore.outputs.endpoint
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsConnectionString
 

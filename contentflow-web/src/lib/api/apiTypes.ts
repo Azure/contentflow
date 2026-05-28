@@ -33,7 +33,6 @@ export interface HealthCheck {
     cosmos_db?: ServiceStatus;
     blob_storage?: ServiceStatus;
     storage_queue?: ServiceStatus;
-    worker?: ServiceStatus;
   };
 }
 
