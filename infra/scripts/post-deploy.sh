@@ -10,7 +10,6 @@ echo "=================================================="
 # Get deployment outputs
 API_ENDPOINT=$(azd env get-value API_ENDPOINT 2>/dev/null || echo "Not available")
 WEB_ENDPOINT=$(azd env get-value WEB_ENDPOINT 2>/dev/null || echo "Not available")
-WORKER_ENDPOINT=$(azd env get-value WORKER_ENDPOINT 2>/dev/null || echo "Not available")
 
 echo ""
 echo "╔════════════════════════════════════════════════╗"
@@ -20,7 +19,6 @@ echo ""
 echo "Service Endpoints:"
 echo "  API:    $API_ENDPOINT"
 echo "  Web:    $WEB_ENDPOINT"
-echo "  Worker: $WORKER_ENDPOINT"
 echo ""
 
 # ========== SECURITY HARDENING (AILZ mode only) ==========

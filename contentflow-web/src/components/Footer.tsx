@@ -154,14 +154,12 @@ interface SystemHealth {
   cosmosDB: "connected" | "offline";
   blobStorage: "connected" | "offline";
   storageQueue: "connected" | "offline";
-  worker?: "connected" | "offline";
   lastChecked: Date;
   serviceDetails: {
     appConfig?: ServiceStatus;
     cosmosDB?: ServiceStatus;
     blobStorage?: ServiceStatus;
     storageQueue?: ServiceStatus;
-    worker?: ServiceStatus;
   };
 }
 
@@ -173,7 +171,6 @@ export const Footer = () => {
     cosmosDB: "offline",
     blobStorage: "offline",
     storageQueue: "offline",
-    worker: "offline",
     lastChecked: new Date(),
     serviceDetails: {},
   });
@@ -192,14 +189,12 @@ export const Footer = () => {
         cosmosDB: healthData.services.cosmos_db?.status === "connected" ? "connected" : "offline",
         blobStorage: healthData.services.blob_storage?.status === "connected" ? "connected" : "offline",
         storageQueue: healthData.services.storage_queue?.status === "connected" ? "connected" : "offline",
-        worker: healthData.services.worker?.status === "connected" ? "connected" : "offline",
         lastChecked: new Date(),
         serviceDetails: {
           appConfig: healthData.services.app_config,
           cosmosDB: healthData.services.cosmos_db,
           blobStorage: healthData.services.blob_storage,
           storageQueue: healthData.services.storage_queue,
-          worker: healthData.services.worker,
         },
       });
     } catch (error) {
@@ -210,7 +205,6 @@ export const Footer = () => {
         cosmosDB: "offline",
         blobStorage: "offline",
         storageQueue: "offline",
-        worker: "offline",
         lastChecked: new Date(),
         serviceDetails: {},
       });
@@ -340,13 +334,6 @@ export const Footer = () => {
                   name="Storage Queue"
                   status={systemHealth.storageQueue}
                   serviceStatus={systemHealth.serviceDetails.storageQueue}
-                  getStatusColor={getStatusColor}
-                />
-
-                <ServiceHealthItem
-                  name="Worker Engine"
-                  status={systemHealth.worker}
-                  serviceStatus={systemHealth.serviceDetails.worker}
                   getStatusColor={getStatusColor}
                 />
 

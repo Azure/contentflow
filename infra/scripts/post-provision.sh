@@ -17,14 +17,6 @@ echo "Resource Group: $RESOURCE_GROUP"
 echo "Storage Account: $STORAGE_ACCOUNT"
 echo "Cosmos DB Endpoint: $COSMOS_ENDPOINT"
 
-echo "✓ Creating storage queue (if not exists)..."
-QUEUE_NAME="contentflow-execution-requests"
-az storage queue create \
-  --name "$QUEUE_NAME" \
-  --account-name "$STORAGE_ACCOUNT" \
-  --auth-mode login \
-  --only-show-errors || echo "Queue already exists or error creating queue"
-
 # ========== DEPLOYER ROLE ASSIGNMENT ==========
 echo ""
 echo "=================================================="

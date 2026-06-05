@@ -24,17 +24,6 @@ services:
       target: ""
       remoteBuild: false
 
-  # ContentFlow Worker - Container App
-  worker:
-    project: ./contentflow-worker
-    language: python
-    host: containerapp
-    docker:
-      path: ./Dockerfile
-      context: ..
-      target: ""
-      remoteBuild: false
-
   # ContentFlow Web - Container App
   web:
     project: ./contentflow-web
