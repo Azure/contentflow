@@ -196,22 +196,50 @@ class BaseExecutor(Executor, ABC):
     ) -> Any:
         """
         Extract a nested field value from a Content item's data.
-        
+
+        Supports dot-separated paths and array indexing with bracket notation.
+        Examples:
+            "text" -> content.data["text"]
+            "result.contents[0].markdown" -> content.data["result"]["contents"][0]["markdown"]
+
         Args:
             content: Content item to extract from
-            field_path: Dot-separated path to the field
+            field_path: Dot-separated path to the field, with optional [N] array indexing
         Returns:
             Extracted field value or None if not found
         """
         fields = field_path.split('.')
         current_value = content.data
-        
+
         for field in fields:
-            if isinstance(current_value, dict) and field in current_value:
-                current_value = current_value[field]
+            # Check for array index notation e.g. "contents[0]"
+            if '[' in field and field.endswith(']'):
+                bracket_pos = field.index('[')
+                key = field[:bracket_pos]
+                index_str = field[bracket_pos + 1:-1]
+
+                # Access the dict key first
+                if key:
+                    if isinstance(current_value, dict) and key in current_value:
+                        current_value = current_value[key]
+                    else:
+                        return None
+
+                # Then access the list index
+                try:
+                    index = int(index_str)
+                    if isinstance(current_value, list) and 0 <= index < len(current_value):
+                        current_value = current_value[index]
+                    else:
+                        return None
+                except (ValueError, TypeError):
+                    return None
             else:
-                return None
-        
+                if isinstance(current_value, dict) and field in current_value:
+                    current_value = current_value[field]
+                else:
+                    return None
+
         return current_value
     
     
