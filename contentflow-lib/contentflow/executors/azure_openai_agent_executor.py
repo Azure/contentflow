@@ -206,10 +206,11 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             
             # Update summary
             content.summary_data['agent_execution_status'] = "success"
-            content.summary_data['response_length'] = len(response_text) if response_text else 0
+            content.summary_data['response_length'] = len(str(response_text)) if response_text else 0
             
             if self.debug_mode:
-                logger.debug(f"Agent response for {content.id}: {response_text[:100]}...")
+                _debug_text = str(response_text)[:100] if response_text else ""
+                logger.debug(f"Agent response for {content.id}: {_debug_text}...")
 
         except Exception as e:
             logger.error(

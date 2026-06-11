@@ -4,12 +4,8 @@ param containerAppsEnvironmentName string
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Log Analytics workspace id output from log-analytics-ws.bicep module')
-param logAnalyticsWorkspaceId string
-
-@description('Log Analytics workspace primary shared key output from log-analytics-ws.bicep module')
-@secure()
-param logAnalyticsPrimarySharedKey string 
+@description('Log Analytics workspace resource ID used to derive customer ID and shared key')
+param logAnalyticsWorkspaceResourceId string
 
 @description('User Assigned Identity resource IDs that will be assigned to the Container Apps Environment')
 param userAssignedResourceIds string[]
@@ -31,6 +27,10 @@ param publicNetworkAccess string = 'Enabled'
 @description('Tags for resources')
 param tags object = {}
 
+// Derive Log Analytics credentials from workspace resource ID
+var logAnalyticsCustomerId = reference(logAnalyticsWorkspaceResourceId, '2021-12-01-preview').customerId
+var logAnalyticsSharedKey = listKeys(logAnalyticsWorkspaceResourceId, '2021-12-01-preview').primarySharedKey
+
 // Use Azure Verified Module for Container Apps Environment
 module containerAppsEnvironment 'br:mcr.microsoft.com/bicep/avm/res/app/managed-environment:0.11.3' = {
   name: '${deployment().name}.containerAppsEnvironment'
@@ -42,8 +42,8 @@ module containerAppsEnvironment 'br:mcr.microsoft.com/bicep/avm/res/app/managed-
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspaceId
-        sharedKey: logAnalyticsPrimarySharedKey
+        customerId: logAnalyticsCustomerId
+        sharedKey: logAnalyticsSharedKey
       }
     }
     workloadProfiles: [

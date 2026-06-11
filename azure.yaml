@@ -22,18 +22,7 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
-
-  # ContentFlow Worker - Container App
-  worker:
-    project: ./contentflow-worker
-    language: python
-    host: containerapp
-    docker:
-      path: ./Dockerfile
-      context: ..
-      target: ""
-      remoteBuild: true
+      remoteBuild: false
 
   # ContentFlow Web - Container App
   web:
@@ -44,23 +33,23 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
+      remoteBuild: false
     
 # Global hooks
-# hooks:
-#   # Run before provisioning infrastructure
-#   preprovision:
-#     shell: sh
-#     run: ./infra/scripts/pre-provision.sh
-#     interactive: false
-#     continueOnError: false
+hooks:
+  # Import placeholder image to ACR before provisioning (needed for AILZ internal environments)
+  preprovision:
+    shell: sh
+    run: ./infra/scripts/pre-provision.sh
+    interactive: false
+    continueOnError: false
   
-#   # Run after infrastructure is provisioned
-#   # postprovision:
-#   #   shell: sh
-#   #   run: ./infra/scripts/post-provision.sh
-#   #   interactive: false
-#   #   continueOnError: false
+  # Run after infrastructure is provisioned
+  postprovision:
+    shell: sh
+    run: ./infra/scripts/post-provision.sh
+    interactive: false
+    continueOnError: false
 
 #   # # Run before deploying all services
 #   # predeploy:
@@ -69,9 +58,9 @@ services:
 #   #   interactive: false
 #   #   continueOnError: false
 
-#   # Run after all services are deployed
-#   postdeploy:
-#     shell: sh
-#     run: ./infra/scripts/post-deploy.sh
-#     interactive: true
-#     continueOnError: false
+  # Run after all services are deployed
+  postdeploy:
+    shell: sh
+    run: ./infra/scripts/post-deploy.sh
+    interactive: true
+    continueOnError: false

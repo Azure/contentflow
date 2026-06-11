@@ -28,6 +28,8 @@ param acrPrivateDnsZoneId string = ''
 @allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 
+
+
 @description('Zone redundancy setting for the Azure Container Registry')
 @allowed(['Enabled', 'Disabled'])
 param zoneRedundancy string = 'Disabled'
@@ -80,17 +82,15 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
         subnetResourceId: privateEndpointSubnetId
         service: 'registry'
         privateLinkServiceConnectionName: '${containerRegistryName}-acr-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'acr-dns-zone-group'
-            privateDnsZoneGroupConfigs: !empty(acrPrivateDnsZoneId) ? [
-              {
-                name: 'acr-config'
-                privateDnsZoneResourceId: acrPrivateDnsZoneId
-              }
-            ] : []
-          }
-        ]
+        privateDnsZoneGroup: !empty(acrPrivateDnsZoneId) ? {
+          name: 'acr-dns-zone-group'
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'acr-config'
+              privateDnsZoneResourceId: acrPrivateDnsZoneId
+            }
+          ]
+        } : null
       }
     ] : []
   }

@@ -21,6 +21,12 @@ param location string = resourceGroup().location
 @description('Location for AI Foundry resources')
 param foundryLocation string
 
+@description('Location for Cosmos DB resources (override if primary region has capacity issues)')
+param cosmosLocation string = location
+
+@description('Resource ID of an existing Azure OpenAI resource for RBAC assignment (if not using AI Foundry integrated endpoint)')
+param existingOpenAIResourceId string = ''
+
 @description('ID of the user running the deployment')
 param principalId string = ''
 
@@ -41,6 +47,9 @@ param existingCognitiveServicesPrivateDnsZoneId string = ''
 
 @description('Resource ID of existing Blob Storage Private DNS Zone (required for ailz-integrated mode)')
 param existingBlobPrivateDnsZoneId string = ''
+
+@description('Resource ID of existing Queue Storage Private DNS Zone (optional for ailz-integrated mode)')
+param existingQueuePrivateDnsZoneId string = ''
 
 @description('Resource ID of existing Cosmos DB Private DNS Zone (required for ailz-integrated mode)')
 param existingCosmosPrivateDnsZoneId string = ''
@@ -84,15 +93,6 @@ param docsContainerName string = 'content'
 @description('API Container App target port')
 param apiContainerAppTargetPort int = 8090
 
-@description('Worker Container App target port')
-param workerContainerAppTargetPort int = 8099
-
-@description('Enable API service in worker container app - used for health checks')
-param workerAPIEnabled bool = true
-
-@description('Queue name for worker tasks')
-param workerQueueName string = 'contentflow-execution-requests'
-
 // ========== DEPLOYMENT MODE VALIDATION ==========
 var isBasic = deploymentMode == 'basic'
 var isAILZIntegrated = deploymentMode == 'ailz-integrated'
@@ -108,7 +108,8 @@ var ailzValidation = isAILZIntegrated ? {
   cosmosPrivateDnsZoneRequired: !empty(existingCosmosPrivateDnsZoneId) ?? fail('existingCosmosPrivateDnsZoneId is required for ailz-integrated mode')
   appConfigPrivateDnsZoneRequired: !empty(existingAppConfigPrivateDnsZoneId) ?? fail('existingAppConfigPrivateDnsZoneId is required for ailz-integrated mode')
   acrPrivateDnsZoneRequired: !empty(existingAcrPrivateDnsZoneId) ?? fail('existingAcrPrivateDnsZoneId is required for ailz-integrated mode')
-  containerAppsEnvPrivateDnsZoneRequired: !empty(existingContainerAppsEnvPrivateDnsZoneId) ?? fail('existingContainerAppsEnvPrivateDnsZoneId is required for ailz-integrated mode')
+  // CAE DNS zone is NOT validated here — it is created dynamically by cae-dns-zone.bicep
+  // using the CAE's defaultDomain and staticIp after provisioning. No pre-existing zone needed.
 } : {}
 
 // ========== VARIABLES ==========
@@ -130,6 +131,7 @@ var networkConfig = isAILZIntegrated ? {
   privateDnsZoneIds: {
     cognitiveServices: existingCognitiveServicesPrivateDnsZoneId
     blob: existingBlobPrivateDnsZoneId
+    queue: existingQueuePrivateDnsZoneId
     cosmos: existingCosmosPrivateDnsZoneId
     appConfig: existingAppConfigPrivateDnsZoneId
     acr: existingAcrPrivateDnsZoneId
@@ -151,7 +153,6 @@ var appConfigStoreName = 'appcs-${resourceToken}'
 var containerRegistryName = 'cr${resourceToken}'
 var containerAppsEnvironmentName = 'cae-${resourceToken}'
 var apiContainerAppName = 'api-${resourceToken}'
-var workerContainerAppName = 'worker-${resourceToken}'
 var webContainerAppName = 'web-${resourceToken}'
 
 // ========== MODULES DEPLOYMENT =========
@@ -204,6 +205,23 @@ var appInsightsConnectionString = !empty(existingAppInsightsId)
   : (shouldCreateAppInsights ? appInsights!.outputs.connectionString : '')
 
 
+// ========== QUEUE PRIVATE DNS ZONE (AILZ mode, auto-create if not provided) ==========
+// When no existing queue DNS zone is provided, create one so the storage queue
+// private endpoint can resolve via private IP within the VNet
+var shouldCreateQueueDnsZone = isAILZIntegrated && empty(existingQueuePrivateDnsZoneId)
+
+module queueDnsZone 'modules/queue-dns-zone.bicep' = if (shouldCreateQueueDnsZone) {
+  name: 'queue-dns-${resourceToken}'
+  params: {
+    vnetResourceId: existingVnetResourceId
+    tags: tags
+  }
+}
+
+var resolvedQueueDnsZoneId = isAILZIntegrated
+  ? (!empty(existingQueuePrivateDnsZoneId) ? existingQueuePrivateDnsZoneId : (shouldCreateQueueDnsZone ? queueDnsZone.outputs.dnsZoneId : ''))
+  : ''
+
 // ========== STORAGE ACCOUNT  ==========
 // Create new Storage Account, with private endpoint support (if using AILZ integrated mode), 
 // or use public endpoints (basic mode)
@@ -218,6 +236,7 @@ module storage 'modules/storage.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     blobPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.blob : ''
+    queuePrivateDnsZoneId: resolvedQueueDnsZoneId
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     tags: tags
@@ -232,7 +251,7 @@ module storage 'modules/storage.bicep' = {
 module cosmos 'modules/cosmos.bicep' = {
   name: 'cosmos-${resourceToken}'
   params: {
-    location: location
+    location: cosmosLocation
     cosmosAccountName: cosmosAccountName
     cosmosDbName: cosmosDbName
     cosmosDBContainerNames: cosmosDBContainerNames
@@ -259,7 +278,7 @@ module appConfigStore 'modules/app-config-store.bicep' = {
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     appConfigPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.appConfig : ''
-    publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Must be Enabled during provisioning for ARM to write key-values via data-plane proxy
     tags: tags
   }
 }
@@ -289,16 +308,6 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
         contentType: 'text/plain'
         name: 'contentflow.common.BLOB_STORAGE_CONTAINER_NAME'
         value: docsContainerName
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.common.STORAGE_ACCOUNT_WORKER_QUEUE_URL'
-        value: storage!.outputs.primaryQueueEndpoint
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.common.STORAGE_WORKER_QUEUE_NAME'
-        value: workerQueueName
       }
       // API settings
       {
@@ -343,94 +352,13 @@ module appConfigStoreKeys 'modules/app-config-store-keys.bicep' = {
       }
       {
         contentType: 'text/plain'
-        name: 'contentflow.api.WORKER_ENGINE_API_ENDPOINT'
-        value: 'https://${workerContainerApp.outputs.fqdn}'
-      }
-      // Worker settings
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.NUM_PROCESSING_WORKERS'
-        value: '4'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.NUM_SOURCE_WORKERS'
-        value: '2'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.LOG_LEVEL'
-        value: 'INFO'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.DEBUG'
-        value: 'false'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_ENABLED'
-        value: '${workerAPIEnabled}'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_HOST'
-        value: '0.0.0.0'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.API_PORT'
-        value: '${workerContainerAppTargetPort}'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_POLL_INTERVAL_SECONDS'
-        value: '5'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_VISIBILITY_TIMEOUT_SECONDS'
-        value: '300'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.QUEUE_MAX_MESSAGES'
-        value: '32'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.MAX_TASK_RETRIES'
-        value: '3'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.TASK_TIMEOUT_SECONDS'
-        value: '600'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.DEFAULT_POLLING_INTERVAL_SECONDS'
-        value: '60'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.SCHEDULER_SLEEP_INTERVAL_SECONDS'
-        value: '5'
-      }
-      {
-        contentType: 'text/plain'
-        name: 'contentflow.worker.LOCK_TTL_SECONDS'
-        value: '300'
-      }
-      {
-        contentType: 'text/plain'
         name: 'sentinel'
         value: '1'
       }
     ]
   }
   dependsOn: [
-    // appConfigStore
+    appConfigStore
   ]
 }
 
@@ -445,7 +373,7 @@ module containerRegistry 'modules/container-registry.bicep' = {
     location: location
     roleAssignedManagedIdentityPrincipalIds: [userAssignedIdentity.outputs.principalId]
     enablePrivateEndpoint: isAILZIntegrated
-    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointsSubnetId : ''
+    privateEndpointSubnetId: isAILZIntegrated ? networkConfig.privateEndpointSubnetId : ''
     acrPrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.acr : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
@@ -456,17 +384,17 @@ module containerRegistry 'modules/container-registry.bicep' = {
 // Create new Container Apps Environment, with private endpoint support (if using AILZ integrated mode),
 // or use public endpoints (basic mode)
 
+// Pass resolved Log Analytics workspace resource ID to the module (it derives customerId/sharedKey internally)
+
 module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
   name: 'cae-la-${resourceToken}'
   params: {
     containerAppsEnvironmentName: containerAppsEnvironmentName
-    logAnalyticsWorkspaceId: !empty(existingLogAnalyticsWorkspaceId) ? existingLogAnalyticsWorkspaceId : logAnalytics!.outputs.logAnalyticsWorkspaceId
-    logAnalyticsPrimarySharedKey: !empty(existingLogAnalyticsWorkspaceId) ? listKeys(existingLogAnalyticsWorkspaceId, '2021-12-01-preview').primarySharedKey : logAnalytics.outputs.primarySharedKey
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceId
     userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     location: location
     enablePrivateEndpoint: isAILZIntegrated
     privateEndpointSubnetId: isAILZIntegrated ? networkConfig.containerAppsSubnetId : null
-    // caePrivateDnsZoneId: isAILZIntegrated ? networkConfig.privateDnsZoneIds.existingContainerAppsEnvPrivateDnsZoneId : ''
     publicNetworkAccess: isAILZIntegrated ? 'Disabled' : 'Enabled'
     tags: tags
   }
@@ -483,22 +411,46 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
   }
 }
 
+// ========== OPENAI RBAC ROLE ASSIGNMENT (for standalone Azure OpenAI resources) ==========
+module openaiRoleAssignment 'modules/openai-role-assignment.bicep' = if (!empty(existingOpenAIResourceId)) {
+  name: 'openai-role-${resourceToken}'
+  params: {
+    openAIResourceId: existingOpenAIResourceId
+    principalIds: !empty(principalId)
+      ? [userAssignedIdentity.outputs.principalId, principalId]
+      : [userAssignedIdentity.outputs.principalId]
+  }
+}
+
+// ========== CAE PRIVATE DNS ZONE (AILZ mode only) ==========
+// Internal CAE requires a private DNS zone matching its default domain
+// with a wildcard A record pointing to its static IP for DNS resolution
+module caeDnsZone 'modules/cae-dns-zone.bicep' = if (isAILZIntegrated) {
+  name: 'cae-dns-${resourceToken}'
+  params: {
+    caeDefaultDomain: containerAppsEnvironment.outputs.defaultDomain
+    caeStaticIp: containerAppsEnvironment.outputs.staticIp
+    vnetResourceId: existingVnetResourceId
+    tags: tags
+  }
+}
+
 // ========== API CONTAINER APP ==========
 module apiContainerApp 'modules/container-app.bicep' = {
   name: 'ca-api-${resourceToken}'
   params: {
     name: apiContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
+    location: containerAppsEnvironment.outputs.location
+    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8090
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
-    livenessProbePath: '/'
+    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 2
     memoryInGB: '4Gi'
-    minReplicas: 1
+    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
     maxReplicas: 2
     environmentVariables: [
       {
@@ -513,62 +465,39 @@ module apiContainerApp 'modules/container-app.bicep' = {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
       }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT_NAME'
+        value: storageAccountName
+      }
+      {
+        name: 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: 'https://${aiFoundry.outputs.aiServicesName}.services.ai.azure.com'
+      }
     ]
     tags: union(tags, { 'azd-service-name': 'api' })
   }
 }
 
-// ========== WORKER CONTAINER APP ==========
-module workerContainerApp 'modules/container-app.bicep' = {
-  name: 'ca-worker-${resourceToken}'
-  params: {
-    name: workerContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
-    containerRegistryServer: containerRegistry!.outputs.loginServer
-    managedIdentityId: userAssignedIdentity.outputs.resourceId
-    targetPort: workerContainerAppTargetPort
-    externalIngress: !isAILZIntegrated
-    corsEnabled: true
-    livenessProbePath: '/'
-    cpuCores: 2
-    memoryInGB: '4Gi'
-    minReplicas: 1
-    maxReplicas: 3
-    environmentVariables: [
-      {
-        name: 'AZURE_APP_CONFIG_ENDPOINT'
-        value: appConfigStore!.outputs.endpoint
-      }
-      {
-        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-        value: appInsightsConnectionString
-      }
-      {
-        name: 'AZURE_CLIENT_ID'
-        value: userAssignedIdentity.outputs.clientId
-      }
-    ]
-    tags: union(tags, { 'azd-service-name': 'worker' })
-  }
-}
-
-// ========== API CONTAINER APP ==========
+// ========== WEB CONTAINER APP ==========
 module webContainerApp 'modules/container-app.bicep' = {
   name: 'ca-web-${resourceToken}'
   params: {
     name: webContainerAppName
-    location: containerAppsEnvironment!.outputs.location
-    containerAppsEnvId: containerAppsEnvironment!.outputs.resourceId
+    location: containerAppsEnvironment.outputs.location
+    containerAppsEnvId: containerAppsEnvironment.outputs.resourceId
     containerRegistryServer: containerRegistry!.outputs.loginServer
     managedIdentityId: userAssignedIdentity.outputs.resourceId
     targetPort: 8080
-    externalIngress: !isAILZIntegrated
+    externalIngress: true
     corsEnabled: true
-    livenessProbePath: '/'
+    livenessProbePath: '' // Disabled for initial provisioning with placeholder image
     cpuCores: 1
     memoryInGB: '2Gi'
-    minReplicas: 1
+    minReplicas: 0 // Set to 0 for initial provisioning - container will scale up when real image is deployed
     maxReplicas: 1
     environmentVariables: [
       {
@@ -592,7 +521,6 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Service endpoints
 output API_ENDPOINT string = 'https://${apiContainerApp.outputs.fqdn}'
-output WORKER_ENDPOINT string = 'https://${workerContainerApp.outputs.fqdn}'
 output WEB_ENDPOINT string = 'https://${webContainerApp.outputs.fqdn}'
 
 // Resource outputs
@@ -600,7 +528,6 @@ output COSMOS_DB_ENDPOINT string = cosmos.outputs.cosmosEndpoint
 output COSMOS_DB_NAME string = cosmosDbName
 output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output STORAGE_QUEUE_URL string = storage.outputs.primaryQueueEndpoint
-output STORAGE_QUEUE_NAME string = workerQueueName
 output APP_CONFIG_ENDPOINT string = appConfigStore.outputs.endpoint
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsConnectionString
 

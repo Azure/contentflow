@@ -20,6 +20,7 @@ __cache_ttl: int = 60 * 10  # cache for 10 minutes for all services
 
 
 EXECUTOR_CATALOG_FILE_PATH = f'{Path(__file__).parent.parent.parent}/contentflow-lib/executor_catalog.yaml'
+SEED_PIPELINES_DIR = f'{Path(__file__).parent.parent}/seed/pipelines'
 
 def get_config_provider(refresh: bool = False) -> ConfigurationProvider:
     """Get a singleton instance of ConfigurationProvider"""
@@ -54,10 +55,7 @@ def get_health_service():
                          cosmos_db_name=app_settings.COSMOS_DB_NAME,
                          cosmos_db_containers=app_settings.get_cosmos_db_containers(),
                          blob_storage_account=app_settings.BLOB_STORAGE_ACCOUNT_NAME,
-                         blob_storage_container=app_settings.BLOB_STORAGE_CONTAINER_NAME,
-                         storage_account_worker_queue_url=app_settings.STORAGE_ACCOUNT_WORKER_QUEUE_URL,
-                         storage_worker_queue_name=app_settings.STORAGE_WORKER_QUEUE_NAME,
-                         worker_engine_api_endpoint=app_settings.WORKER_ENGINE_API_ENDPOINT)
+                         blob_storage_container=app_settings.BLOB_STORAGE_CONTAINER_NAME)
 
 @ttl_cache(ttl=__cache_ttl)  # Cache for 10 minutes
 async def get_pipeline_service():
@@ -88,6 +86,20 @@ async def get_pipeline_execution_service():
     """Dependency to get PipelineExecutionService"""
     from app.services.pipeline_execution_service import PipelineExecutionService
     return PipelineExecutionService(await get_cosmos_client())
+
+
+async def get_ingest_service():
+    """Dependency to get IngestService (uses global blob storage singleton)"""
+    from app.settings import get_settings
+    from app.utils.blob_storage import get_blob_storage_service
+    from app.services.ingest_service import IngestService
+
+    app_settings = get_settings()
+    blob_service = await get_blob_storage_service(
+        account_name=app_settings.BLOB_STORAGE_ACCOUNT_NAME,
+        container_name=app_settings.BLOB_STORAGE_CONTAINER_NAME,
+    )
+    return IngestService(blob_service)
 
 async def initialize_executor_catalog():
     """Initialize executor catalog"""
@@ -155,6 +167,116 @@ async def initialize_blob_storage():
         return True
     except Exception as e:
         logger.error(f"Error during blob storage dependencies initialization: {str(e)}")
+        logger.exception(e)
+        raise
+
+async def initialize_seed_pipelines():
+    """Seed pipelines from YAML files in seed/pipelines/ on startup.
+    
+    For each YAML file, checks if a pipeline with the same name already exists.
+    If not, creates it. If it already exists, skips it.
+    """
+    import yaml
+    import glob
+
+    logger.info(f"{'>'*70}")
+    logger.info("contentflow.api: Seeding pipelines from seed/pipelines/...")
+    logger.info(f"{'-'*70}")
+    try:
+        pipeline_service = await get_pipeline_service()
+        seed_dir = str(SEED_PIPELINES_DIR)
+        yaml_files = glob.glob(f"{seed_dir}/*.yaml") + glob.glob(f"{seed_dir}/*.yml")
+
+        if not yaml_files:
+            logger.info("No pipeline YAML files found in seed/pipelines/. Skipping.")
+            logger.info(f"{'<'*70}")
+            return True
+
+        created = 0
+        skipped = 0
+        for yaml_path in yaml_files:
+            try:
+                with open(yaml_path, "r") as f:
+                    raw = yaml.safe_load(f)
+
+                pipeline_def = raw.get("pipeline", raw)
+                name = pipeline_def.get("name")
+                if not name:
+                    logger.warning(f"Skipping {yaml_path}: no 'name' field found.")
+                    continue
+
+                # Check if already exists
+                existing = await pipeline_service.get_pipeline_by_name(name)
+                if existing:
+                    logger.info(f"  Pipeline '{name}' already exists (id={existing.id}). Skipping.")
+                    skipped += 1
+                    continue
+
+                # Build the full YAML string for storage
+                with open(yaml_path, "r") as f:
+                    yaml_str = f.read()
+
+                # Parse executors from YAML into nodes for canvas visualization
+                executors = pipeline_def.get("executors", [])
+                nodes = []
+                for executor in executors:
+                    nodes.append({
+                        "id": executor.get("id", ""),
+                        "type": "executor",
+                        "position": executor.get("position", {"x": 0, "y": 0}),
+                        "data": {
+                            "label": executor.get("name", ""),
+                            "executor": {
+                                "id": executor.get("type", ""),
+                                "name": executor.get("name", ""),
+                                "category": "unknown",
+                                "description": executor.get("description", ""),
+                            },
+                            "config": {
+                                "name": executor.get("name", ""),
+                                "description": executor.get("description", ""),
+                                "settings": executor.get("settings", {}),
+                            },
+                        },
+                    })
+
+                # Parse edges from YAML for canvas connections
+                yaml_edges = pipeline_def.get("edges", [])
+                edges = []
+                for edge_def in yaml_edges:
+                    src = edge_def.get("from", "")
+                    tgt = edge_def.get("to", "")
+                    if isinstance(src, str) and isinstance(tgt, str):
+                        edges.append({
+                            "id": f"{src}-{tgt}-{len(edges)}",
+                            "source": src,
+                            "target": tgt,
+                            "type": "default",
+                            "animated": True,
+                        })
+
+                pipeline_data = {
+                    "name": name,
+                    "description": pipeline_def.get("description", ""),
+                    "yaml": yaml_str,
+                    "nodes": nodes,
+                    "edges": edges,
+                    "tags": pipeline_def.get("tags", []),
+                    "enabled": True,
+                }
+
+                result = await pipeline_service.create_pipeline(pipeline_data)
+                logger.info(f"  Created pipeline '{name}' with id={result.id}")
+                created += 1
+
+            except Exception as e:
+                logger.warning(f"  Failed to seed pipeline from {yaml_path}: {e}")
+
+        logger.info(f"Pipeline seeding complete: {created} created, {skipped} skipped.")
+        logger.info(f"{'<'*70}")
+        return True
+    except Exception as e:
+        logger.error(f"Error during pipeline seeding: {str(e)}")
         logger.exception(e)
         raise
 

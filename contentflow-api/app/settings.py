@@ -57,17 +57,24 @@ class AppSettings(BaseModel):
     # Azure Storage Blob settings
     BLOB_STORAGE_ACCOUNT_NAME: str = ""
     BLOB_STORAGE_CONTAINER_NAME: str = "content"
-    
-    # Azure Storage Queue settings
-    STORAGE_ACCOUNT_WORKER_QUEUE_URL: str = ""
-    STORAGE_WORKER_QUEUE_NAME: str = "contentflow-execution-requests"
 
-    WORKER_ENGINE_API_ENDPOINT: str = "http://localhost:8099"
+    # Ingest API settings
+    INGEST_PIPELINE_NAME: str = "Details extraction and validation pipeline"
+    INGEST_MAX_FILE_COUNT: int = 20
+    INGEST_MAX_FILE_SIZE_MB: int = 100
+    INGEST_MAX_TOTAL_SIZE_MB: int = 500
+    INGEST_ALLOWED_EXTENSIONS: list[str] = [
+        ".pdf", ".docx", ".pptx", ".xlsx",
+        ".png", ".jpg", ".jpeg", ".tiff"
+    ]
 
     def __init__(self, **kwargs):
         """Initialize AppSettings and load configuration from Azure App Configuration"""
         super().__init__(**kwargs)
-        self._load_from_app_config()
+        try:
+            self._load_from_app_config()
+        except Exception as e:
+            print(f"\033[93m⚠️ Could not load from App Config: {e}. Using defaults/env vars.\033[0m")
 
     def _load_from_app_config(self):
         """Load configuration values from Azure App Configuration"""
@@ -84,9 +91,6 @@ class AppSettings(BaseModel):
                 "COSMOS_DB_NAME",
                 "BLOB_STORAGE_ACCOUNT_NAME",
                 "BLOB_STORAGE_CONTAINER_NAME",
-                "STORAGE_ACCOUNT_WORKER_QUEUE_URL",
-                "STORAGE_WORKER_QUEUE_NAME",
-                "WORKER_ENGINE_API_ENDPOINT",
                 "API_SERVER_HOST",
                 "API_SERVER_PORT",
                 "API_SERVER_WORKERS",

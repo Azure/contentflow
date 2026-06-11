@@ -30,6 +30,12 @@ if ! az account show &> /dev/null; then
     exit 1
 fi
 
+# Note: ACR placeholder image import is NOT done here.
+# In AILZ mode, ACR is fully private (publicNetworkAccess=Disabled).
+# Use 'az acr build' (ACR Tasks) during 'azd deploy' to build and push images
+# inside the ACR without requiring public access.
+echo "✓ ACR image build will be handled by ACR Tasks during deployment phase."
+
 echo "=================================================="
 echo "✓ Pre-provision checks completed successfully"
 echo "=================================================="

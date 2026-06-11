@@ -246,8 +246,7 @@ class AzureBlobOutputExecutor(ParallelExecutor):
         for field_path in matches:
             value = self._get_nested_value(source_data, field_path)
             if value is not None:
-                # Convert to string, handling special characters
-                str_value = str(value).replace('/', '_').replace('\\', '_')
+                str_value = str(value)
                 result = result.replace(f'{{{field_path}}}', str_value)
             else:
                 # Replace with 'unknown' if field not found

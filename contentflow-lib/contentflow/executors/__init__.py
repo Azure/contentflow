@@ -39,6 +39,7 @@ from .gptrag_search_index_doc_generator import GPTRAGSearchIndexDocumentGenerato
 from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
 from .cosmos_db_lookup_executor import CosmosDBLookupExecutor
+from .document_validation_executor import DocumentValidationExecutor
 
 # Document Set executors
 from .document_set_initializer import DocumentSetInitializerExecutor

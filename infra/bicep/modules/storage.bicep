@@ -117,17 +117,15 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.27.1' = {
         subnetResourceId: privateEndpointSubnetId
         service: 'blob'
         privateLinkServiceConnectionName: '${storageAccountName}-blob-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'blob-dns-zone-group'
-            privateDnsZoneGroupConfigs: [
-              {
-                name: 'blob-config'
-                privateDnsZoneResourceId: blobPrivateDnsZoneId
-              }
-            ]
-          }
-        ]
+        privateDnsZoneGroup: !empty(blobPrivateDnsZoneId) ? {
+          name: 'blob-dns-zone-group'
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'blob-config'
+              privateDnsZoneResourceId: blobPrivateDnsZoneId
+            }
+          ]
+        } : null
       }
       {
         name: '${storageAccountName}-queue-pe'
@@ -135,17 +133,15 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.27.1' = {
         subnetResourceId: privateEndpointSubnetId
         service: 'queue'
         privateLinkServiceConnectionName: '${storageAccountName}-queue-plsc'
-        privateDnsZoneGroups: [
-          {
-            name: 'queue-dns-zone-group'
-            privateDnsZoneGroupConfigs: [
-              {
-                name: 'queue-config'
-                privateDnsZoneResourceId: queuePrivateDnsZoneId
-              }
-            ]
-          }
-        ]
+        privateDnsZoneGroup: !empty(queuePrivateDnsZoneId) ? {
+          name: 'queue-dns-zone-group'
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'queue-config'
+              privateDnsZoneResourceId: queuePrivateDnsZoneId
+            }
+          ]
+        } : null
       }
     ] : []
     blobServices: {

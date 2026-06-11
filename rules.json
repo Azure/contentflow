@@ -1,0 +1,205 @@
+{
+  "rules": [
+    {
+      "documentType": "Driving License",
+      "validations": [
+        {
+          "field": "ExpirationDate",
+          "validationType": "expiry_check",
+          "errorCode": "DL_EXPIRED",
+          "message_en": "Your driving license has expired. Please upload a valid driving license.",
+          "message_es": "Su licencia de conducir ha expirado. Por favor, cargue una licencia de conducir válida."
+        },
+        {
+          "field": "FirstName",
+          "validationType": "exact_match",
+          "errorCode": "DL_FIRST_NAME_MISMATCH",
+          "message_en": "The first name on the driving license does not match the first name registered in your case.",
+          "message_es": "El nombre en la licencia de conducir no coincide con el nombre registrado en su caso."
+        },
+        {
+          "field": "LastName",
+          "validationType": "exact_match",
+          "errorCode": "DL_LAST_NAME_MISMATCH",
+          "message_en": "The last name on the driving license does not match the fist last and second last name registered in your case.",
+          "message_es": "El apellido en la licencia de conducir no coincide con el primer y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "DL_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the driving license does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la licencia de conducir no coincide con la dirección postal registrada en su caso."
+        },
+        {
+          "field": "BirthDate",
+          "validationType": "date_match",
+          "errorCode": "DL_DOB_MISMATCH",
+          "message_en": "The day of birth on the driving license does not match the birth date registered in your case.",
+          "message_es": "La fecha de nacimiento en la licencia de conducir no coincide con la fecha de nacimiento registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Passport",
+      "validations": [
+        {
+          "field": "ExpirationDate",
+          "validationType": "expiry_check",
+          "errorCode": "PP_EXPIRED",
+          "message_en": "Your passport has expired. Please upload a passport.",
+          "message_es": "Su pasaporte ha expirado. Por favor, cargue un pasaporte válido."
+        },
+        {
+          "field": "LastName",
+          "validationType": "exact_match",
+          "errorCode": "PP_LAST_NAME_MISMATCH",
+          "message_en": "The last name on the passport does not match the fist last and second last name registered in your case.",
+          "message_es": "El apellido en el pasaporte no coincide con el primer y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "FirstName",
+          "validationType": "exact_match",
+          "errorCode": "PP_FIRST_NAME_MISMATCH",
+          "message_en": "The first name on the passport does not match the first name registered in your case.",
+          "message_es": "El nombre en el pasaporte no coincide con el nombre registrado en su caso."
+        },
+        {
+          "field": "BirthDate",
+          "validationType": "date_match",
+          "errorCode": "PP_DOB_MISMATCH",
+          "message_en": "The day of birth on the passport does not match the birth date registered in your case.",
+          "message_es": "La fecha de nacimiento en el pasaporte no coincide con la fecha de nacimiento registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Real ID",
+      "validations": [
+        {
+          "field": "ExpirationDate",
+          "validationType": "expiry_check",
+          "errorCode": "RD_EXPIRED",
+          "message_en": "Your real ID has expired. Please upload a valid real ID.",
+          "message_es": "Su Real ID ha expirado. Por favor, cargue una Real ID válida."
+        },
+        {
+          "field": "FirstName",
+          "validationType": "exact_match",
+          "errorCode": "RD_FIRST_NAME_MISMATCH",
+          "message_en": "The first name on the real ID does not match the first name registered in your case.",
+          "message_es": "El nombre en la Real ID no coincide con el nombre registrado en su caso."
+        },
+        {
+          "field": "LastName",
+          "validationType": "exact_match",
+          "errorCode": "RD_LAST_NAME_MISMATCH",
+          "message_en": "The last name on the real ID does not match the first last and second last name registered in your case.",
+          "message_es": "El apellido en la Real ID no coincide con el primer y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "RD_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the real ID does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la Real ID no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Water utility bill",
+      "validations": [
+        {
+          "field": "FullName",
+          "validationType": "name_match",
+          "errorCode": "WB_FIRST_LAST_NAME_MISMATCH",
+          "message_en": "The first and last name on the water utility bill does not match the first name, fist last and second last name registered in your case.",
+          "message_es": "El nombre y apellido en la factura de agua no coinciden con el nombre, primer apellido y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "WB_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the water utility bill does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la factura de agua no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Power utility bill",
+      "validations": [
+        {
+          "field": "FullName",
+          "validationType": "name_match",
+          "errorCode": "PB_FIRST_LAST_NAME_MISMATCH",
+          "message_en": "The first and last name on the power utility bill does not match the first name, fist last and second last name registered in your case.",
+          "message_es": "El nombre y apellido en la factura de electricidad no coinciden con el nombre, primer apellido y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "PB_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the power utility bill does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la factura de electricidad no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Telecom utility bill_claro",
+      "validations": [
+        {
+          "field": "FullName",
+          "validationType": "name_match",
+          "errorCode": "TC_FIRST_LAST_NAME_MISMATCH",
+          "message_en": "The first and last name on the telecom utility bill does not match the first name, fist last and second last name registered in your case.",
+          "message_es": "El nombre y apellido en la factura de telecomunicaciones no coinciden con el nombre, primer apellido y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "TC_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the telecom utility bill does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la factura de telecomunicaciones no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Telecom utility bill_liberty",
+      "validations": [
+        {
+          "field": "FullName",
+          "validationType": "name_match",
+          "errorCode": "TL_FIRST_LAST_NAME_MISMATCH",
+          "message_en": "The first and last name on the telecom utility bill does not match the first name, fist last and second last name registered in your case.",
+          "message_es": "El nombre y apellido en la factura de telecomunicaciones no coinciden con el nombre, primer apellido y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "TL_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the telecom utility bill does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la factura de telecomunicaciones no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    },
+    {
+      "documentType": "Telecom utility bill_tmobile",
+      "validations": [
+        {
+          "field": "FullName",
+          "validationType": "name_match",
+          "errorCode": "TT_FIRST_LAST_NAME_MISMATCH",
+          "message_en": "The first and last name on the telecom utility bill does not match the firstname, fist last and second last name registered in your case.",
+          "message_es": "El nombre y apellido en la factura de telecomunicaciones no coinciden con el nombre, primer apellido y segundo apellido registrados en su caso."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "TT_ADDRESS_MISMATCH",
+          "message_en": "The mailing address on the telecom utility bill does not match the postal address registered in your case.",
+          "message_es": "La dirección postal en la factura de telecomunicaciones no coincide con la dirección postal registrada en su caso."
+        }
+      ]
+    }
+  ]
+}

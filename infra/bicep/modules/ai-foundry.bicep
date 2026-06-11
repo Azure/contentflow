@@ -10,8 +10,16 @@ param roleAssignedManagedIdentityPrincipalIds string[] = []
 @description('Tags for resources')
 param tags object = {}
 
-// Ensure unique role assignments
-var uniqueRoleAssignmentManagedIdentities = union(roleAssignedManagedIdentityPrincipalIds, roleAssignedManagedIdentityPrincipalIds)
+// NOTE: User/human deployer role assignments (Azure AI Developer) are intentionally NOT done here.
+// ARM role assignments have deterministic GUIDs computed from scope+principal+role. If the same role
+// was previously assigned via CLI (random GUID), Bicep will conflict with a RoleAssignmentExists error
+// and fail the entire deployment. post-provision.sh owns all user role assignments exclusively,
+// using `az role assignment create` which is idempotent and handles duplicates gracefully.
+var managedIdentityRoleAssignments = [for principalId in roleAssignedManagedIdentityPrincipalIds: {
+  principalId: principalId
+  principalType: 'ServicePrincipal'
+  roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // 'Azure AI User'
+}]
 
 module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
   params: {
@@ -31,13 +39,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
         displayName: 'ContentFlow'
         name: 'contentflow-project'
       }
-      roleAssignments: [
-          for principalId in uniqueRoleAssignmentManagedIdentities: {
-            principalId: principalId
-            principalType: 'ServicePrincipal'
-            roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // 'Azure AI User'
-          }
-        ]
+      roleAssignments: managedIdentityRoleAssignments
       sku: 'S0'
     }
     aiModelDeployments: [
@@ -63,6 +65,18 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
         sku: {
           capacity: 100
           name: 'GlobalStandard'
+        }
+      }
+      {
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-large'
+          version: '1'
+        }
+        name: 'text-embedding-3-large'
+        sku: {
+          capacity: 100
+          name: 'Standard'
         }
       }
     ]

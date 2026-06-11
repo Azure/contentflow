@@ -309,6 +309,14 @@ class AzureBlobInputDiscoveryExecutor(InputExecutor):
                 f"container '{self.blob_container_name}' in {elapsed:.2f}s"
             )
             
+            # Propagate data fields from input content to each discovered item
+            # so downstream executors can reference parent context (e.g., execution_id)
+            if isinstance(input, Content) and input.data:
+                for item in content_items:
+                    for key, value in input.data.items():
+                        if key not in item.data:
+                            item.data[key] = value
+            
             # Virtual folder discovery mode
             if self.discover_mode == "virtual_folders":
                 return self._extract_virtual_folders(content_items)
