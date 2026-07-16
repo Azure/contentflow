@@ -27,6 +27,7 @@ services:
         shell: sh
         run: ../infra/scripts/post-deploy-api.sh
         continueOnError: false
+      remoteBuild: true
 
   # ContentFlow Worker - Container App
   worker:
@@ -49,31 +50,31 @@ services:
       target: ""
     
 # Global hooks
-hooks:
-  # Run before provisioning infrastructure
-  preprovision:
-    shell: sh
-    run: ./infra/scripts/pre-provision.sh
-    interactive: false
-    continueOnError: false
+# hooks:
+#   # Run before provisioning infrastructure
+#   preprovision:
+#     shell: sh
+#     run: ./infra/scripts/pre-provision.sh
+#     interactive: false
+#     continueOnError: false
   
-  # Run after infrastructure is provisioned
-  postprovision:
-    shell: sh
-    run: ./infra/scripts/post-provision.sh
-    interactive: false
-    continueOnError: false
+#   # Run after infrastructure is provisioned
+#   # postprovision:
+#   #   shell: sh
+#   #   run: ./infra/scripts/post-provision.sh
+#   #   interactive: false
+#   #   continueOnError: false
 
-  # Run before deploying services - validates ACR pull readiness
-  predeploy:
-    shell: sh
-    run: ./infra/scripts/pre-deploy.sh
-    interactive: false
-    continueOnError: false
+#   # # Run before deploying all services
+#   # predeploy:
+#   #   shell: sh
+#   #   run: ./infra/scripts/pre-deploy.sh
+#   #   interactive: false
+#   #   continueOnError: false
 
-  # Run after all services are deployed
-  postdeploy:
-    shell: sh
-    run: ./infra/scripts/post-deploy.sh
-    interactive: true
-    continueOnError: false
+#   # Run after all services are deployed
+#   postdeploy:
+#     shell: sh
+#     run: ./infra/scripts/post-deploy.sh
+#     interactive: true
+#     continueOnError: false

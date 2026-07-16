@@ -96,9 +96,9 @@ export function PipelineExecutionStatus({ executionId, onClose }: PipelineExecut
               const updatedOutputs = { ...prev.executor_outputs };
               if (event.executor_id) {
                 const status = 
-                  event.event_type === 'ExecutorCompletedEvent' ? 'completed' :
-                  event.event_type === 'ExecutorInvokedEvent' ? 'running' :
-                  event.event_type === 'ExecutorFailedEvent' ? 'failed' :
+                  event.event_type === 'executor_completed' ? 'completed' :
+                  event.event_type === 'executor_invoked' ? 'running' :
+                  event.event_type === 'executor_failed' ? 'failed' :
                   updatedOutputs[event.executor_id]?.status || 'pending';
 
                 updatedOutputs[event.executor_id] = {
@@ -198,13 +198,13 @@ export function PipelineExecutionStatus({ executionId, onClose }: PipelineExecut
   const events = execution.events || [];
 
   const getEventIcon = (eventType: string) => {
-    if (eventType.includes('Completed')) {
+    if (eventType.includes('completed')) {
       return <CheckCircle2 className="w-4 h-4 text-green-500" />;
     }
-    if (eventType.includes('Invoked') || eventType.includes('Started')) {
+    if (eventType.includes('invoked') || eventType.includes('started')) {
       return <Activity className="w-4 h-4 text-blue-500" />;
     }
-    if (eventType.includes('Output')) {
+    if (eventType.includes('output')) {
       return <FileOutput className="w-4 h-4 text-blue-500" />;
     }
     if (eventType === 'error') {

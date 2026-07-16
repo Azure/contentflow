@@ -4,16 +4,16 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional
 
+
 try:
-    from agent_framework.azure import AzureOpenAIResponsesClient
-    from agent_framework import ChatAgent, AgentResponse
-    from agent_framework.exceptions import ServiceResponseException
+    from agent_framework.openai import OpenAIChatClient
+    from agent_framework import Agent, AgentResponse
 except ImportError:
     raise ImportError(
-        "agent-framework and azure-identity are required for AI Agent execution. "
-        "Install them with: pip install agent-framework azure-identity"
+        "agent-framework import error. Either the library is not installed or there is \
+            an issue with the version of the installed library. "
     )
-
+    
 from ..utils.credential_provider import get_azure_credential
 from . import ParallelExecutor
 from ..models import Content
@@ -23,9 +23,9 @@ logger = logging.getLogger("contentflow.executors.azure_openai_agent_executor")
 
 class AzureOpenAIAgentExecutor(ParallelExecutor):
     """
-    Execute AI agent interactions using Azure OpenAI Responses Client.
+    Execute AI agent interactions using OpenAIChatClient.
     
-    This executor wraps an agent created with AzureOpenAIResponsesClient from the
+    This executor wraps an agent created with OpenAIChatClient from the
     agent-framework library to process content items with AI capabilities.
     
     Configuration (settings dict):
@@ -63,7 +63,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
     
     Example:
         ```python
-        executor = AIAgentExecutor(
+        executor = AzureOpenAIAgentExecutor(
             id="ai_agent",
             settings={
                 "instructions": "You are a document summarizer. Provide concise summaries.",
@@ -123,36 +123,38 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
             if not self.api_key:
                 raise ValueError(f"{self.id}: api_key must be provided for azure_key_credential")
         
-        self.agent: Optional[ChatAgent] = None
+        self.agent: Optional[Agent] = None
         
         if self.debug_mode:
             logger.debug(
-                f"AIAgentExecutor {self.id} initialized: "
+                f"AzureOpenAIAgentExecutor {self.id} initialized: "
                 f"instructions='{self.instructions[:50]}...', deployment_name={self.deployment_name}"
             )
     
-    def __init_agent(self) -> ChatAgent:
+    def __init_agent(self) -> Agent:
         """Initialize the AI agent."""
         
         # Initialize Azure OpenAI Responses Client
         client_kwargs = {}
-        client_kwargs['deployment_name'] = self.deployment_name
-        client_kwargs['endpoint'] = self.endpoint
+        client_kwargs['model'] = self.deployment_name
+        client_kwargs['azure_endpoint'] = self.endpoint
         client_kwargs["credential"] = get_azure_credential() if self.credential_type == "default_azure_credential" else None
         client_kwargs["api_key"] = self.api_key if self.credential_type == "azure_key_credential" else None
         
-        client = AzureOpenAIResponsesClient(**client_kwargs)
+        client = OpenAIChatClient(**client_kwargs)
         
         # Create agent
         agent_kwargs = {
             'id': f"{self.id}_agent",
             'name': f"{self.id}_agent",
-            'temperature': self.temperature,
-            'max_tokens': self.max_tokens,
-            'instructions': self.instructions
+            'instructions': self.instructions,
+            'default_options': {
+                'temperature': self.temperature,
+                'max_tokens': self.max_tokens
+            },
         }
         
-        self.agent: ChatAgent = client.create_agent(**agent_kwargs)
+        self.agent: Agent = client.as_agent(**agent_kwargs)
     
     
     async def process_content_item(
@@ -234,7 +236,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         """
         retries = 0
         backoff = self.retry_backoff_seconds
-        result = None
+        result: AgentResponse = None
         
         # Initialize agent if not already done
         if self.agent is None:
@@ -242,7 +244,7 @@ class AzureOpenAIAgentExecutor(ParallelExecutor):
         
         while True:
             try:
-                result = await self.agent.run(query, store=False)
+                result = await self.agent.run(messages=query, options={"store": False})
                 break
             except Exception as e:
                 if retries >= self.max_retries:

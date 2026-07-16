@@ -107,11 +107,12 @@ async def run_pipeline():
         total_duration = result.duration_seconds
         
         print(f"\n✓ AI agent processing completed")
-        print(f"  Total documents: {len(result.content) if isinstance(result.content, list) else 1}")
-        print(f"  Successful: {successful}")
-        print(f"  Failed: {failed}")
-        print(f"  Total duration (seconds): {total_duration:.2f}s")
-        print(f"  Avg per document: {total_duration/(len(result.content) if isinstance(result.content, list) else 1):.2f}s")
+        print(f"  Pipeline Result: {result.status}")
+        print(f"    Total documents: {len(result.content) if isinstance(result.content, list) else 1}")
+        print(f"    Successful: {successful}")
+        print(f"    Failed: {failed}")
+        print(f"    Total duration (seconds): {total_duration:.2f}s")
+        print(f"    Avg per document: {total_duration/(len(result.content) if isinstance(result.content, list) else 1):.2f}s")
         
         # Show sample agent responses
         if isinstance(result.content, list) and len(result.content) > 0:

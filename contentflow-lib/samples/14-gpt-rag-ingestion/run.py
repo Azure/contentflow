@@ -44,12 +44,11 @@ async def run_pipeline():
     
     # Validate required environment variables
     required_vars = [
-        "AZURE_STORAGE_ACCOUNT",
-        "AZURE_BLOB_CONTAINER_NAME",
-        "AZURE_DOC_INTELLIGENCE_ENDPOINT",
-        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_STORAGE_ACCOUNT_NAME",
+        "AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT",
+        "AZURE_OPENAI_EMBEDDINGS_ENDPOINT",
         "AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT",
-        "AZURE_AI_SEARCH_ACCOUNT",
+        "AZURE_AI_SEARCH_SERVICE_ACCOUNT_NAME",
         "AZURE_AI_SEARCH_INDEX"
     ]
     
@@ -70,8 +69,8 @@ async def run_pipeline():
     ) as pipeline:
         
         print(f"\n✓ Initialized GPT-RAG ingestion pipeline")
-        print(f"  - Source: Azure Blob Storage ({os.getenv('AZURE_BLOB_CONTAINER_NAME')})")
-        print(f"  - Document Intelligence: {os.getenv('AZURE_DOC_INTELLIGENCE_ENDPOINT')}")
+        print(f"  - Source: Azure Blob Storage ({os.getenv('AZURE_STORAGE_ACCOUNT_NAME')})")
+        print(f"  - Document Intelligence: {os.getenv('AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT')}")
         print(f"  - Embeddings Model: {os.getenv('AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT')}")
         print(f"  - Search Index: {os.getenv('AZURE_AI_SEARCH_INDEX')}")
         

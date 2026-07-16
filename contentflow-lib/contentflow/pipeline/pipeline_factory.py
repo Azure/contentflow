@@ -467,32 +467,48 @@ class PipelineFactory:
         if not execution_sequence:
             raise ValueError("Execution sequence cannot be empty")
         
-        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name)
-        
-        # Register all executor factories with the builder
-        for executor_id, factory in executor_factories.items():
-            builder.register_executor(factory, name=executor_id)
-            logger.debug(f"Registered executor factory: {executor_id}")
-        
         # Set the first executor as start (by name)
         first_executor_id = execution_sequence[0]
         if first_executor_id not in executor_factories:
             raise ValueError(f"Executor '{first_executor_id}' not found")
         
-        builder.set_start_executor(first_executor_id)
+        first_executor_instance = executor_factories[first_executor_id]()
         
-        # Add sequential edges using executor names
+        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name, start_executor=first_executor_instance)
+        
+        # # Register all executor factories with the builder
+        # for executor_id, factory in executor_factories.items():
+        #     builder.register_executor(factory, name=executor_id)
+        #     logger.debug(f"Registered executor factory: {executor_id}")
+        
+        # builder.set_start_executor(first_executor_id)
+        
+        # Create executor instances, reusing the first one already created
+        executor_instances = {first_executor_id: first_executor_instance}
+        for exec_id in execution_sequence[1:]:
+            if exec_id not in executor_factories:
+                logger.warning(f"Executor '{exec_id}' not found in factories, skipping")
+                continue
+            executor_instances[exec_id] = executor_factories[exec_id]()
+        
+        # Add sequential edges between consecutive executors
         for i in range(len(execution_sequence) - 1):
             current_id = execution_sequence[i]
             next_id = execution_sequence[i + 1]
             
-            if current_id not in executor_factories or next_id not in executor_factories:
+            if current_id not in executor_instances or next_id not in executor_instances:
                 logger.warning(
-                    f"Skipping edge {current_id} -> {next_id}, executor not found"
+                    f"Skipping edge {current_id} -> {next_id}, one of executors not found"
                 )
                 continue
             
-            builder.add_edge(current_id, next_id)
+            if current_id == next_id:
+                logger.warning(
+                    f"Skipping edge from '{current_id}' to itself in execution sequence"
+                )
+                continue
+            
+            builder.add_edge(executor_instances[current_id], executor_instances[next_id])
             
             logger.debug(f"Added edge: {current_id} -> {next_id}")
         
@@ -525,32 +541,41 @@ class PipelineFactory:
         Returns:
             Configured Pipeline (Workflow)
         """
-        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name)
+                
+        # Determine start executor (returns string ID)
+        start_executor_id = self._determine_start_executor(executor_factories, edges, execution_sequence)
+        logger.debug(f"Start executor: {start_executor_id}")
         
-        # Register all executor factories with the builder
-        for executor_id, factory in executor_factories.items():
-            builder.register_executor(factory, name=executor_id)
-            logger.debug(f"Registered executor factory: {executor_id}")
+        start_executor_instance = executor_factories[start_executor_id]()
+        
+        executor_instances = {start_executor_id: start_executor_instance}
+        
+        builder = WorkflowBuilder(max_iterations=max_iterations, name=pipeline_name, start_executor=start_executor_instance)
+        
+        # # Register all executor factories with the builder
+        # for executor_id, factory in executor_factories.items():
+        #     builder.register_executor(factory, name=executor_id)
+        #     logger.debug(f"Registered executor factory: {executor_id}")
         
         # Process each edge
         for edge_def in edges:
             edge_type = edge_def.get('type', 'sequential')
             
             if edge_type == 'sequential':
-                self._add_sequential_edge(builder, executor_factories, edge_def)
+                self._add_sequential_edge(builder, executor_factories, executor_instances, edge_def)
             elif edge_type == 'parallel':
-                self._add_parallel_edges(builder, executor_factories, edge_def)
+                self._add_parallel_edges(builder, executor_factories, executor_instances, edge_def)
             elif edge_type == 'join':
-                self._add_join_edges(builder, executor_factories, edge_def)
+                self._add_join_edges(builder, executor_factories, executor_instances, edge_def)
             else:
                 logger.warning(f"Unknown edge type '{edge_type}', treating as sequential")
-                self._add_sequential_edge(builder, executor_factories, edge_def)
+                self._add_sequential_edge(builder, executor_factories, executor_instances, edge_def)
         
-        # Determine start executor (returns string ID)
-        start_executor_id = self._determine_start_executor(executor_factories, edges, execution_sequence)
-        builder.set_start_executor(start_executor_id)
+        # # Determine start executor (returns string ID)
+        # start_executor_id = self._determine_start_executor(executor_factories, edges, execution_sequence)
+        # builder.set_start_executor(start_executor_id)
         
-        logger.debug(f"Start executor: {start_executor_id}")
+        # logger.debug(f"Start executor: {start_executor_id}")
         
         # Build and return pipeline
         pipeline = builder.build()
@@ -629,6 +654,7 @@ class PipelineFactory:
         self,
         builder: WorkflowBuilder,
         executor_factories: Dict[str, Any],
+        executor_instances: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add a sequential edge: from -> to."""
@@ -643,13 +669,22 @@ class PipelineFactory:
             logger.warning(f"Sequential edge references executor not found in factories, might be a disabled executor: {from_id} -> {to_id}")
             return
         
-        builder.add_edge(from_id, to_id)
+        from_executor_instance = executor_instances.get(from_id) or executor_factories.get(from_id)()
+        to_executor_instance = executor_instances.get(to_id) or executor_factories.get(to_id)()
+        
+        if executor_instances.get(from_id) is None:
+            executor_instances[from_id] = from_executor_instance
+        if executor_instances.get(to_id) is None:
+            executor_instances[to_id] = to_executor_instance
+        
+        builder.add_edge(source=from_executor_instance, target=to_executor_instance)
         logger.debug(f"Added sequential edge: {from_id} -> {to_id}")
     
     def _add_parallel_edges(
         self,
         builder: WorkflowBuilder,
         executor_factories: Dict[str, Any],
+        executor_instances: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add parallel edges: from -> [to1, to2, to3] (fan-out)."""
@@ -674,14 +709,24 @@ class PipelineFactory:
                 logger.warning(f"Parallel edge references unknown target executor, might be a disabled executor: {to_id}")
                 continue
             to_ids_found.append(to_id)
-            
-        builder.add_fan_out_edges(from_id, to_ids_found)
+        
+        from_executor_instance = executor_instances.get(from_id) or executor_factories.get(from_id)()
+        to_executor_instances = [executor_instances.get(tid) or executor_factories.get(tid)() for tid in to_ids_found]
+        
+        if executor_instances.get(from_id) is None:
+            executor_instances[from_id] = from_executor_instance
+        for tid, instance in zip(to_ids_found, to_executor_instances):
+            if executor_instances.get(tid) is None:
+                executor_instances[tid] = instance
+        
+        builder.add_fan_out_edges(source=from_executor_instance, targets=to_executor_instances)
         logger.debug(f"Added fan-out edges: {from_id} -> {to_ids_found}")
     
     def _add_join_edges(
         self,
         builder: WorkflowBuilder,
         executor_factories: Dict[str, Any],
+        executor_instances: Dict[str, Any],
         edge_def: Dict[str, Any]
     ) -> None:
         """Add join edges: [from1, from2, from3] -> to (fan-in)."""
@@ -706,8 +751,17 @@ class PipelineFactory:
                 logger.warning(f"Join edge references unknown source executor, might be a disabled executor: {from_id}")
                 continue
             from_ids_found.append(from_id)
-            
-        builder.add_fan_in_edges(from_ids_found, to_id)
+        
+        from_executor_instances = [executor_instances.get(fid) or executor_factories.get(fid)() for fid in from_ids_found]
+        to_executor_instance = executor_instances.get(to_id) or executor_factories.get(to_id)()
+        
+        if executor_instances.get(to_id) is None:
+            executor_instances[to_id] = to_executor_instance
+        for fid, instance in zip(from_ids_found, from_executor_instances):
+            if executor_instances.get(fid) is None:
+                executor_instances[fid] = instance
+        
+        builder.add_fan_in_edges(sources=from_executor_instances, target=to_executor_instance)
         logger.debug(f"Added join edge: {from_ids_found} -> {to_id}")
         
         # Note: Agent Framework handles fan-in naturally when multiple edges point to same target

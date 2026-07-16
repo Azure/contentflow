@@ -171,7 +171,7 @@ class PipelineExecutionService(BaseService):
                         logger.debug("-" * 80)
                         
                         # Save event
-                        if event.event_type != "Error":
+                        if event.event_type != "error":
                             
                             try:
                                 await self.add_event(execution_id, exec_event)
@@ -188,11 +188,11 @@ class PipelineExecutionService(BaseService):
                         if event.executor_id:
                             status = ExecutorStatus.RUNNING
                             
-                            if event.event_type == "ExecutorCompletedEvent":
+                            if event.event_type == "executor_completed":
                                 status = ExecutorStatus.COMPLETED
-                            elif event.event_type == "ExecutorFailedEvent":
+                            elif event.event_type == "executor_failed":
                                 status = ExecutorStatus.FAILED
-                            elif event.event_type == "ExecutorInvokedEvent":
+                            elif event.event_type == "executor_invoked":
                                 status = ExecutorStatus.RUNNING
                                 
                             executor_output = ExecutorOutput(
@@ -214,12 +214,12 @@ class PipelineExecutionService(BaseService):
                                 else:
                                     logger.error(f"Failed to add event to execution {execution_id}: {ce}", exc_info=False)
 
-                        if event.event_type == "WorkflowFailedEvent":
+                        if event.event_type in ["failed", "error"]:
                             # Update execution status to failed
                             await self.update_execution_status(
                                 execution_id,
                                 ExecutionStatus.FAILED,
-                                error=str(event.error.message) if event.error and hasattr(event.error, "message") else "Workflow failed"
+                                error=str(event.error) if event.error else (str(event.data) if event.data else "Workflow failed")
                             )
                             has_pipeline_failed = True
                     

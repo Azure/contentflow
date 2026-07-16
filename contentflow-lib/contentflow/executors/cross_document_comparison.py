@@ -7,12 +7,12 @@ from datetime import datetime
 from typing import Any, Dict, Optional, List, Union
 
 try:
-    from agent_framework.azure import AzureOpenAIResponsesClient
-    from agent_framework import ChatAgent, AgentResponse
+    from agent_framework.openai import OpenAIChatClient
+    from agent_framework import Agent, AgentResponse
 except ImportError:
     raise ImportError(
-        "agent-framework and azure-identity are required for AI Agent execution. "
-        "Install them with: pip install agent-framework azure-identity"
+        "agent-framework import error. Either the library is not installed or there is \
+            an issue with the version of the installed library. "
     )
 
 from agent_framework import WorkflowContext
@@ -127,7 +127,7 @@ class CrossDocumentComparisonExecutor(CrossDocumentExecutor):
         if self.credential_type == "azure_key_credential" and not self.api_key:
             raise ValueError(f"{self.id}: api_key must be provided for azure_key_credential")
         
-        self.agent: Optional[ChatAgent] = None
+        self.agent: Optional[Agent] = None
         
         if self.debug_mode:
             logger.debug(
@@ -138,26 +138,29 @@ class CrossDocumentComparisonExecutor(CrossDocumentExecutor):
     def _init_agent(self) -> None:
         """Initialize the AI agent for cross-document comparison."""
         client_kwargs = {
-            'deployment_name': self.deployment_name,
-            'endpoint': self.endpoint,
+            'model': self.deployment_name,
+            'azure_endpoint': self.endpoint,
             'credential': get_azure_credential() if self.credential_type == "default_azure_credential" else None,
             'api_key': self.api_key if self.credential_type == "azure_key_credential" else None,
         }
         
-        client = AzureOpenAIResponsesClient(**client_kwargs)
+        client = OpenAIChatClient(**client_kwargs)
         
         # Build system instructions
         instructions = self._build_system_instructions()
         
+        # Create agent
         agent_kwargs = {
             'id': f"{self.id}_agent",
             'name': f"{self.id}_agent",
-            'temperature': self.temperature,
-            'max_tokens': self.max_tokens,
             'instructions': instructions,
+            'default_options': {
+                'temperature': self.temperature,
+                'max_tokens': self.max_tokens
+            },
         }
         
-        self.agent = client.create_agent(**agent_kwargs)
+        self.agent: Agent = client.as_agent(**agent_kwargs)
     
     def _build_system_instructions(self) -> str:
         """Build the system instructions for the comparison agent."""
@@ -309,7 +312,7 @@ class CrossDocumentComparisonExecutor(CrossDocumentExecutor):
         
         while True:
             try:
-                result = await self.agent.run(query, store=False)
+                result = await self.agent.run(messages=query, options={"store": False})
                 response_text = result.text if hasattr(result, 'text') else str(result)
                 return response_text
             except Exception as e:

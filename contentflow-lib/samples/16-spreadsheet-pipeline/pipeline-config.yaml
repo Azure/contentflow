@@ -77,7 +77,7 @@ pipelines:
 
       # Step 4: Map and normalize field names
       - id: field_mapper
-        type: field_mapper_executor
+        type: field_mapper
         debug_mode: true
         settings:
           # Example mappings - adjust based on your spreadsheet columns
@@ -100,7 +100,7 @@ pipelines:
 
       # Step 5: Select relevant fields for output
       - id: field_selector
-        type: field_selector_executor
+        type: field_selector
         debug_mode: true
         settings:
           mode: include
@@ -116,32 +116,5 @@ pipelines:
           bulk_operations: false
           fail_on_missing_field: false
           add_selection_metadata: true
-
-      # Step 6: Write to Azure Blob Storage
-      - id: blob_writer
-        type: azure_blob_output_executor
-        debug_mode: true
-        settings:
-          storage_account_name: ${AZURE_STORAGE_ACCOUNT}
-          credential_type: default_azure_credential
-          credential_key: null
-          container_name: ${AZURE_OUTPUT_CONTAINER_NAME}
-          path_template: "processed-data/{year}/{month}/{day}/"
-          filename_template: "record_{row_number}_{timestamp}.json"
-          content_field: null  # Write entire Content item
-          metadata_fields: "name,email,status"
-          compression: none
-          overwrite_existing: true
-          add_timestamp: true
-          pretty_print: true
-          max_concurrent: 5
-          timeout_secs: 60
-          continue_on_error: true
     
-    execution_sequence:
-      - content_loader
-      - excel_extractor
-      - row_splitter
-      - field_mapper
-      - field_selector
-      - blob_writer
+    execution_sequence: ["content_loader", "excel_extractor", "row_splitter", "field_mapper", "field_selector"]

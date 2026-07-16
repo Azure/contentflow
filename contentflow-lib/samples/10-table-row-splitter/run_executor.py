@@ -9,6 +9,7 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -19,6 +20,9 @@ from samples.setup_logger import setup_logging
 # Get the current directory
 samples_dir = Path(__file__).parent.parent
 
+# Load environment variables
+load_dotenv(f'{samples_dir}/.env')
+
 setup_logging()
 
 logger = logging.getLogger(__name__)
@@ -26,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 async def example_list_of_dicts():
     """Example: Split a list of dictionaries (e.g., from JSON or database)."""
-    logger.info("\n=== Example 1: List of Dictionaries ===")
+    print("\n=== Example 1: List of Dictionaries ===")
     
     # Create executor
     executor = TableRowSplitterExecutor(
@@ -43,7 +47,7 @@ async def example_list_of_dicts():
     
     # Create sample content with customer data
     content = Content(
-        id=ContentIdentifier(canonical_id="customer_table_1"),
+        id=ContentIdentifier(canonical_id="customer_table_1", unique_id="customer_table_1"),
         data={
             "customer_data": [
                 {"customer_id": "C001", "name": "John Doe", "email": "john@example.com", "age": 30},
@@ -56,16 +60,16 @@ async def example_list_of_dicts():
     # Process the content to split into rows
     row_contents = await executor.process_input(input=content, ctx=None)
     
-    logger.info(f"\nCreated {len(row_contents)} row content items:")
+    print(f"\nCreated {len(row_contents)} row content items:")
     for row_content in row_contents:
-        logger.info(f"  - ID: {row_content.id.canonical_id}")
-        logger.info(f"    Data: {row_content.data['row_data']}")
-        logger.info(f"    Summary: {row_content.summary_data}")
+        print(f"  - ID: {row_content.id.canonical_id}")
+        print(f"    Data: {row_content.data['row_data']}")
+        print(f"    Summary: {row_content.summary_data}")
 
 
 async def example_list_of_lists():
     """Example: Split a list of lists with headers (e.g., from CSV or Excel)."""
-    logger.info("\n=== Example 2: List of Lists with Header ===")
+    print("\n=== Example 2: List of Lists with Header ===")
     
     executor = TableRowSplitterExecutor(
         id="csv_splitter",
@@ -81,7 +85,7 @@ async def example_list_of_lists():
     )
     
     content = Content(
-        id=ContentIdentifier(canonical_id="sales_table_1"),
+        id=ContentIdentifier(canonical_id="sales_table_1", unique_id="sales_table_1"),
         data={
             "table_data": [
                 ["Product", "Quantity", "Price", "Total"],  # Header row
@@ -95,16 +99,16 @@ async def example_list_of_lists():
     
     row_contents = await executor.process_input(input=content, ctx=None)
     
-    logger.info(f"\nCreated {len(row_contents)} row content items:")
+    print(f"\nCreated {len(row_contents)} row content items:")
     for row_content in row_contents:
-        logger.info(f"  - ID: {row_content.id.canonical_id}")
-        logger.info(f"    Dict: {row_content.data['row_data']}")
-        logger.info(f"    List: {row_content.data['row_values']}")
+        print(f"  - ID: {row_content.id.canonical_id}")
+        print(f"    Dict: {row_content.data['row_data']}")
+        print(f"    List: {row_content.data['row_values']}")
 
 
 async def example_csv_string():
     """Example: Split CSV string data."""
-    logger.info("\n=== Example 3: CSV String ===")
+    print("\n=== Example 3: CSV String ===")
     
     executor = TableRowSplitterExecutor(
         id="csv_parser",
@@ -125,7 +129,7 @@ Charlie Brown,Sales,82000
 Diana Prince,HR,68000"""
     
     content = Content(
-        id=ContentIdentifier(canonical_id="employee_csv_1"),
+        id=ContentIdentifier(canonical_id="employee_csv_1", unique_id="employee_csv_1"),
         data={
             "csv_content": csv_data
         }
@@ -133,15 +137,15 @@ Diana Prince,HR,68000"""
     
     row_contents = await executor.process_input(input=content, ctx=None)
     
-    logger.info(f"\nCreated {len(row_contents)} row content items (max_rows=2):")
+    print(f"\nCreated {len(row_contents)} row content items (max_rows=2):")
     for row_content in row_contents:
-        logger.info(f"  - ID: {row_content.id.canonical_id}")
-        logger.info(f"    Data: {row_content.data['row_data']}")
+        print(f"  - ID: {row_content.id.canonical_id}")
+        print(f"    Data: {row_content.data['row_data']}")
 
 
 async def example_word_tables():
     """Example: Split tables extracted from Word documents."""
-    logger.info("\n=== Example 4: Word Document Tables ===")
+    print("\n=== Example 4: Word Document Tables ===")
     
     executor = TableRowSplitterExecutor(
         id="word_table_splitter",
@@ -157,7 +161,7 @@ async def example_word_tables():
     
     # Simulate Word extractor output
     content = Content(
-        id=ContentIdentifier(canonical_id="report_doc_1"),
+        id=ContentIdentifier(canonical_id="report_doc_1", unique_id="report_doc_1"),
         data={
             "filename": "quarterly_report.docx",
             "document_type": "financial_report",
@@ -181,16 +185,16 @@ async def example_word_tables():
     
     row_contents = await executor.process_input(input=content, ctx=None)
     
-    logger.info(f"\nCreated {len(row_contents)} row content items:")
+    print(f"\nCreated {len(row_contents)} row content items:")
     for row_content in row_contents:
-        logger.info(f"  - ID: {row_content.id.canonical_id}")
-        logger.info(f"    Data: {row_content.data['row_data']}")
-        logger.info(f"    Parent filename: {row_content.data.get('filename')}")
+        print(f"  - ID: {row_content.id.canonical_id}")
+        print(f"    Data: {row_content.data['row_data']}")
+        print(f"    Parent filename: {row_content.data.get('filename')}")
 
 
 async def example_with_row_filtering():
     """Example: Advanced row filtering and indexing."""
-    logger.info("\n=== Example 5: Row Filtering ===")
+    print("\n=== Example 5: Row Filtering ===")
     
     executor = TableRowSplitterExecutor(
         id="filtered_splitter",
@@ -207,7 +211,7 @@ async def example_with_row_filtering():
     )
     
     content = Content(
-        id=ContentIdentifier(canonical_id="inventory_1"),
+        id=ContentIdentifier(canonical_id="inventory_1", unique_id="inventory_1"),
         data={
             "products": [
                 {"sku": "SKU001", "name": "Item 1", "stock": 100},
@@ -221,11 +225,11 @@ async def example_with_row_filtering():
     
     row_contents = await executor.process_input(input=content, ctx=None)
     
-    logger.info(f"\nCreated {len(row_contents)} row content items (start_row=1, max_rows=3):")
+    print(f"\nCreated {len(row_contents)} row content items (start_row=1, max_rows=3):")
     for row_content in row_contents:
-        logger.info(f"  - ID: {row_content.id.canonical_id}")
-        logger.info(f"    Row Index: {row_content.data['row_index']}")
-        logger.info(f"    Data: {row_content.data['row_data']}")
+        print(f"  - ID: {row_content.id.canonical_id}")
+        print(f"    Row Index: {row_content.data['row_index']}")
+        print(f"    Data: {row_content.data['row_data']}")
 
 
 async def main():

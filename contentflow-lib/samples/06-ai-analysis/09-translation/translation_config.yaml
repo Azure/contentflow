@@ -18,7 +18,7 @@ pipelines:
           credential_type: "default_azure_credential"
           
           # Translation-specific settings
-          target_language: "Telugu"  # Required: Target language
+          target_language: "Spanish"  # Required: Target language
           source_language: "English"  # Optional: Auto-detect if not specified
           translation_style: "natural"  # Options: formal, informal, technical, literal, natural
           preserve_formatting: true  # Preserve original text formatting
