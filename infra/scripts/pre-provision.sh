@@ -24,6 +24,14 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+echo "✓ Checking Docker daemon..."
+if ! docker info &> /dev/null; then
+    echo "❌ Docker daemon is not running or current user cannot connect to it."
+    echo "   For Linux: ensure dockerd is running and your user is in the 'docker' group."
+    echo "   Run: sudo usermod -aG docker \$USER  (then log out and back in)"
+    exit 1
+fi
+
 echo "✓ Verifying Azure CLI login..."
 if ! az account show &> /dev/null; then
     echo "❌ Not logged in to Azure CLI. Please run 'az login' first."

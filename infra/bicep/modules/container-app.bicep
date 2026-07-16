@@ -46,6 +46,9 @@ param environmentVariables array = []
 @description('Tags to apply to resources')
 param tags object = {}
 
+@description('Placeholder image to use before azd deploy replaces it')
+param placeholderImage string = 'mcr.microsoft.com/k8se/quickstart:latest'
+
 
 // Use Azure Verified Module for Container App
 module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0' = {
@@ -66,8 +69,8 @@ module containerApp 'br:mcr.microsoft.com/bicep/avm/res/app/container-app:0.19.0
     containers: [
       {
         name: name
-        // Use base image as required by azd - will be replaced during deployment
-        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        // Use placeholder image as required by azd - will be replaced during deployment
+        image: placeholderImage
         resources: {
           cpu: cpuCores
           memory: memoryInGB

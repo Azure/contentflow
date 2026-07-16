@@ -22,6 +22,11 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
+    hooks:
+      postdeploy:
+        shell: sh
+        run: ../infra/scripts/post-deploy-api.sh
+        continueOnError: false
       remoteBuild: true
 
   # ContentFlow Worker - Container App
@@ -33,7 +38,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
 
   # ContentFlow Web - Container App
   web:
@@ -44,7 +48,6 @@ services:
       path: ./Dockerfile
       context: ..
       target: ""
-      remoteBuild: true
     
 # Global hooks
 # hooks:

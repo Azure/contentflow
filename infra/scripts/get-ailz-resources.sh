@@ -177,6 +177,9 @@ get_resource_id "Cognitive Services Private DNS Zone" "EXISTING_COGNITIVE_SERVIC
 get_resource_id "Blob Storage Private DNS Zone" "EXISTING_BLOB_PRIVATE_DNS_ZONE_ID" \
     "az network private-dns zone show --name privatelink.blob.core.windows.net --resource-group $AILZ_RG --query id -o tsv"
 
+get_resource_id "Queue Storage Private DNS Zone" "EXISTING_QUEUE_PRIVATE_DNS_ZONE_ID" \
+    "az network private-dns zone show --name privatelink.queue.core.windows.net --resource-group $AILZ_RG --query id -o tsv"
+
 get_resource_id "Cosmos DB Private DNS Zone" "EXISTING_COSMOS_PRIVATE_DNS_ZONE_ID" \
     "az network private-dns zone show --name privatelink.documents.azure.com --resource-group $AILZ_RG --query id -o tsv"
 
