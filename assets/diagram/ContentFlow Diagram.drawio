@@ -1,212 +1,212 @@
-<mxfile host="app.diagrams.net" pages="4">
+<mxfile host="Electron" pages="4">
   <diagram name="Overall" id="AFKK0VqWUuXkzA4kJgQt">
-    <mxGraphModel dx="1802" dy="1220" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1000" math="0" shadow="0">
+    <mxGraphModel dx="1952" dy="1255" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="980" math="0" shadow="0">
       <root>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-0" />
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-1" parent="UlrIZO6v5qdeXL2IGVSR-0" />
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-2" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" value="" vertex="1">
-          <mxGeometry height="170" width="410" x="40" y="181" as="geometry" />
+          <mxGeometry height="170" width="410" x="40" y="159" as="geometry" />
         </mxCell>
         <UserObject label="" link="https://learn.microsoft.com/en-us/azure/container-apps/" tooltip="contentflow-web · Vite + React + TypeScript + Shadcn/ui. Operator UI deployed as an Azure Container App." id="UlrIZO6v5qdeXL2IGVSR-3">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/general/Module.svg" vertex="1">
-            <mxGeometry height="64" width="64" x="64" y="197" as="geometry" />
+            <mxGeometry height="64" width="64" x="64" y="175" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-4" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=18;fontStyle=1;fontColor=#0078D4" value="&lt;b&gt;ContentFlow Web Dashboard&lt;/b&gt;" vertex="1">
-          <mxGeometry height="28" width="300" x="140" y="197" as="geometry" />
+          <mxGeometry height="28" width="300" x="140" y="175" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-5" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontColor=#605E5C;fontStyle=2" value="(contentflow-web)" vertex="1">
-          <mxGeometry height="20" width="300" x="140" y="227" as="geometry" />
+          <mxGeometry height="20" width="300" x="140" y="205" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-6" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#323130" value="Vite + React + TypeScript + Shadcn/ui" vertex="1">
-          <mxGeometry height="20" width="300" x="140" y="253" as="geometry" />
+          <mxGeometry height="20" width="300" x="140" y="231" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-7" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FC;strokeColor=#0078D4;strokeWidth=1;dashed=1;fontSize=11;fontStyle=2;fontColor=#0078D4;verticalAlign=middle;align=center;spacingLeft=8;spacingRight=8" value="&lt;font&gt;Pipeline Designer · YAML toggle · Live SSE monitoring&lt;br&gt;Per-document result view&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="366" x="64" y="281" as="geometry" />
+          <mxGeometry height="50" width="366" x="64" y="259" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-8" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;gradientColor=none;" value="" vertex="1">
-          <mxGeometry height="180" width="410" x="40" y="361" as="geometry" />
+          <mxGeometry height="180" width="410" x="40" y="339" as="geometry" />
         </mxCell>
         <UserObject label="" link="https://fastapi.tiangolo.com" tooltip="contentflow-api · FastAPI Python control plane. Container App." id="UlrIZO6v5qdeXL2IGVSR-9">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/general/Module.svg" vertex="1">
-            <mxGeometry height="64" width="64" x="64" y="381" as="geometry" />
+            <mxGeometry height="64" width="64" x="64" y="359" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-10" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=18;fontStyle=1;fontColor=#107C10" value="&lt;b&gt;ContentFlow API&lt;/b&gt;" vertex="1">
-          <mxGeometry height="28" width="300" x="140" y="381" as="geometry" />
+          <mxGeometry height="28" width="300" x="140" y="359" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-11" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontColor=#605E5C;fontStyle=2" value="(contentflow-api)" vertex="1">
-          <mxGeometry height="20" width="300" x="140" y="411" as="geometry" />
+          <mxGeometry height="20" width="300" x="140" y="389" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-12" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#323130" value="Python FastAPI Web API Service" vertex="1">
-          <mxGeometry height="20" width="300" x="140" y="437" as="geometry" />
+          <mxGeometry height="20" width="300" x="140" y="415" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-13" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;arcSize=6;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
-          <mxGeometry height="220" width="460" x="40" y="551" as="geometry" />
+          <mxGeometry height="220" width="460" x="40" y="529" as="geometry" />
         </mxCell>
         <UserObject label="" link="https://github.com/Azure/contentflow/tree/main/contentflow-lib" tooltip="contentflow-lib · Python core. Owns PipelineFactory, BaseExecutor SDK, executor_catalog.yaml. API + Worker both depend on this." id="UlrIZO6v5qdeXL2IGVSR-14">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/general/Module.svg" vertex="1">
-            <mxGeometry height="64" width="64" x="64" y="572" as="geometry" />
+            <mxGeometry height="64" width="64" x="64" y="550" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-15" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=18;fontStyle=1;fontColor=#5C2D91" value="&lt;b&gt;ContentFlow Lib · the core&lt;/b&gt;" vertex="1">
-          <mxGeometry height="28" width="350" x="140" y="572" as="geometry" />
+          <mxGeometry height="28" width="350" x="140" y="550" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-16" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontColor=#5C2D91;fontStyle=2" value="(contentflow-lib · orchestrated by Microsoft Agent Framework)" vertex="1">
-          <mxGeometry height="20" width="350" x="140" y="601" as="geometry" />
+          <mxGeometry height="20" width="350" x="140" y="579" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-18" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontColor=#323130" value="◾ Parses YAML configurations&#xa;◾ Validates executor dependencies&#xa;◾ Creates optimized execution graphs (Agent Framework Workflow)" vertex="1">
-          <mxGeometry height="60" width="420" x="70" y="653" as="geometry" />
+          <mxGeometry height="60" width="420" x="70" y="631" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-17" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=14;fontStyle=1;fontColor=#5C2D91" value="Pipeline Factory" vertex="1">
-          <mxGeometry height="20" width="350" x="140" y="631" as="geometry" />
+          <mxGeometry height="20" width="350" x="140" y="609" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-19" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=14;fontStyle=1;fontColor=#5C2D91" value="Pre-built Content Processing Agents / Executors · 40+" vertex="1">
-          <mxGeometry height="20" width="405" x="85" y="718" as="geometry" />
+          <mxGeometry height="20" width="405" x="85" y="696" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-23" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" value="" vertex="1">
-          <mxGeometry height="180" width="410" x="42" y="781" as="geometry" />
+          <mxGeometry height="180" width="410" x="42" y="759" as="geometry" />
         </mxCell>
         <UserObject label="" tooltip="contentflow-worker · Python multi-processing engine. Container App scaled by KEDA on queue depth." id="UlrIZO6v5qdeXL2IGVSR-24">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/general/Module.svg" vertex="1">
-            <mxGeometry height="64" width="64" x="66" y="799" as="geometry" />
+            <mxGeometry height="64" width="64" x="66" y="777" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-25" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=18;fontStyle=1;fontColor=#D29200" value="&lt;b&gt;ContentFlow Worker Engine&lt;/b&gt;" vertex="1">
-          <mxGeometry height="28" width="300" x="142" y="799" as="geometry" />
+          <mxGeometry height="28" width="300" x="142" y="777" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-26" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=13;fontColor=#605E5C;fontStyle=2" value="(contentflow-worker)" vertex="1">
-          <mxGeometry height="20" width="300" x="142" y="829" as="geometry" />
+          <mxGeometry height="20" width="300" x="142" y="807" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-27" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#323130" value="Python Multi-processing Worker" vertex="1">
-          <mxGeometry height="20" width="300" x="142" y="855" as="geometry" />
+          <mxGeometry height="20" width="300" x="142" y="833" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-28" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-2" style="endArrow=block;strokeColor=#0078D4;strokeWidth=3;fontSize=11;fontColor=#0078D4;dashed=1;html=1;entryX=1;entryY=0.25;entryDx=0;entryDy=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;edgeStyle=elbowEdgeStyle;" target="UlrIZO6v5qdeXL2IGVSR-8" value="REST + SSE">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="480" y="371" />
+              <mxPoint x="480" y="349" />
             </Array>
-            <mxPoint x="480" y="331" as="sourcePoint" />
+            <mxPoint x="480" y="309" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-29" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-8" style="endArrow=block;strokeColor=#5C2D91;strokeWidth=3;fontSize=11;fontColor=#5C2D91;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;edgeStyle=orthogonalEdgeStyle;entryX=0.935;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="UlrIZO6v5qdeXL2IGVSR-13" value="uses">
           <mxGeometry relative="1" x="0.2013" as="geometry">
             <mxPoint as="offset" />
-            <mxPoint x="480" y="521" as="sourcePoint" />
-            <mxPoint x="500" y="521" as="targetPoint" />
+            <mxPoint x="480" y="499" as="sourcePoint" />
+            <mxPoint x="500" y="499" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-30" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-23" style="endArrow=block;strokeColor=#5C2D91;strokeWidth=3;fontSize=11;fontColor=#5C2D91;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.953;entryY=1.003;entryDx=0;entryDy=0;entryPerimeter=0;edgeStyle=orthogonalEdgeStyle;" target="UlrIZO6v5qdeXL2IGVSR-13" value="uses">
           <mxGeometry relative="1" x="0.2732" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="478" y="826" />
+              <mxPoint x="478" y="804" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-31" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;strokeWidth=1;dashed=1;fontSize=11;fontStyle=2;verticalAlign=middle;align=center;spacingLeft=8;spacingRight=8;fillStyle=auto;opacity=40;" value="&lt;font&gt;&lt;span style=&quot;text-align: left; text-wrap-mode: nowrap;&quot;&gt;Pipeline Management &amp;amp; Execution&lt;/span&gt;&lt;br style=&quot;scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;text-align: left; text-wrap-mode: nowrap;&quot;&gt;Credential &amp;amp; Vault Integration&lt;/span&gt;&lt;br style=&quot;scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;text-align: left; text-wrap-mode: nowrap;&quot;&gt;Event Streaming &amp;amp; Monitoring (SSE)&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="368" x="62" y="471" as="geometry" />
+          <mxGeometry height="50" width="368" x="62" y="449" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-44" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=1;dashed=1;fontSize=11;fontStyle=2;verticalAlign=middle;align=center;spacingLeft=8;spacingRight=8;" value="&lt;font&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Processes queued work items&lt;/span&gt;&lt;br style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Manages worker pool and scaling&lt;/span&gt;&lt;br style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Executes pipelines and manages failures and retries&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="376" x="66" y="891" as="geometry" />
+          <mxGeometry height="50" width="376" x="66" y="869" as="geometry" />
         </mxCell>
         <UserObject label="Blob (input)" link="https://learn.microsoft.com/en-us/azure/storage/blobs/" tooltip="Source container for raw documents. Default = the storage account provisioned by azd up. ingested via azure_blob_input_discovery + azure_blob_content_retriever." id="UlrIZO6v5qdeXL2IGVSR-45">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;fontStyle=1;image=img/lib/azure2/general/Blob_Block.svg" vertex="1">
-            <mxGeometry height="56" width="56" x="567.5" y="203" as="geometry" />
+            <mxGeometry height="56" width="56" x="567.5" y="181" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Event Grid&#xa;(blob created)" link="https://learn.microsoft.com/en-us/azure/event-grid/" tooltip="Blob &#39;created&#39; events trigger the API automatically. Manual trigger via REST is also supported." id="UlrIZO6v5qdeXL2IGVSR-46">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/integration/Event_Grid_Topics.svg" vertex="1">
-            <mxGeometry height="48" width="48" x="571.5" y="305" as="geometry" />
+            <mxGeometry height="48" width="48" x="571.5" y="283" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Storage Queue" link="https://learn.microsoft.com/en-us/azure/storage/queues/" tooltip="Decouples API from workers. Default = Azure Storage Queue (same storage account as Blob). Pluggable: swap to Service Bus Premium." id="UlrIZO6v5qdeXL2IGVSR-47">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;fontStyle=1;image=img/lib/azure2/general/Storage_Queue.svg" vertex="1">
-            <mxGeometry height="48" width="48" x="965.5" y="209" as="geometry" />
+            <mxGeometry height="48" width="48" x="965.5" y="187" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-48" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5E1;strokeColor=#107C10;strokeWidth=2;dashed=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
-          <mxGeometry height="280" width="620" x="750" y="341" as="geometry" />
+          <mxGeometry height="280" width="620" x="750" y="319" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-49" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=13;fontStyle=1;fontColor=#107C10;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="40+ Executors — Pluggable AI &amp;amp; I/O steps" vertex="1">
-          <mxGeometry height="20" width="640" x="730.5" y="342" as="geometry" />
+          <mxGeometry height="20" width="640" x="730.5" y="320" as="geometry" />
         </mxCell>
         <UserObject label="Document&#xa;Intelligence" link="https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/" tooltip="azure_document_intelligence_extractor. BYO: not auto-deployed in basic mode." id="UlrIZO6v5qdeXL2IGVSR-50">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Form_Recognizers.svg;strokeColor=#107C10;dashed=1;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="814" y="383" as="geometry" />
+            <mxGeometry height="50" width="50" x="814" y="361" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Content&#xa;Understanding" link="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/" tooltip="azure_content_understanding_extractor. BYO + Brazil South unsupported — deploy in eastus2 (CAIXA hybrid posture, see deep-dive §4)." id="UlrIZO6v5qdeXL2IGVSR-51">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Cognitive_Services.svg;strokeColor=#107C10;dashed=1;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="923" y="383" as="geometry" />
+            <mxGeometry height="50" width="50" x="923" y="361" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Azure OpenAI&#xa;(chat · embeddings)" link="https://learn.microsoft.com/en-us/azure/ai-services/openai/" tooltip="azure_openai_agent · azure_openai_embeddings · text_summarizer. Hosted in AI Foundry project." id="UlrIZO6v5qdeXL2IGVSR-52">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Azure_OpenAI.svg;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="1032" y="383" as="geometry" />
+            <mxGeometry height="50" width="50" x="1032" y="361" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Translator" link="https://learn.microsoft.com/en-us/azure/ai-services/translator/" tooltip="content_translator. BYO." id="UlrIZO6v5qdeXL2IGVSR-53">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Cognitive_Services.svg;strokeColor=#107C10;dashed=1;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="1141" y="388" as="geometry" />
+            <mxGeometry height="50" width="50" x="1141" y="366" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="AI Language&#xa;(NER · PII · etc.)" link="https://learn.microsoft.com/en-us/azure/ai-services/language-service/" tooltip="entity_extractor · pii_detector · keyword_extractor · sentiment_analyser · content_classifier · language_detector. BYO." id="UlrIZO6v5qdeXL2IGVSR-54">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Language_Services.svg;strokeColor=#107C10;dashed=1;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="814" y="491" as="geometry" />
+            <mxGeometry height="50" width="50" x="814" y="469" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="AI Search&#xa;(indexer)" link="https://learn.microsoft.com/en-us/azure/search/" tooltip="ai_search_index_output. BYO. Same AI Search resource as the outputs row." id="UlrIZO6v5qdeXL2IGVSR-55">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/app_services/Search_Services.svg;strokeColor=#107C10;dashed=1;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="1250" y="383" as="geometry" />
+            <mxGeometry height="50" width="50" x="1250" y="361" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Web Scraper&lt;/span&gt;&lt;br style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); font-size: 10px;&quot;&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;(Playwright)&lt;/span&gt;" tooltip="web_scraper · dynamic browser scraping for JS-heavy pages." id="UlrIZO6v5qdeXL2IGVSR-56">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;image=img/lib/azure2/preview/Static_Apps.svg;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;labelBackgroundColor=none;points=[];" vertex="1">
-            <mxGeometry height="50" width="50" x="923" y="491" as="geometry" />
+            <mxGeometry height="50" width="50" x="923" y="469" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Knowledge Graph&#xa;(experimental)" link="https://github.com/Azure/contentflow/tree/main/contentflow-lib/samples/17-knowledge-graph" tooltip="knowledge_graph_entity_extractor · knowledge_graph_enrichment · knowledge_graph_query · knowledge_graph_writer. Code shipped, catalog pending." id="UlrIZO6v5qdeXL2IGVSR-57">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/databases/Azure_Cosmos_DB.svg;dashed=1;strokeColor=#5C2D91;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;labelBackgroundColor=none;points=[];" vertex="1">
-            <mxGeometry height="50" width="50" x="1032" y="491" as="geometry" />
+            <mxGeometry height="50" width="50" x="1032" y="469" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Cross-document&#xa;+ Batch" tooltip="document_set_initializer · document_set_collector · cross_document_comparison · cross_document_field_aggregator · for_each_content · batch_*." id="UlrIZO6v5qdeXL2IGVSR-58">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/containers/Batch_Accounts.svg;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;labelBackgroundColor=none;points=[];" vertex="1">
-            <mxGeometry height="50" width="50" x="1141" y="491" as="geometry" />
+            <mxGeometry height="50" width="50" x="1141" y="469" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Custom&#xa;BaseExecutor" link="https://github.com/Azure/contentflow/blob/main/contentflow-lib/CustomExecutor.md" tooltip="Subclass BaseExecutor (logic) or BaseConnector (sources/sinks) and register in executor_catalog.yaml." id="UlrIZO6v5qdeXL2IGVSR-59">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/general/Module.svg;dashed=1;strokeColor=#5C2D91;flipH=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="50" width="50" x="1250" y="491" as="geometry" />
+            <mxGeometry height="50" width="50" x="1250" y="469" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-60" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=11;fontStyle=1;fontColor=#323130;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;verticalAlign=middle;" value="Pipelines defined in YAML — sequential · parallel fan-out · fan-in · conditional · retry / DLQ · subpipeline" vertex="1">
-          <mxGeometry height="18" width="620" x="750" y="591" as="geometry" />
+          <mxGeometry height="18" width="620" x="750" y="569" as="geometry" />
         </mxCell>
         <UserObject label="Cosmos DB&#xa;(state · runs)" link="https://learn.microsoft.com/en-us/azure/cosmos-db/" tooltip="Default state store · pipeline run history and intermediate state. Provisioned by basic-mode azd up." id="UlrIZO6v5qdeXL2IGVSR-61">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;fontStyle=1;image=img/lib/azure2/databases/Azure_Cosmos_DB.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="52" width="52" x="813" y="669.58" as="geometry" />
+            <mxGeometry height="52" width="52" x="813" y="647.58" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Blob (results)" link="https://learn.microsoft.com/en-us/azure/storage/blobs/" tooltip="Output container for enriched documents. Shares one storage account with the input/queue containers in basic mode." id="UlrIZO6v5qdeXL2IGVSR-62">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;fontStyle=1;image=img/lib/azure2/general/Blob_Block.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="60" width="60" x="918" y="669.58" as="geometry" />
+            <mxGeometry height="60" width="60" x="918" y="647.58" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="AI Search&#xa;(vector + hybrid)" link="https://learn.microsoft.com/en-us/azure/search/" tooltip="Single AI Search resource. BYO — not auto-deployed in basic mode." id="UlrIZO6v5qdeXL2IGVSR-63">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;fontStyle=1;image=img/lib/azure2/app_services/Search_Services.svg;dashed=1;strokeColor=#107C10;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="52" width="52" x="1031" y="677.58" as="geometry" />
+            <mxGeometry height="52" width="52" x="1031" y="655.58" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="GPT-RAG /&#xa;downstream apps" link="https://github.com/Azure/gpt-rag" tooltip="gptrag_search_index_document_generator — first-class composition with the GPT-RAG accelerator." id="UlrIZO6v5qdeXL2IGVSR-64">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;fontStyle=1;image=img/lib/azure2/general/Module.svg;strokeColor=#5C2D91;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="52" width="52" x="1140" y="677.58" as="geometry" />
+            <mxGeometry height="52" width="52" x="1140" y="655.58" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="App Insights&#xa;(telemetry)" link="https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview" tooltip="OpenTelemetry from API + Workers + Web. Provisioned by basic-mode azd up." id="UlrIZO6v5qdeXL2IGVSR-65">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;fontStyle=1;image=img/lib/azure2/management_governance/Application_Insights.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="52" width="52" x="1249" y="677.58" as="geometry" />
+            <mxGeometry height="52" width="52" x="1249" y="655.58" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-66" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-45" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0078D4;strokeWidth=3;endArrow=block;fontSize=11;fontColor=#0078D4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="UlrIZO6v5qdeXL2IGVSR-78" value="&amp;nbsp;trigger&amp;nbsp;">
@@ -225,53 +225,53 @@
           <mxGeometry relative="1" x="-0.58" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="1410" y="232" />
-              <mxPoint x="1410" y="481" />
-              <mxPoint x="1381" y="481" />
+              <mxPoint x="1410" y="210" />
+              <mxPoint x="1410" y="459" />
+              <mxPoint x="1381" y="459" />
             </Array>
-            <mxPoint x="1099" y="366" as="targetPoint" />
+            <mxPoint x="1099" y="344" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-71" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-84" style="edgeStyle=entityRelationEdgeStyle;rounded=1;html=1;strokeColor=#0078D4;strokeWidth=2;endArrow=block;startArrow=block;dashed=1;fontSize=10;fontColor=#0078D4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" target="UlrIZO6v5qdeXL2IGVSR-78" value="REST + SSE">
           <mxGeometry relative="1" x="-0.3454" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="670" y="441" />
-              <mxPoint x="730" y="351" />
-              <mxPoint x="670" y="451" />
-              <mxPoint x="730" y="371" />
-              <mxPoint x="740" y="371" />
+              <mxPoint x="670" y="419" />
+              <mxPoint x="730" y="329" />
+              <mxPoint x="670" y="429" />
+              <mxPoint x="730" y="349" />
+              <mxPoint x="740" y="349" />
             </Array>
-            <mxPoint x="737.5" y="396" as="targetPoint" />
+            <mxPoint x="737.5" y="374" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-72" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-48" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#107C10;strokeWidth=2;endArrow=block;fontSize=10;fontColor=#107C10;entryX=0.5;entryY=0;entryDx=0;entryDy=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;exitX=0.143;exitY=1.003;exitDx=0;exitDy=0;exitPerimeter=0;" target="UlrIZO6v5qdeXL2IGVSR-61" value="state">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="810" y="641" as="sourcePoint" />
+            <mxPoint x="810" y="619" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-73" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-48" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#107C10;strokeWidth=2;endArrow=block;fontSize=10;fontColor=#107C10;exitX=0.32;exitY=1.002;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" target="UlrIZO6v5qdeXL2IGVSR-62" value="results">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="927.48" y="629.2880000000001" as="sourcePoint" />
+            <mxPoint x="927.48" y="607.2880000000001" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-74" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-48" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#107C10;strokeWidth=2;endArrow=block;fontSize=10;fontColor=#107C10;exitX=0.495;exitY=0.998;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;exitPerimeter=0;" target="UlrIZO6v5qdeXL2IGVSR-63" value="index">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1049.7200000000003" y="629.2880000000001" as="sourcePoint" />
+            <mxPoint x="1049.7200000000003" y="607.2880000000001" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-75" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-48" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5C2D91;strokeWidth=2;endArrow=block;fontSize=10;fontColor=#5C2D91;exitX=0.671;exitY=0.998;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" target="UlrIZO6v5qdeXL2IGVSR-64" value="gptrag-index">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1173.88" y="629.2880000000001" as="sourcePoint" />
+            <mxPoint x="1173.88" y="607.2880000000001" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-76" edge="1" parent="UlrIZO6v5qdeXL2IGVSR-1" source="UlrIZO6v5qdeXL2IGVSR-48" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#605E5C;strokeWidth=1;endArrow=block;dashed=1;fontSize=10;fontColor=#605E5C;exitX=0.847;exitY=0.999;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" target="UlrIZO6v5qdeXL2IGVSR-65" value="telemetry">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1297.3999999999996" y="630.7480000000002" as="sourcePoint" />
+            <mxPoint x="1297.3999999999996" y="608.7480000000002" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-77" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="85" width="92" x="745.5" y="201" as="geometry" />
+          <mxGeometry height="85" width="92" x="745.5" y="179" as="geometry" />
         </mxCell>
         <UserObject label="API Service" link="https://learn.microsoft.com/en-us/azure/container-apps/" tooltip="contentflow-api · FastAPI control plane. Container App. Accepts pipeline run requests, enqueues jobs, exposes REST + SSE." id="UlrIZO6v5qdeXL2IGVSR-78">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-77" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;fontStyle=1;image=img/lib/azure2/containers/Container_Instances.svg" vertex="1">
@@ -279,21 +279,21 @@
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-79" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;fillColor=#E1F5E1;strokeColor=#107C10;fontSize=9;fontStyle=1;fontColor=#107C10" value="contentflow-api" vertex="1">
-          <mxGeometry height="14" width="92" x="745.5" y="181" as="geometry" />
+          <mxGeometry height="14" width="92" x="745.5" y="159" as="geometry" />
         </mxCell>
         <UserObject label="Worker(s)" link="https://learn.microsoft.com/en-us/azure/container-apps/scale-app" tooltip="contentflow-worker · Container App. KEDA-scaled on queue depth (outer) × Python multi-processing pool (inner). Executes pipelines via PipelineFactory." id="UlrIZO6v5qdeXL2IGVSR-80">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;fontStyle=1;image=img/lib/azure2/containers/Container_Instances.svg" vertex="1">
-            <mxGeometry height="60" width="60" x="1157.5" y="202" as="geometry" />
+            <mxGeometry height="60" width="60" x="1157.5" y="180" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-81" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;fillColor=#FFF4CE;strokeColor=#D29200;fontSize=9;fontStyle=1;fontColor=#9E7800" value="contentflow-worker" vertex="1">
-          <mxGeometry height="14" width="106" x="1136" y="181" as="geometry" />
+          <mxGeometry height="14" width="106" x="1136" y="159" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-82" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;fillColor=#EDE7F6;strokeColor=#5C2D91;fontSize=9;fontStyle=0;fontColor=#5C2D91" value="builds Agent Framework Workflow via PipelineFactory (contentflow-lib)" vertex="1">
-          <mxGeometry height="14" width="291.5" x="1041.75" y="291" as="geometry" />
+          <mxGeometry height="14" width="291.5" x="1041.75" y="269" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-83" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="100" width="91" x="548" y="452" as="geometry" />
+          <mxGeometry height="100" width="91" x="548" y="430" as="geometry" />
         </mxCell>
         <UserObject label="Web Dashboard" link="https://learn.microsoft.com/en-us/azure/container-apps/" tooltip="contentflow-web · React + Vite. Pipeline Designer · YAML Editor · Execution Monitoring · Result Visualization." id="UlrIZO6v5qdeXL2IGVSR-84">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-83" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;fontStyle=1;image=img/lib/azure2/containers/Container_Instances.svg" vertex="1">
@@ -304,56 +304,56 @@
           <mxGeometry height="14" width="91" y="86" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-86" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F2F1;strokeColor=#605E5C;strokeWidth=1;dashed=1;fontSize=11;fontStyle=1;fontColor=#605E5C;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="Cross-cutting concerns · what supports every runtime block" vertex="1">
-          <mxGeometry height="118" width="870" x="540" y="793" as="geometry" />
+          <mxGeometry height="118" width="870" x="540" y="771" as="geometry" />
         </mxCell>
         <UserObject label="Managed Identity" link="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/" tooltip="Single workload identity. No connection strings in code." id="UlrIZO6v5qdeXL2IGVSR-87">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/identity/Managed_Identities.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="607" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="607" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Key Vault" link="https://learn.microsoft.com/en-us/azure/key-vault/" tooltip="Secrets, certificates, CMK. [VERIFICAR] — may be implicit inside Foundry in basic mode; AILZ mode provisions it explicitly." id="UlrIZO6v5qdeXL2IGVSR-88">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/security/Key_Vaults.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="748" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="748" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="App Configuration" link="https://learn.microsoft.com/en-us/azure/azure-app-configuration/" tooltip="Pipeline YAML definitions. [VERIFICAR] — basic-mode azd up may load pipelines from Blob or env vars instead." id="UlrIZO6v5qdeXL2IGVSR-89">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/integration/App_Configuration.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="888" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="888" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="ACR" link="https://learn.microsoft.com/en-us/azure/container-registry/" tooltip="Container image source. Provisioned by basic-mode azd up." id="UlrIZO6v5qdeXL2IGVSR-90">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/containers/Container_Registries.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="1029" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="1029" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="AI Foundry&#xa;(account + project)" link="https://learn.microsoft.com/en-us/azure/ai-foundry/" tooltip="Hosts Azure OpenAI model deployments (gpt-4.1, gpt-4.1-mini, text-embedding-3-large) and Microsoft Agent Framework grounding. Account → Project → Deployment hierarchy." id="UlrIZO6v5qdeXL2IGVSR-91">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/ai_machine_learning/Machine_Learning.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="1169" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="1169" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="Log Analytics" link="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview" tooltip="Log Analytics workspace. Provisioned by basic-mode azd up." id="UlrIZO6v5qdeXL2IGVSR-92">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;verticalLabelPosition=bottom;verticalAlign=top;fontSize=10;image=img/lib/azure2/management_governance/Log_Analytics_Workspaces.svg;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1">
-            <mxGeometry height="40" width="40" x="1310" y="832" as="geometry" />
+            <mxGeometry height="40" width="40" x="1310" y="810" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-93" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#605E5C;strokeWidth=1;dashed=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
-          <mxGeometry height="43" width="870" x="540" y="918" as="geometry" />
+          <mxGeometry height="43" width="870" x="540" y="896" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-94" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fontColor=#323130;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;verticalAlign=middle;" value="Legend (architecture | executors&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;):&lt;/span&gt;" vertex="1">
-          <mxGeometry height="14" width="190" x="560" y="932.5" as="geometry" />
+          <mxGeometry height="14" width="190" x="560" y="910.5" as="geometry" />
         </mxCell>
-        <UserObject label="&lt;font&gt;&lt;b style=&quot;&quot;&gt;ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Project Components&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="UlrIZO6v5qdeXL2IGVSR-125">
+        <UserObject label="&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Project Components&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="UlrIZO6v5qdeXL2IGVSR-125">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" vertex="1">
-            <mxGeometry height="60" width="460" x="40" y="108" as="geometry" />
+            <mxGeometry height="35" width="460" x="40" y="108" as="geometry" />
           </mxCell>
         </UserObject>
         <UserObject label="&lt;font style=&quot;font-size: 32px;&quot;&gt;&lt;font style=&quot;&quot;&gt;&lt;b style=&quot;&quot;&gt;ContentFlow Solution Accelerator&lt;/b&gt;&lt;/font&gt;&lt;/font&gt;" link="https://github.com/Azure/contentflow" tooltip="What runs on Azure when a pipeline executes. See Page 0 for project packages and Page 2 for the executor catalog." id="tZbApFM559yBRAFNmL9p-0">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=24;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" vertex="1">
-            <mxGeometry height="50" width="870" x="465" y="40" as="geometry" />
+            <mxGeometry height="50" width="1799" y="40" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="h_ix4a2UqWZGK84OkDyw-0" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="16.5" width="101.5" x="761.5" y="932.5" as="geometry" />
+          <mxGeometry height="16.5" width="101.5" x="761.5" y="910.5" as="geometry" />
         </mxCell>
         <mxCell id="h_ix4a2UqWZGK84OkDyw-2" connectable="0" parent="h_ix4a2UqWZGK84OkDyw-0" style="group" value="" vertex="1">
           <mxGeometry height="16.5" width="101.5" as="geometry" />
@@ -365,7 +365,7 @@
           <mxGeometry height="16.5" width="83.5" x="18" as="geometry" />
         </mxCell>
         <mxCell id="h_ix4a2UqWZGK84OkDyw-3" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="14" width="153.5" x="1048" y="934.25" as="geometry" />
+          <mxGeometry height="14" width="153.5" x="1048" y="912.25" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-99" parent="h_ix4a2UqWZGK84OkDyw-3" style="rounded=0;fillColor=#D29200;strokeColor=#D29200;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="10" width="14" y="1" as="geometry" />
@@ -374,7 +374,7 @@
           <mxGeometry height="14" width="136.5" x="17" as="geometry" />
         </mxCell>
         <mxCell id="h_ix4a2UqWZGK84OkDyw-6" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="14" width="114.5" x="911" y="933.75" as="geometry" />
+          <mxGeometry height="14" width="114.5" x="911" y="911.75" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-97" parent="h_ix4a2UqWZGK84OkDyw-6" style="rounded=0;fillColor=#107C10;strokeColor=#107C10;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="10" width="14" y="1" as="geometry" />
@@ -383,7 +383,7 @@
           <mxGeometry height="14" width="96.5" x="18" as="geometry" />
         </mxCell>
         <mxCell id="h_ix4a2UqWZGK84OkDyw-7" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="14" width="139" x="1211" y="934.25" as="geometry" />
+          <mxGeometry height="14" width="139" x="1211" y="912.25" as="geometry" />
         </mxCell>
         <mxCell id="UlrIZO6v5qdeXL2IGVSR-101" parent="h_ix4a2UqWZGK84OkDyw-7" style="rounded=0;fillColor=#5C2D91;strokeColor=#5C2D91;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="10" width="14" y="2" as="geometry" />
@@ -392,7 +392,7 @@
           <mxGeometry height="14" width="121" x="18" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-24" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="90" width="308" x="1450" y="181" as="geometry" />
+          <mxGeometry height="90" width="308" x="1450" y="159" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-5" parent="oL6JqJzWQ9vyjZLfiNG0-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0078D4;strokeWidth=2" vertex="1">
           <mxGeometry height="80" width="308" as="geometry" />
@@ -409,7 +409,7 @@
           <mxGeometry height="46.3" width="242" x="56" y="23.7" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-26" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="90" width="308" x="1450" y="361" as="geometry" />
+          <mxGeometry height="90" width="308" x="1450" y="339" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-13" parent="oL6JqJzWQ9vyjZLfiNG0-26" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#107C10;strokeWidth=2" vertex="1">
           <mxGeometry height="90" width="308" as="geometry" />
@@ -426,7 +426,7 @@
           <mxGeometry height="50.23255813953489" width="242" x="56" y="31.395348837209305" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-28" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="60" width="308" x="1451" y="601" as="geometry" />
+          <mxGeometry height="60" width="308" x="1451" y="579" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-21" parent="oL6JqJzWQ9vyjZLfiNG0-28" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D29200;strokeWidth=2" vertex="1">
           <mxGeometry height="60" width="308" as="geometry" />
@@ -443,7 +443,7 @@
           <mxGeometry height="28" width="242" x="56" y="28" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-29" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="100" width="308" x="1451" y="671" as="geometry" />
+          <mxGeometry height="100" width="308" x="1451" y="649" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-34" parent="oL6JqJzWQ9vyjZLfiNG0-29" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D29200;strokeWidth=2" vertex="1">
           <mxGeometry height="100" width="308" as="geometry" />
@@ -460,7 +460,7 @@
           <mxGeometry height="63.63636363636363" width="242" x="56" y="21.818181818181817" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-30" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group;verticalAlign=top;" value="" vertex="1">
-          <mxGeometry height="80" width="309" x="1450" y="781" as="geometry" />
+          <mxGeometry height="80" width="309" x="1450" y="759" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-25" parent="oL6JqJzWQ9vyjZLfiNG0-30" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5C2D91;strokeWidth=2" vertex="1">
           <mxGeometry height="80" width="309" as="geometry" />
@@ -477,7 +477,7 @@
           <mxGeometry height="44.651162790697676" width="243" x="56" y="24.186976744186047" as="geometry" />
         </mxCell>
         <mxCell id="oL6JqJzWQ9vyjZLfiNG0-31" connectable="0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="group" value="" vertex="1">
-          <mxGeometry height="90" width="307" x="1450" y="871" as="geometry" />
+          <mxGeometry height="90" width="307" x="1450" y="849" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-29" parent="oL6JqJzWQ9vyjZLfiNG0-31" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5C2D91;strokeWidth=2;dashed=1" vertex="1">
           <mxGeometry height="90" width="307" as="geometry" />
@@ -493,47 +493,47 @@
         <mxCell id="tZbApFM559yBRAFNmL9p-32" parent="oL6JqJzWQ9vyjZLfiNG0-31" style="text;html=1;align=left;fontSize=10;fontColor=#323130" value="BaseExecutor · BaseConnector&lt;br&gt;Knowledge Graph (4)&lt;span style=&quot;color: rgb(50, 49, 48);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;Batch (3)&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;Experimental (16)&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: rgb(50, 49, 48);&quot;&gt;&lt;span style=&quot;color: rgb(63, 63, 63);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: rgb(63, 63, 63);&quot;&gt;LGPD · MCP&lt;/span&gt;&lt;span style=&quot;color: rgb(50, 49, 48);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;SharePoint · S3 · Service Bus · SQL&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="241" x="56" y="24" as="geometry" />
         </mxCell>
-        <mxCell id="tyLqQ5qtR99oChZkBqDm-0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;font&gt;&lt;b style=&quot;&quot;&gt;ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Executor Catalog&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="60" width="310" x="1450" y="108" as="geometry" />
+        <mxCell id="tyLqQ5qtR99oChZkBqDm-0" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Executor Catalog&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="35" width="310" x="1450" y="108" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-17" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#107C10;strokeWidth=2;container=0;" vertex="1">
-          <mxGeometry height="130" width="308" x="1451" y="461" as="geometry" />
+          <mxGeometry height="130" width="308" x="1451" y="439" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-18" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#107C10;strokeColor=#107C10;fontSize=11;fontStyle=1;fontColor=#FFFFFF;verticalAlign=middle;align=left;spacingLeft=10;strokeWidth=2;container=0;" value="④ AI Analysis · 10" vertex="1">
-          <mxGeometry height="33.93939393939394" width="308" x="1451" y="461" as="geometry" />
+          <mxGeometry height="33.93939393939394" width="308" x="1451" y="439" as="geometry" />
         </mxCell>
         <UserObject label="" link="https://learn.microsoft.com/en-us/azure/ai-services/openai/" tooltip="Azure OpenAI + Azure AI Language family." id="tZbApFM559yBRAFNmL9p-19">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/ai_machine_learning/Azure_OpenAI.svg;container=0;" vertex="1">
-            <mxGeometry height="40" width="40" x="1461" y="517.9742424242424" as="geometry" />
+            <mxGeometry height="40" width="40" x="1461" y="495.97424242424245" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="tZbApFM559yBRAFNmL9p-20" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=10;fontColor=#323130;container=0;" value="azure_openai_agent&lt;br&gt;embeddings&lt;span style=&quot;color: rgb(50, 49, 48);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;text_summarizer&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: rgb(63, 63, 63);&quot;&gt;entity_extractor&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;· keyword_extractor&lt;/span&gt;&lt;div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;pii_detector&amp;nbsp;&lt;/span&gt;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;·&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;sentiment_analyser&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;content_classifier&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent; scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent; scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;·&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: rgb(63, 63, 63);&quot;&gt;language_detector&lt;/span&gt;&lt;/div&gt;&lt;div&gt;cosmos_db_lookup&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="86.06" width="242" x="1507" y="494.94" as="geometry" />
+          <mxGeometry height="86.06" width="242" x="1507" y="472.94" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-9" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#107C10;strokeWidth=2;container=0;" vertex="1">
-          <mxGeometry height="80" width="308" x="1450" y="271" as="geometry" />
+          <mxGeometry height="80" width="308" x="1450" y="249" as="geometry" />
         </mxCell>
         <mxCell id="tZbApFM559yBRAFNmL9p-10" parent="UlrIZO6v5qdeXL2IGVSR-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#107C10;strokeColor=#107C10;fontSize=11;fontStyle=1;fontColor=#FFFFFF;verticalAlign=middle;align=left;spacingLeft=10;strokeWidth=2;container=0;" value="② Content Extractors · 7" vertex="1">
-          <mxGeometry height="22.325581395348838" width="308" x="1450" y="271" as="geometry" />
+          <mxGeometry height="22.325581395348838" width="308" x="1450" y="249" as="geometry" />
         </mxCell>
         <UserObject label="" link="https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/" tooltip="DI + CU + format-specific extractors." id="tZbApFM559yBRAFNmL9p-11">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="shape=image;aspect=fixed;html=1;image=img/lib/azure2/ai_machine_learning/Form_Recognizers.svg;container=0;" vertex="1">
-            <mxGeometry height="35.55555555555556" width="35.55555555555556" x="1460" y="301.596976744186" as="geometry" />
+            <mxGeometry height="35.55555555555556" width="35.55555555555556" x="1460" y="279.596976744186" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="tZbApFM559yBRAFNmL9p-12" parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=left;fontSize=10;fontColor=#323130;container=0;" value="azure_document_intelligence_extractor&lt;div&gt;azure_content_understanding_extractor&lt;div&gt;pdf · word · excel · powerpoint&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;·&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;csv_extractor&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="52.09" width="242" x="1506" y="293.33" as="geometry" />
+          <mxGeometry height="52.09" width="242" x="1506" y="271.33" as="geometry" />
         </mxCell>
-        <UserObject label="&lt;font&gt;&lt;b style=&quot;&quot;&gt;ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Logical Architecture&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="kAyP8CnIGMTiC0YfXsf1-0">
+        <UserObject label="&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Logical Architecture&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="kAyP8CnIGMTiC0YfXsf1-0">
           <mxCell parent="UlrIZO6v5qdeXL2IGVSR-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" vertex="1">
-            <mxGeometry height="60" width="877" x="538" y="108" as="geometry" />
+            <mxGeometry height="35" width="877" x="538" y="108" as="geometry" />
           </mxCell>
         </UserObject>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="Components" id="alt-E4b-p0">
-    <mxGraphModel dx="867" dy="587" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="540" pageHeight="930" math="0" shadow="0">
+    <mxGraphModel dx="1673" dy="1076" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="540" pageHeight="930" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -643,7 +643,7 @@
         <mxCell id="80oz06PR9PQ5Ry_uuuXX-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=1;dashed=1;fontSize=11;fontStyle=2;verticalAlign=middle;align=center;spacingLeft=8;spacingRight=8;" value="&lt;font&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Processes queued work items&lt;/span&gt;&lt;br style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Manages worker pool and scaling&lt;/span&gt;&lt;br style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251); text-align: left; text-wrap-mode: nowrap;&quot;&gt;&lt;span style=&quot;color: rgb(50, 49, 48); text-align: left; text-wrap-mode: nowrap;&quot;&gt;Executes pipelines and manages failures and retries&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="50" width="376" x="66" y="820" as="geometry" />
         </mxCell>
-        <UserObject label="&lt;font&gt;&lt;b style=&quot;&quot;&gt;Azure ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Project Components&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="80oz06PR9PQ5Ry_uuuXX-29">
+        <UserObject label="&lt;font&gt;&lt;b style=&quot;&quot;&gt;ContentFlow Solution Accelerator&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Project Components&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" link="https://github.com/Azure/contentflow" tooltip="Mirror of the official ContentFlow Projects diagram with Microsoft polish. Vertical reading order: Web → API → Lib (core) ↑ Worker. License: MIT." id="80oz06PR9PQ5Ry_uuuXX-29">
           <mxCell parent="1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" vertex="1">
             <mxGeometry height="60" width="460" x="40" y="40" as="geometry" />
           </mxCell>
@@ -652,7 +652,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="Architecture" id="alt-E4b-p1">
-    <mxGraphModel dx="1233" dy="835" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="940" math="0" shadow="0">
+    <mxGraphModel dx="1378" dy="886" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="940" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -927,14 +927,14 @@
         <mxCell id="oVqU1HsSeUyJlPUXcyjK-64" parent="oVqU1HsSeUyJlPUXcyjK-62" style="text;html=1;align=left;fontSize=10;fontColor=#5C2D91;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;verticalAlign=middle;" value="Lib" vertex="1">
           <mxGeometry height="14" width="121" x="18" as="geometry" />
         </mxCell>
-        <mxCell id="Hl8hWW7LHlS76gzNYh4k-1" parent="1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;font&gt;&lt;b style=&quot;&quot;&gt;Azure ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Logical Architecture&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="Hl8hWW7LHlS76gzNYh4k-1" parent="1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;b&gt;ContentFlow Solution Accelerator&lt;/b&gt;&lt;br&gt;&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Logical Architecture&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="840" x="70" y="38" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="Executors" id="v2purE8jdy6fG3RkHWCA">
-    <mxGraphModel dx="1171" dy="793" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="390" pageHeight="1040" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1561" dy="1004" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="390" pageHeight="1040" background="none" math="0" shadow="0">
       <root>
         <mxCell id="6tYdsFe1zwNgNnA3f_16-0" />
         <mxCell id="6tYdsFe1zwNgNnA3f_16-1" parent="6tYdsFe1zwNgNnA3f_16-0" />
@@ -1040,7 +1040,7 @@
         <mxCell id="6tYdsFe1zwNgNnA3f_16-95" parent="6tYdsFe1zwNgNnA3f_16-91" style="text;html=1;align=left;fontSize=10;fontColor=#323130" value="BaseExecutor · BaseConnector&lt;br&gt;Knowledge Graph (4)&lt;span style=&quot;color: rgb(50, 49, 48);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;Batch (3)&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;Experimental (16)&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: rgb(50, 49, 48);&quot;&gt;&lt;span style=&quot;color: rgb(63, 63, 63);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: rgb(63, 63, 63);&quot;&gt;LGPD · MCP&lt;/span&gt;&lt;span style=&quot;color: rgb(50, 49, 48);&quot;&gt;&amp;nbsp;·&amp;nbsp;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;SharePoint · S3 · Service Bus · SQL&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="241" x="56" y="24" as="geometry" />
         </mxCell>
-        <mxCell id="6tYdsFe1zwNgNnA3f_16-96" parent="6tYdsFe1zwNgNnA3f_16-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;font&gt;&lt;b style=&quot;&quot;&gt;Azure ContentFlow&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Executor Catalog&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="6tYdsFe1zwNgNnA3f_16-96" parent="6tYdsFe1zwNgNnA3f_16-1" style="text;html=1;align=center;fontSize=20;fontColor=#0078D4;fontStyle=1;verticalAlign=top;" value="&lt;b&gt;ContentFlow Solution Accelerator&lt;/b&gt;&lt;br&gt;&lt;div&gt;&lt;font&gt;&lt;font style=&quot;color: rgb(0, 120, 212);&quot;&gt;Executor Catalog&lt;/font&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="310" x="40" y="40" as="geometry" />
         </mxCell>
         <mxCell id="6tYdsFe1zwNgNnA3f_16-97" parent="6tYdsFe1zwNgNnA3f_16-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#107C10;strokeWidth=2;container=0;align=left;" vertex="1">
