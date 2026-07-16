@@ -195,6 +195,18 @@ Web URLs → Web Scraping → Content Extraction → Sentiment Analysis → Topi
 
 ---
 
+## 🧭 Architecture Overview
+
+ContentFlow brings together the web dashboard, API, distributed workers, storage, and Azure AI services in a queue-driven processing architecture designed for scale and operational visibility.
+
+<p align="center">
+  <picture>
+  <img src="./assets/diagram/ContentFlow Diagram - Overall.png" alt="ContentFlow overall architecture diagram" style="width:900px;max-width:100%;height:auto;" />
+  </picture>
+</p>
+
+---
+
 ## 🏗️ Solution Components
 
 <p align="left">
