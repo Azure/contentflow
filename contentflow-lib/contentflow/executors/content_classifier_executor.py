@@ -72,8 +72,28 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
         settings = settings or {}
         categories = settings.get("categories", None)
         
+        # Handle categories passed as JSON string from UI
+        if isinstance(categories, str):
+            import json as _json
+            try:
+                parsed = _json.loads(categories)
+                if isinstance(parsed, dict):
+                    # Dict format: {"category": "description", ...}
+                    # Use keys as categories, store descriptions separately
+                    settings["category_descriptions"] = parsed
+                    categories = list(parsed.keys())
+                elif isinstance(parsed, list):
+                    categories = parsed
+                else:
+                    categories = [str(parsed)]
+            except (_json.JSONDecodeError, ValueError):
+                # Fallback: comma-separated list
+                categories = [c.strip() for c in categories.strip("[]").split(",") if c.strip()]
+                categories = [c.strip("'\"") for c in categories]
+            settings["categories"] = categories
+        
         if not categories or not isinstance(categories, list) or len(categories) == 0:
-            raise ValueError(f"{self.id}: ContentClassifierExecutor requires 'categories' setting with at least one category")
+            raise ValueError(f"{id}: ContentClassifierExecutor requires 'categories' setting with at least one category")
         
         multi_label = settings.get("multi_label", False)
         include_confidence = settings.get("include_confidence", True)
@@ -143,6 +163,9 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
             **kwargs
         )
         
+        # Max characters to send to classifier (prevents context window overflow)
+        self.max_input_chars = int(settings.get("max_input_chars", 4000))
+        
         if self.debug_mode:
             logger.debug(
                 f"ContentClassifierExecutor {self.id} initialized with {len(categories)} categories, "
@@ -150,6 +173,24 @@ class ContentClassifierExecutor(AzureOpenAIAgentExecutor):
             )
     
     async def process_content_item(self, content: Content) -> Content:
-        """Process content and parse JSON classification output."""
+        """Process content and parse JSON classification output.
+        Truncates input to max_input_chars to prevent context window overflow."""
+        # Truncate the input field to prevent context_length_exceeded errors
+        input_field = self.get_setting("input_field", default="text")
+        if input_field and input_field in content.data:
+            value = content.data[input_field]
+            if isinstance(value, str) and len(value) > self.max_input_chars:
+                content.data[input_field] = value[:self.max_input_chars]
+            elif isinstance(value, dict):
+                # Convert dict to string representation and truncate
+                value_str = json.dumps(value, ensure_ascii=False, default=str)
+                if len(value_str) > self.max_input_chars:
+                    content.data[input_field] = value_str[:self.max_input_chars]
+            elif isinstance(value, list):
+                # Convert list to string and truncate
+                value_str = json.dumps(value, ensure_ascii=False, default=str)
+                if len(value_str) > self.max_input_chars:
+                    content.data[input_field] = value_str[:self.max_input_chars]
         content = await super().process_content_item(content)
         return content
+

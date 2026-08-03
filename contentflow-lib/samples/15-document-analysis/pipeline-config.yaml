@@ -57,7 +57,7 @@ pipelines:
       #     # content_understanding_credential_type: "azure_key_credential"
       #     # content_understanding_subscription_key: ${AZURE_CONTENT_UNDERSTANDING_API_KEY}
       #     content_understanding_api_version: "2025-11-01"
-      #     content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
+      #     content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-5-mini\":\"gpt-5-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
       #     content_understanding_timeout: 360
       #     content_understanding_polling_interval: 2
 
@@ -67,7 +67,7 @@ pipelines:
         settings:
           max_concurrent: 2
           endpoint: "${AZURE_OPENAI_ENDPOINT}"
-          deployment_name: "gpt-4.1-mini"
+          deployment_name: "gpt-5-mini"
           credential_type: "default_azure_credential"
           # Summarization-specific settings
           summary_length: "short"  # Options: brief, short, medium, detailed
@@ -88,7 +88,7 @@ pipelines:
         settings:
           max_concurrent: 2
           endpoint: "${AZURE_OPENAI_ENDPOINT}"
-          deployment_name: "gpt-4.1-mini"
+          deployment_name: "gpt-5-mini"
           credential_type: "default_azure_credential"
           # Entity extraction-specific settings
           entity_types: 
@@ -117,7 +117,7 @@ pipelines:
         settings:
           max_concurrent: 2
           endpoint: "${AZURE_OPENAI_ENDPOINT}"
-          deployment_name: "gpt-4.1-mini"
+          deployment_name: "gpt-5-mini"
           credential_type: "default_azure_credential"
           pii_types: ["name", "email", "phone", "ssn", "credit_card", "address"]
           action: "detect"  # Options: "detect", "redact", "mask", "label"

@@ -44,10 +44,10 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
       {
         model: {
           format: 'OpenAI'
-          name: 'gpt-4.1-mini'
-          version: '2025-04-14'
+          name: 'gpt-5-mini'
+          version: '2025-08-07'
         }
-        name: 'gpt-4.1-mini'
+        name: 'gpt-5-mini'
         sku: {
           capacity: 100
           name: 'GlobalStandard'
@@ -56,10 +56,10 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
       {
         model: {
           format: 'OpenAI'
-          name: 'gpt-4.1'
-          version: '2025-04-14'
+          name: 'gpt-5.1'
+          version: '2025-11-13'
         }
-        name: 'gpt-4.1'
+        name: 'gpt-5.1'
         sku: {
           capacity: 100
           name: 'GlobalStandard'

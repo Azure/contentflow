@@ -182,7 +182,7 @@ pipeline:
         output_field: content_understanding_result
         content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
         content_understanding_model_mappings: |
-          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          {"gpt-4.1":"gpt-4.1","gpt-5-mini":"gpt-5-mini","text-embedding-3-large":"text-embedding-3-large"}
     
     - id: field_mapper-1
       name: Content Understanding Output Mapper
@@ -216,7 +216,7 @@ pipeline:
         summary_length: "medium"
         summary_style: "bullet_points"
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "markdown"
         output_field: "summary"
         
@@ -228,7 +228,7 @@ pipeline:
       settings:
         entity_types: "person, organization, location, concept, event"
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "markdown"
         output_field: "entities"
 
@@ -308,7 +308,7 @@ pipeline:
         output_field: content_understanding_result
         content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
         content_understanding_model_mappings: |
-          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          {"gpt-4.1":"gpt-4.1","gpt-5-mini":"gpt-5-mini","text-embedding-3-large":"text-embedding-3-large"}
     
     - id: field_mapper-1
       name: Content Understanding Output Mapper
@@ -342,7 +342,7 @@ pipeline:
         entity_types: "person, organization, location, concept, event"
         include_context: true
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "markdown"
         output_field: "entities"
         
@@ -483,7 +483,7 @@ pipeline:
         output_field: content_understanding_result
         content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
         content_understanding_model_mappings: |
-          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          {"gpt-4.1":"gpt-4.1","gpt-5-mini":"gpt-5-mini","text-embedding-3-large":"text-embedding-3-large"}
         
     - id: "fan_in_aggregator-1"
       name: "Results Aggregator"
@@ -556,7 +556,7 @@ pipeline:
         output_field: content_understanding_result
         content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
         content_understanding_model_mappings: |
-          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          {"gpt-4.1":"gpt-4.1","gpt-5-mini":"gpt-5-mini","text-embedding-3-large":"text-embedding-3-large"}
           
     - id: field_mapper-non-pdf
       name: Non-PDF Field Mapper
@@ -1048,7 +1048,7 @@ pipeline:
         output_field: content_understanding_result
         content_understanding_endpoint: "https://<foundry-resource>.services.ai.azure.com/"
         content_understanding_model_mappings: |
-          {"gpt-4.1":"gpt-4.1","gpt-4.1-mini":"gpt-4.1-mini","text-embedding-3-large":"text-embedding-3-large"}
+          {"gpt-4.1":"gpt-4.1","gpt-5-mini":"gpt-5-mini","text-embedding-3-large":"text-embedding-3-large"}
 
     - id: field_mapper-1
       name: Field Mapper
@@ -1355,7 +1355,7 @@ pipeline:
       description: "Extract cash flow, liquidity, and debt maturity highlights"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "cash_flow_liquidity"
         temperature: 0.1
@@ -1519,7 +1519,7 @@ pipeline:
       description: "Extract and rank risk factors"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "risk_factors"
         temperature: 0.1
@@ -1582,7 +1582,7 @@ pipeline:
       description: "Extract non-GAAP metrics and key adjustments"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "non_gaap_adjustments"
         temperature: 0.1
@@ -1673,7 +1673,7 @@ pipeline:
       description: "Extract critical accounting estimates and policy changes"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "accounting_estimates_changes"
         temperature: 0.1
@@ -1776,7 +1776,7 @@ pipeline:
       description: "Extract ESG and sustainability disclosures when present"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "esg_disclosures"
         temperature: 0.1
@@ -1908,7 +1908,7 @@ pipeline:
       description: "Extract capital allocation actions and stated priorities"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "capital_allocation"
         temperature: 0.1
@@ -2028,7 +2028,7 @@ pipeline:
       description: "Extract segment reporting and geographic mix"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "segments_geography"
         temperature: 0.1
@@ -2155,7 +2155,7 @@ pipeline:
       description: "Summarize key footnotes and accounting policies"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "footnotes"
         temperature: 0.1
@@ -2309,7 +2309,7 @@ pipeline:
       description: "Extract litigation, regulatory matters, commitments, and contingencies"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "legal_commitments_contingencies"
         temperature: 0.1
@@ -2453,7 +2453,7 @@ pipeline:
       description: "Extract guidance, outlook, and strategic initiatives"
       settings:
         endpoint: "https://<foundry-resource>.openai.azure.com/openai/v1/"
-        deployment_name: "gpt-4.1-mini"
+        deployment_name: "gpt-5-mini"
         input_field: "text"
         output_field: "guidance_outlook"
         temperature: 0.1

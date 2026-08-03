@@ -39,6 +39,9 @@ from .gptrag_search_index_doc_generator import GPTRAGSearchIndexDocumentGenerato
 from .web_scraping_executor import WebScrapingExecutor
 from .pass_through import PassThroughExecutor
 from .cosmos_db_lookup_executor import CosmosDBLookupExecutor
+from .document_validation_executor import DocumentValidationExecutor
+from .sql_database_document_retriever_executor import SQLDatabaseDocumentRetrieverExecutor
+from .pharmacy_license_validation_executor import PharmacyLicenseValidationExecutor
 
 # Document Set executors
 from .document_set_initializer import DocumentSetInitializerExecutor
@@ -96,6 +99,9 @@ __all__ = [
     "GPTRAGSearchIndexDocumentGeneratorExecutor",
     "PassThroughExecutor",
     "CosmosDBLookupExecutor",
+    "DocumentValidationExecutor",
+    "SQLDatabaseDocumentRetrieverExecutor",
+    "PharmacyLicenseValidationExecutor",
     # Document Set
     "DocumentSetInitializerExecutor",
     "DocumentSetCollectorExecutor",

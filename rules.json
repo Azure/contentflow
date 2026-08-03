@@ -1,0 +1,494 @@
+{
+  "transactionTypes": ["Nueva", "Renovación"],
+  "rules": [
+    {
+      "category": "Transaction Type Detection",
+      "documentType": "Application Form",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "TransactionType",
+          "validationType": "transaction_type_detection",
+          "errorCode": "TTD_UNRECOGNIZED_TYPE",
+          "message_en": "The system could not determine whether this application is a new license (Nueva) or a renewal (Renovación). Please verify the application form.",
+          "message_es": "El sistema no pudo determinar si esta solicitud es una licencia nueva (Nueva) o una renovación (Renovación). Por favor, verifique el formulario de solicitud."
+        },
+        {
+          "field": "TransactionType",
+          "validationType": "ruleset_assignment",
+          "errorCode": "TTD_RULESET_NOT_APPLIED",
+          "message_en": "The corresponding validation ruleset for the detected transaction type was not applied. Please retry the validation.",
+          "message_es": "El conjunto de reglas de validación correspondiente al tipo de transacción detectado no fue aplicado. Por favor, reintente la validación."
+        }
+      ]
+    },
+    {
+      "category": "Data Retrieval",
+      "documentType": "Application Package",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "ApplicationForm",
+          "validationType": "retrieval_check",
+          "errorCode": "DR_FORM_NOT_RETRIEVED",
+          "message_en": "The application form could not be retrieved from Salud Digital. Please verify the transaction ID and try again.",
+          "message_es": "El formulario de solicitud no pudo ser recuperado de Salud Digital. Por favor, verifique el ID de la transacción e intente de nuevo."
+        },
+        {
+          "field": "UploadedDocuments",
+          "validationType": "retrieval_check",
+          "errorCode": "DR_DOCUMENTS_NOT_RETRIEVED",
+          "message_en": "One or more uploaded documents (PDF/DOCX) could not be retrieved from Azure Blob Storage. Please verify the associated files for this transaction.",
+          "message_es": "Uno o más documentos cargados (PDF/DOCX) no pudieron ser recuperados de Azure Blob Storage. Por favor, verifique los archivos asociados a esta transacción."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Solicitud de Servicio",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "FormCompleteness",
+          "validationType": "completeness_check",
+          "errorCode": "SS_INCOMPLETE",
+          "message_en": "The Solicitud de Servicio is not fully completed. All fields must be filled in.",
+          "message_es": "La Solicitud de Servicio no está completamente llena. Todos los campos deben estar completos."
+        },
+        {
+          "field": "TextCase",
+          "validationType": "uppercase_check",
+          "errorCode": "SS_NOT_UPPERCASE",
+          "message_en": "The Solicitud de Servicio must be completed entirely in uppercase letters.",
+          "message_es": "La Solicitud de Servicio debe estar completada completamente en letras mayúsculas."
+        },
+        {
+          "field": "FacilityName",
+          "validationType": "presence_check",
+          "errorCode": "SS_FACILITY_NAME_MISSING",
+          "message_en": "The facility name is missing from the Solicitud de Servicio.",
+          "message_es": "El nombre del establecimiento no aparece en la Solicitud de Servicio."
+        },
+        {
+          "field": "Address",
+          "validationType": "completeness_check",
+          "errorCode": "SS_ADDRESS_INCOMPLETE",
+          "message_en": "The complete address is missing or incomplete on the Solicitud de Servicio.",
+          "message_es": "La dirección completa falta o está incompleta en la Solicitud de Servicio."
+        },
+        {
+          "field": "OwnerName",
+          "validationType": "presence_check",
+          "errorCode": "SS_OWNER_NAME_MISSING",
+          "message_en": "The owner name is missing from the Solicitud de Servicio.",
+          "message_es": "El nombre del dueño no aparece en la Solicitud de Servicio."
+        },
+        {
+          "field": "PharmacistNames",
+          "validationType": "presence_check",
+          "errorCode": "SS_PHARMACIST_NAMES_MISSING",
+          "message_en": "The pharmacist names with license/registration numbers are missing from the Solicitud de Servicio.",
+          "message_es": "Los nombres de los farmacéuticos con números de licencia/registro no aparecen en la Solicitud de Servicio."
+        },
+        {
+          "field": "LicenseNumberToAssign",
+          "validationType": "presence_check",
+          "errorCode": "SS_NEW_LICENSE_NUMBER_MISSING",
+          "appliesTo": "Nueva",
+          "message_en": "The license number to be assigned is missing from the Solicitud de Servicio. Required for new license applications.",
+          "message_es": "El número de licencia a asignar no aparece en la Solicitud de Servicio. Requerido para solicitudes de licencia nueva."
+        },
+        {
+          "field": "IssuanceDate",
+          "validationType": "presence_check",
+          "errorCode": "SS_NEW_ISSUANCE_DATE_MISSING",
+          "appliesTo": "Nueva",
+          "message_en": "The issuance date is missing from the Solicitud de Servicio. Required for new license applications.",
+          "message_es": "La fecha de expedición no aparece en la Solicitud de Servicio. Requerido para solicitudes de licencia nueva."
+        },
+        {
+          "field": "ExpirationDate",
+          "validationType": "presence_check",
+          "errorCode": "SS_NEW_EXPIRATION_DATE_MISSING",
+          "appliesTo": "Nueva",
+          "message_en": "The expiration date is missing from the Solicitud de Servicio. Required for new license applications.",
+          "message_es": "La fecha de expiración no aparece en la Solicitud de Servicio. Requerido para solicitudes de licencia nueva."
+        },
+        {
+          "field": "ExistingLicenseNumber",
+          "validationType": "presence_check",
+          "errorCode": "SS_RENEWAL_LICENSE_NUMBER_MISSING",
+          "appliesTo": "Renovación",
+          "message_en": "The existing license number is missing from the Solicitud de Servicio. Required for renewal applications.",
+          "message_es": "El número de licencia existente no aparece en la Solicitud de Servicio. Requerido para solicitudes de renovación."
+        },
+        {
+          "field": "IssuanceDate",
+          "validationType": "presence_check",
+          "errorCode": "SS_RENEWAL_ISSUANCE_DATE_MISSING",
+          "appliesTo": "Renovación",
+          "message_en": "The issuance date is missing from the Solicitud de Servicio. Required for renewal applications.",
+          "message_es": "La fecha de expedición no aparece en la Solicitud de Servicio. Requerido para solicitudes de renovación."
+        },
+        {
+          "field": "ExpirationDate",
+          "validationType": "presence_check",
+          "errorCode": "SS_RENEWAL_EXPIRATION_DATE_MISSING",
+          "appliesTo": "Renovación",
+          "message_en": "The expiration date is missing from the Solicitud de Servicio. Required for renewal applications.",
+          "message_es": "La fecha de expiración no aparece en la Solicitud de Servicio. Requerido para solicitudes de renovación."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Licencia Profesional, Registro Profesional, Colegiación de Farmacéuticos",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "PharmacistName",
+          "validationType": "name_match",
+          "errorCode": "LP_NAME_MISMATCH",
+          "message_en": "The pharmacist name on the professional license/registration does not match the name on the application.",
+          "message_es": "El nombre del farmacéutico en la licencia/registro profesional no coincide con el nombre en la solicitud."
+        },
+        {
+          "field": "ExpirationDate",
+          "validationType": "expiry_check",
+          "errorCode": "LP_EXPIRED",
+          "message_en": "The professional license, registration, or colegiación has expired. Please upload a current document.",
+          "message_es": "La licencia profesional, registro profesional o colegiación ha expirado. Por favor, cargue un documento vigente."
+        },
+        {
+          "field": "DocumentType",
+          "validationType": "document_type_check",
+          "errorCode": "LP_WRONG_DOCUMENT_TYPE",
+          "message_en": "The submitted document type does not match the required professional license, registration, or colegiación type.",
+          "message_es": "El tipo de documento presentado no corresponde al tipo requerido de licencia profesional, registro profesional o colegiación."
+        },
+        {
+          "field": "Legibility",
+          "validationType": "legibility_check",
+          "errorCode": "LP_ILLEGIBLE",
+          "message_en": "The professional license, registration, or colegiación document is not legible. Please upload a clear copy.",
+          "message_es": "El documento de licencia profesional, registro profesional o colegiación no es legible. Por favor, cargue una copia clara."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Fotos 2x2 de Farmacéuticos",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "PhotoClarity",
+          "validationType": "clarity_check",
+          "errorCode": "FT_PHOTO_UNCLEAR",
+          "message_en": "One or more pharmacist photos are not clear. Please upload photos with adequate resolution and lighting.",
+          "message_es": "Una o más fotos de farmacéuticos no son claras. Por favor, cargue fotos con resolución y luminosidad adecuadas."
+        },
+        {
+          "field": "PhotoSize",
+          "validationType": "size_check",
+          "errorCode": "FT_PHOTO_WRONG_SIZE",
+          "message_en": "One or more pharmacist photos do not meet the required 2x2 size specification.",
+          "message_es": "Una o más fotos de farmacéuticos no cumplen con la especificación de tamaño 2x2 requerida."
+        },
+        {
+          "field": "PhotoQuantity",
+          "validationType": "quantity_check",
+          "errorCode": "FT_PHOTO_INSUFFICIENT_QUANTITY",
+          "message_en": "The number of pharmacist photos submitted is insufficient. Please upload the required quantity.",
+          "message_es": "La cantidad de fotos de farmacéuticos presentadas es insuficiente. Por favor, cargue la cantidad requerida."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Certificación de Horarios de Farmacéuticos",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "FormCompleteness",
+          "validationType": "completeness_check",
+          "errorCode": "CH_INCOMPLETE",
+          "message_en": "The Certificación de Horarios is not fully completed. All fields must be filled in.",
+          "message_es": "La Certificación de Horarios no está completamente llena. Todos los campos deben estar completos."
+        },
+        {
+          "field": "Signature",
+          "validationType": "presence_check",
+          "errorCode": "CH_SIGNATURE_MISSING",
+          "message_en": "The Certificación de Horarios is missing a required signature.",
+          "message_es": "La Certificación de Horarios no tiene la firma requerida."
+        },
+        {
+          "field": "Date",
+          "validationType": "presence_check",
+          "errorCode": "CH_DATE_MISSING",
+          "message_en": "The date is missing from the Certificación de Horarios.",
+          "message_es": "La fecha no aparece en la Certificación de Horarios."
+        },
+        {
+          "field": "FacilityName",
+          "validationType": "presence_check",
+          "errorCode": "CH_FACILITY_NAME_MISSING",
+          "message_en": "The facility name is missing from the Certificación de Horarios.",
+          "message_es": "El nombre del establecimiento no aparece en la Certificación de Horarios."
+        },
+        {
+          "field": "PharmacyHoursCoverage",
+          "validationType": "coverage_check",
+          "errorCode": "CH_HOURS_NOT_COVERED",
+          "message_en": "Not all pharmacy operating hours are covered by licensed pharmacists in the Certificación de Horarios.",
+          "message_es": "No todas las horas de operación de la farmacia están cubiertas por farmacéuticos licenciados en la Certificación de Horarios."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Patente Municipal",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "PM_ADDRESS_MISMATCH",
+          "message_en": "The address on the Patente Municipal does not match the address on the application.",
+          "message_es": "La dirección en la Patente Municipal no coincide con la dirección en la solicitud."
+        },
+        {
+          "field": "Validity",
+          "validationType": "expiry_check",
+          "errorCode": "PM_EXPIRED",
+          "message_en": "The Patente Municipal has expired. Please upload a valid Patente Municipal.",
+          "message_es": "La Patente Municipal ha expirado. Por favor, cargue una Patente Municipal vigente."
+        },
+        {
+          "field": "BusinessName",
+          "validationType": "name_match",
+          "errorCode": "PM_BUSINESS_NAME_MISMATCH",
+          "message_en": "The DBA or corporation name on the Patente Municipal does not match the name on the application.",
+          "message_es": "El nombre comercial (DBA) o corporación en la Patente Municipal no coincide con el nombre en la solicitud."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Certificado de Good Standing",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "CorporationName",
+          "validationType": "name_match",
+          "errorCode": "GS_CORPORATION_NAME_MISMATCH",
+          "message_en": "The corporation name on the Certificado de Good Standing does not match the corporation name on the application.",
+          "message_es": "El nombre de la corporación en el Certificado de Good Standing no coincide con el nombre de la corporación en la solicitud."
+        },
+        {
+          "field": "Validity",
+          "validationType": "expiry_check",
+          "errorCode": "GS_EXPIRED",
+          "message_en": "The Certificado de Good Standing has expired. Please upload a current certificate.",
+          "message_es": "El Certificado de Good Standing ha expirado. Por favor, cargue un certificado vigente."
+        },
+        {
+          "field": "ExplanationLetter",
+          "validationType": "alternative_document_check",
+          "errorCode": "GS_MISSING_OR_NO_EXPLANATION",
+          "message_en": "The Certificado de Good Standing is missing. If not applicable, a written explanation letter must be provided in its place.",
+          "message_es": "El Certificado de Good Standing no fue presentado. Si no aplica, se debe proveer una carta de explicación escrita en su lugar."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Permiso Único",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "ProjectName",
+          "validationType": "presence_check",
+          "errorCode": "PU_PROJECT_NAME_MISSING",
+          "message_en": "The project name is missing from the Permiso Único.",
+          "message_es": "El nombre del proyecto no aparece en el Permiso Único."
+        },
+        {
+          "field": "OwnerName",
+          "validationType": "presence_check",
+          "errorCode": "PU_OWNER_NAME_MISSING",
+          "message_en": "The owner name is missing from the Permiso Único.",
+          "message_es": "El nombre del dueño no aparece en el Permiso Único."
+        },
+        {
+          "field": "ProjectDescription",
+          "validationType": "presence_check",
+          "errorCode": "PU_DESCRIPTION_MISSING",
+          "message_en": "The project description is missing from the Permiso Único.",
+          "message_es": "La descripción del proyecto no aparece en el Permiso Único."
+        },
+        {
+          "field": "Address",
+          "validationType": "completeness_check",
+          "errorCode": "PU_ADDRESS_INCOMPLETE",
+          "message_en": "The complete address is missing or incomplete on the Permiso Único.",
+          "message_es": "La dirección completa falta o está incompleta en el Permiso Único."
+        },
+        {
+          "field": "Validity",
+          "validationType": "expiry_check",
+          "errorCode": "PU_EXPIRED",
+          "message_en": "The Permiso Único has expired. Please upload a valid permit.",
+          "message_es": "El Permiso Único ha expirado. Por favor, cargue un permiso vigente."
+        },
+        {
+          "field": "PageCompleteness",
+          "validationType": "page_count_check",
+          "errorCode": "PU_PAGES_MISSING",
+          "message_en": "Not all pages of the Permiso Único are present. Please upload the complete document.",
+          "message_es": "No todas las páginas del Permiso Único están presentes. Por favor, cargue el documento completo."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Shared Rules",
+      "documentType": "Advertencia Legal",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "SectionCompleteness",
+          "validationType": "completeness_check",
+          "errorCode": "AL_SECTION_INCOMPLETE",
+          "message_en": "The Advertencia Legal section is not completed. Please fill in all required fields.",
+          "message_es": "La sección de Advertencia Legal no está completada. Por favor, complete todos los campos requeridos."
+        },
+        {
+          "field": "Checkbox",
+          "validationType": "checkbox_check",
+          "errorCode": "AL_CHECKBOX_NOT_MARKED",
+          "message_en": "The checkbox on the Advertencia Legal section is not marked. Please mark the checkbox to acknowledge the legal notice.",
+          "message_es": "La casilla de verificación en la sección de Advertencia Legal no está marcada. Por favor, marque la casilla para reconocer la advertencia legal."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Transaction-Specific Rules",
+      "documentType": "Diseño Esquemático (Layout)",
+      "appliesTo": "Nueva",
+      "validations": [
+        {
+          "field": "Clarity",
+          "validationType": "clarity_check",
+          "errorCode": "DE_LAYOUT_UNCLEAR",
+          "message_en": "The schematic design (layout) is not clear or legible. Please upload a higher quality version.",
+          "message_es": "El diseño esquemático (layout) no es claro o legible. Por favor, cargue una versión de mayor calidad."
+        },
+        {
+          "field": "WindowLocations",
+          "validationType": "presence_check",
+          "errorCode": "DE_WINDOWS_MISSING",
+          "message_en": "Window locations are not indicated on the schematic design (layout).",
+          "message_es": "Las ubicaciones de las ventanas no están indicadas en el diseño esquemático (layout)."
+        },
+        {
+          "field": "EntryExitAreas",
+          "validationType": "presence_check",
+          "errorCode": "DE_ENTRY_EXIT_MISSING",
+          "message_en": "Entry and exit areas are not indicated on the schematic design (layout).",
+          "message_es": "Las áreas de entrada y salida no están indicadas en el diseño esquemático (layout)."
+        },
+        {
+          "field": "Dimensions",
+          "validationType": "presence_check",
+          "errorCode": "DE_DIMENSIONS_MISSING",
+          "message_en": "Dimensions are not indicated on the schematic design (layout).",
+          "message_es": "Las dimensiones no están indicadas en el diseño esquemático (layout)."
+        }
+      ]
+    },
+    {
+      "category": "Document Validation — Transaction-Specific Rules",
+      "documentType": "Licencia de Farmacia Vigente y Licencia de Productos Biológicos",
+      "appliesTo": "Renovación",
+      "validations": [
+        {
+          "field": "PharmacyName",
+          "validationType": "name_match",
+          "errorCode": "LF_PHARMACY_NAME_MISMATCH",
+          "message_en": "The pharmacy name on the license does not match the name on the renewal application.",
+          "message_es": "El nombre de la farmacia en la licencia no coincide con el nombre en la solicitud de renovación."
+        },
+        {
+          "field": "Validity",
+          "validationType": "expiry_check",
+          "errorCode": "LF_LICENSE_EXPIRED",
+          "message_en": "The pharmacy license or Licencia de Productos Biológicos has expired. Please upload a valid license.",
+          "message_es": "La licencia de farmacia o la Licencia de Productos Biológicos ha expirado. Por favor, cargue una licencia vigente."
+        },
+        {
+          "field": "Address",
+          "validationType": "address_match",
+          "errorCode": "LF_ADDRESS_MISMATCH",
+          "message_en": "The address on the pharmacy license does not match the address on the renewal application.",
+          "message_es": "La dirección en la licencia de farmacia no coincide con la dirección en la solicitud de renovación."
+        },
+        {
+          "field": "DocumentType",
+          "validationType": "document_type_check",
+          "errorCode": "LF_WRONG_DOCUMENT_TYPE",
+          "message_en": "The submitted document type does not match the required license type (Licencia de Farmacia or Licencia de Productos Biológicos).",
+          "message_es": "El tipo de documento presentado no corresponde al tipo de licencia requerido (Licencia de Farmacia o Licencia de Productos Biológicos)."
+        }
+      ]
+    },
+    {
+      "category": "Recommendation & Review Workflow",
+      "documentType": "Application Review",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "Recommendation",
+          "validationType": "recommendation_generation",
+          "errorCode": "RW_NO_RECOMMENDATION",
+          "message_en": "The system did not generate an Approve or Decline recommendation for this application. Please re-run the validation.",
+          "message_es": "El sistema no generó una recomendación de Aprobación o Rechazo para esta solicitud. Por favor, ejecute la validación nuevamente."
+        },
+        {
+          "field": "CorrectionMessages",
+          "validationType": "actionable_message_check",
+          "errorCode": "RW_NO_CORRECTION_DETAILS",
+          "message_en": "One or more failed validation rules do not have specific, actionable correction messages. All failures must include clear instructions for resolution.",
+          "message_es": "Una o más reglas de validación fallidas no tienen mensajes de corrección específicos y accionables. Todas las fallas deben incluir instrucciones claras para su resolución."
+        },
+        {
+          "field": "ReviewerDecision",
+          "validationType": "decision_recording",
+          "errorCode": "RW_DECISION_NOT_RECORDED",
+          "message_en": "The reviewer's final decision (accept or reject) was not recorded. Please record the decision and rationale for any override.",
+          "message_es": "La decisión final del revisor (aceptar o rechazar) no fue registrada. Por favor, registre la decisión y la justificación de cualquier anulación."
+        },
+        {
+          "field": "DataIntegrity",
+          "validationType": "read_only_check",
+          "errorCode": "RW_WRITE_BACK_DETECTED",
+          "message_en": "The application must not write back to or modify any data in the Salud Digital portal. Accepted decisions should be presented as instructions for manual entry.",
+          "message_es": "La aplicación no debe escribir ni modificar datos en el portal de Salud Digital. Las decisiones aceptadas deben presentarse como instrucciones para entrada manual."
+        }
+      ]
+    },
+    {
+      "category": "Accuracy",
+      "documentType": "Validation Accuracy",
+      "appliesTo": "Both",
+      "validations": [
+        {
+          "field": "AccuracyBenchmark",
+          "validationType": "accuracy_threshold",
+          "errorCode": "AC_BELOW_BENCHMARK",
+          "message_en": "The system's recommendations did not meet or exceed the agreed accuracy benchmark compared to a manual reviewer's assessment across all validation rules for both transaction types.",
+          "message_es": "Las recomendaciones del sistema no alcanzaron o superaron el punto de referencia de precisión acordado en comparación con la evaluación de un revisor manual en todas las reglas de validación para ambos tipos de transacción."
+        }
+      ]
+    }
+  ]
+}

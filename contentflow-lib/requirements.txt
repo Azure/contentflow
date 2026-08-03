@@ -23,3 +23,8 @@ openpyxl>=3.1.5
 colorlog>=6.7.0
 colorama>=0.4.6
 playwright>=1.57.0
+
+# SQL Server connectivity (SARSP)
+pyodbc>=5.1.0
+
+pyodbc>=5.1.0

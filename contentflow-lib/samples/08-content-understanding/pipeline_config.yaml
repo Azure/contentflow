@@ -28,7 +28,7 @@ pipeline:
         content_understanding_api_version: "2025-11-01"
         content_understanding_max_retries: 2
         content_understanding_retry_backoff_factor: 2.0
-        content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
+        content_understanding_model_mappings: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-5-mini\":\"gpt-5-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
     - id: map_page_content
       type: field_mapper # refers to the id in executor_catalog.yaml
       debug_mode: true

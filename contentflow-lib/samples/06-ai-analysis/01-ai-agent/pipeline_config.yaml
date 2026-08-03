@@ -12,7 +12,7 @@ pipelines:
         settings:
           max_concurrent: 2
           endpoint: "${AZURE_OPENAI_ENDPOINT}"
-          deployment_name: "gpt-4.1-mini"
+          deployment_name: "gpt-5-mini"
           credential_type: "default_azure_credential"
           instructions: "You are a helpful AI assistant that summarizes text content. Provide clear, concise summaries."
           input_field: "text"

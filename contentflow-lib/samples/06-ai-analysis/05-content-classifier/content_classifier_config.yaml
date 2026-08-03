@@ -13,7 +13,7 @@ pipelines:
           # Azure OpenAI configuration
           max_concurrent: 2
           endpoint: "${AZURE_OPENAI_ENDPOINT}"
-          deployment_name: "gpt-4.1-mini"
+          deployment_name: "gpt-5-mini"
           credential_type: "default_azure_credential"
           temperature: 0.2  # Low temperature for consistent classification
           max_tokens: 500

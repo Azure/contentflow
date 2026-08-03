@@ -72,6 +72,7 @@ module containerRegistry 'br:mcr.microsoft.com/bicep/avm/res/container-registry/
     acrAdminUserEnabled: adminUserEnabled
     publicNetworkAccess: publicNetworkAccess
     zoneRedundancy: zoneRedundancy
+    exportPolicyStatus: 'enabled'
     roleAssignments: concat(roleAssignmentsAcrPull, roleAssignmentsAcrPush, roleAssignmentsAcrDelete)
     privateEndpoints: enablePrivateEndpoint ? [
       {

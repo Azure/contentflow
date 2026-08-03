@@ -1,0 +1,127 @@
+{
+  "version": "1.0",
+  "project": "SARSP",
+  "description": "Pharmacy license validation rules for Puerto Rico Health Department (Departamento de Salud)",
+  "transactionTypes": ["Nueva", "Renovación"],
+
+  "shared_rules": [
+    {
+      "documentType": "Solicitud de Servicio",
+      "ruleId": "SOL-001",
+      "description": "Application form completeness and uppercase",
+      "criteria": "Verify the application form (Solicitud de Servicio) is fully completed in UPPERCASE. Must include: facility name, complete address, owner name, and pharmacist names with their license/registration numbers.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Solicitud de Servicio",
+      "ruleId": "SOL-002-NUEVA",
+      "description": "New license number and dates (Nueva only)",
+      "criteria": "For Nueva applications: validate that the license number to be assigned is present, along with issuance date and expiration date.",
+      "appliesTo": "Nueva"
+    },
+    {
+      "documentType": "Solicitud de Servicio",
+      "ruleId": "SOL-002-RENOV",
+      "description": "Existing license and dates (Renovación only)",
+      "criteria": "For Renovación applications: validate the existing license number is present, along with the original issuance date and current expiration date.",
+      "appliesTo": "Renovación"
+    },
+    {
+      "documentType": "Licencia Profesional",
+      "ruleId": "LIC-001",
+      "description": "Professional license validity and name matching",
+      "criteria": "Validate that: (1) pharmacist names on the professional license match the names on the application form, (2) the document is current (not expired), (3) the correct document type was submitted (Licencia Profesional, not another credential), and (4) the document is legible.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Registro Profesional",
+      "ruleId": "REG-001",
+      "description": "Professional registration validity and name matching",
+      "criteria": "Validate that: (1) pharmacist names on the professional registration match the application, (2) the correct document type was submitted (Registro Profesional de Farmacéutico), and (3) the document is legible.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Registro Profesional",
+      "ruleId": "REG-002",
+      "description": "Professional registration expiration check",
+      "criteria": "Validate that the Registro Profesional de Farmacéutico has not expired. Check the expiration date on the document and confirm it is still valid (expiration date is on or after today's date).",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Colegiación de Farmacéuticos",
+      "ruleId": "COL-001",
+      "description": "Pharmacist association membership validity",
+      "criteria": "Validate that: (1) pharmacist names match the application, (2) membership is current, (3) the correct document type was submitted, and (4) the document is legible.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Fotos 2x2 de Farmacéuticos",
+      "ruleId": "FOT-001",
+      "description": "Pharmacist photos validation — must be a photo of a person",
+      "criteria": "Validate that: (1) the image is a photo of a person (not a document, object, or blank image), (2) the photo is clear and of adequate quality, (3) the photo is the correct size (2x2 inches), and (4) the quantity of photos matches the number of pharmacists listed on the application.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Certificación de Horarios de Farmacéuticos",
+      "ruleId": "HOR-001",
+      "description": "Pharmacist schedule certification completeness",
+      "criteria": "Validate that: (1) the schedule certification is complete (all fields filled), (2) it is signed, (3) it is dated, (4) the facility name is included, and (5) all pharmacy operating hours are covered by at least one licensed pharmacist.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Patente Municipal",
+      "ruleId": "PAT-001",
+      "description": "Municipal patent validity",
+      "criteria": "Validate that: (1) the address on the municipal patent matches the application address, (2) the patent is currently valid (not expired), and (3) the DBA name or corporation name matches the name on the application.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Certificado de Good Standing",
+      "ruleId": "GDS-001",
+      "description": "Good Standing certificate or explanation letter",
+      "criteria": "Validate that: (1) the corporation name on the Good Standing certificate matches the application, and (2) the certificate is currently valid. If the certificate is not applicable (e.g., sole proprietorship), detect and accept a written explanation letter in its place.",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Permiso Único",
+      "ruleId": "PER-001",
+      "description": "Unique permit completeness and validity",
+      "criteria": "Validate that: (1) the project name is present, (2) the owner name matches the application, (3) the project description is present, (4) the complete address matches the application, (5) the permit is currently valid, and (6) all pages of the permit are present (not truncated).",
+      "appliesTo": "Both"
+    },
+    {
+      "documentType": "Advertencia Legal",
+      "ruleId": "ADV-001",
+      "description": "Legal notice section completion",
+      "criteria": "Confirm that: (1) the legal notice section (Advertencia Legal) is fully completed, and (2) the required checkbox is marked/checked.",
+      "appliesTo": "Both"
+    }
+  ],
+
+  "nueva_rules": [
+    {
+      "documentType": "Diseño esquemático",
+      "ruleId": "DIS-001",
+      "description": "Schematic layout validation (Nueva only)",
+      "criteria": "Validate the pharmacy schematic layout (Diseño esquemático/Layout): (1) the drawing is clear and legible, (2) window locations are indicated, (3) entry and exit areas are marked, and (4) dimensions are present.",
+      "appliesTo": "Nueva"
+    }
+  ],
+
+  "renovacion_rules": [
+    {
+      "documentType": "Licencia de Farmacia vigente",
+      "ruleId": "LFV-001",
+      "description": "Current pharmacy license validation (Renovación only)",
+      "criteria": "Validate the current pharmacy license (Licencia de Farmacia vigente): (1) the pharmacy name matches the application, (2) the license is currently valid, (3) the address matches the application, and (4) the correct document type was submitted.",
+      "appliesTo": "Renovación"
+    },
+    {
+      "documentType": "Licencia de Productos Biológicos",
+      "ruleId": "LPB-001",
+      "description": "Biological products license validation (Renovación only)",
+      "criteria": "Validate the biological products license (Licencia de Productos Biológicos): (1) the pharmacy name matches the application, (2) the license is currently valid, (3) the address matches the application, and (4) the correct document type was submitted.",
+      "appliesTo": "Renovación"
+    }
+  ]
+}
