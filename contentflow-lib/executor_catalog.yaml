@@ -850,10 +850,10 @@ executor_catalog:
       content_understanding_model_mappings:
         type: string
         title: "Default Model Deployments"
-        description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-4.1-mini\":\"gpt_4.1_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
+        description: "Mapping of model names to deployment IDs in JSON format, example: '{\"gpt-4.1\":\"gpt_4.1_deployment_name\",\"gpt-5-mini\":\"gpt_5_mini_deployment_name\",\"text-embedding-3-large\":\"text_embedding_3_large_deployment_name\"}'"
         placeholder: '{"model_name":"deployment_id"}'
         required: true
-        default: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-4.1-mini\":\"gpt-4.1-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
+        default: "{\"gpt-4.1\":\"gpt-4.1\",\"gpt-5-mini\":\"gpt-5-mini\",\"text-embedding-3-large\":\"text-embedding-3-large\"}"
         ui_component: "input"
       
       max_concurrent:
@@ -2630,7 +2630,7 @@ executor_catalog:
         title: "Model Deployment Name"
         description: "Azure OpenAI model deployment name"
         required: true
-        default: "gpt-4.1-mini"
+        default: "gpt-5-mini"
         ui_component: "input"
 
       credential_type:

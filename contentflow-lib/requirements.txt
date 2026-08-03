@@ -5,7 +5,7 @@ python-dotenv>=1.2.2
 aiohttp>=3.13.3
 
 # Microsoft Agent Framework
-agent-framework==1.0.0
+agent-framework>=1.9.0,<2
 
 # Azure dependencies (if using Azure services)
 azure-core>=1.38.0
