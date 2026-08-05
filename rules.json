@@ -277,7 +277,31 @@
       "category": "Document Validation — Shared Rules",
       "documentType": "Certificado de Good Standing",
       "appliesTo": "Both",
+      "extractionFields": {
+        "DBA": {
+          "type": "string",
+          "description": "The DBA (Doing Business As) name or corporation name extracted from the Certificate of Good Standing."
+        },
+        "IsExempt": {
+          "type": "boolean",
+          "description": "If the pharmacy is not a corporation or operates under a DBA, it is exempt from providing the Certificate of Good Standing."
+        }
+      },
       "validations": [
+        {
+          "field": "IsExempt",
+          "validationType": "exemption_check",
+          "errorCode": "GS_EXEMPTION",
+          "message_en": "The pharmacy is exempt from providing a Certificate of Good Standing (operates as a sole proprietorship or under a DBA).",
+          "message_es": "La farmacia está exenta de proveer un Certificado de Good Standing (opera como negocio propio o bajo un DBA)."
+        },
+        {
+          "field": "DBA",
+          "validationType": "text_extraction",
+          "errorCode": "GS_DBA_NOT_FOUND",
+          "message_en": "The DBA (Doing Business As) or corporation name could not be extracted from the Certificado de Good Standing.",
+          "message_es": "El nombre DBA (Doing Business As) o nombre de la corporación no pudo ser extraído del Certificado de Good Standing."
+        },
         {
           "field": "CorporationName",
           "validationType": "name_match",

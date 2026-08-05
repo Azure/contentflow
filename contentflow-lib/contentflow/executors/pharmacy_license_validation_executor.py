@@ -528,9 +528,65 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
                 if self._doc_type_matches(doc_type, req_type):
                     found_doc_types.add(req_type)
 
+        # Check for Good Standing exemption
+        # Detect from: (1) CU analyzer fields, (2) document content indicating DBA/sole proprietorship
+        good_standing_exempt = False
+        detected_dba = ""
+        for doc in fetched_details:
+            # Check CU analyzer output if available
+            extraction = (
+                doc.get("good_standing_analysis", {})
+                or doc.get("extraction_fields", {})
+                or doc.get("fields", {})
+                or {}
+            )
+            if "result" in extraction:
+                cu_contents = extraction.get("result", {}).get("contents", [])
+                if cu_contents:
+                    fields = cu_contents[0].get("fields", {})
+                    is_exempt = fields.get("IsExempt", {}).get("valueBoolean", False)
+                    dba_val = fields.get("DBA", {}).get("valueString", "")
+                    if is_exempt:
+                        good_standing_exempt = True
+                        detected_dba = dba_val or detected_dba
+                        break
+            is_exempt = extraction.get("IsExempt", {})
+            if isinstance(is_exempt, dict):
+                is_exempt = is_exempt.get("valueBoolean", False)
+            if is_exempt:
+                good_standing_exempt = True
+                break
+
+            # Check document content for DBA/exemption indicators
+            doc_type = doc.get("document_type", "").lower()
+            if doc_type and ("good standing" in doc_type or "solicitud" in doc_type):
+                doc_content = doc.get("details", {}).get("result", {}).get("contents", [])
+                if doc_content:
+                    md = doc_content[0].get("markdown", "").lower()
+                    if any(kw in md for kw in ["dba", "doing business as", "negocio propio", "persona natural"]):
+                        good_standing_exempt = True
+                        break
+
         # Report missing required documents
         missing = required_doc_types - found_doc_types
         for missing_type in missing:
+            # Skip Good Standing if pharmacy is exempt
+            if good_standing_exempt and "good standing" in missing_type.lower():
+                results["documentResults"].append({
+                    "documentType": missing_type,
+                    "filename": "",
+                    "status": "exempt",
+                    "ruleResults": [{
+                        "rule_id": "GS_EXEMPTION",
+                        "result": "exempt",
+                        "confidence": 1.0,
+                        "message_en": "The pharmacy is exempt from providing a Certificate of Good Standing (operates as a sole proprietorship or under a DBA).",
+                        "message_es": "La farmacia está exenta de proveer un Certificado de Good Standing (opera como negocio propio o bajo un DBA).",
+                        "correction": None,
+                    }],
+                    "errors": [],
+                })
+                continue
             results["missingDocuments"].append({
                 "documentType": missing_type,
                 "message_en": f"Required document '{missing_type}' was not found in the submission.",
@@ -612,7 +668,8 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
 
         return doc_result
 
-    async def _ai_validate_document(
+
+        async def _ai_validate_document(
         self,
         doc: dict,
         provided_details: dict,
@@ -627,24 +684,45 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
         doc_type = doc.get("document_type", "Unknown")
         doc_content = json.dumps(doc.get("details", {}), ensure_ascii=False, default=str)
         app_data = json.dumps(provided_details, ensure_ascii=False, default=str)[:2000]
+        evaluation_date = datetime.now(timezone.utc).date().isoformat()
 
         # Add image context for photo documents
         image_context = ""
         if doc_type == "Fotos 2x2 de Farmacéuticos":
             filename = doc.get("filename", "")
-            # Extract image dimensions from the details
             try:
-                pages = doc.get("details", {}).get("result", {}).get("contents", [{}])[0].get("pages", [{}])
+                pages = doc.get(
+                    "details", {}
+                ).get(
+                    "result", {}
+                ).get(
+                    "contents", [{}]
+                )[0].get(
+                    "pages", [{}]
+                )
+
                 if pages:
                     width = pages[0].get("width", 0)
                     height = pages[0].get("height", 0)
-                    mime = doc.get("details", {}).get("result", {}).get("contents", [{}])[0].get("mimeType", "")
+                    mime = doc.get(
+                        "details", {}
+                    ).get(
+                        "result", {}
+                    ).get(
+                        "contents", [{}]
+                    )[0].get(
+                        "mimeType", ""
+                    )
+
                     image_context = (
-                        f"\nIMAGE METADATA: This is a {mime} image file ({width}x{height} pixels). "
-                        f"The file was classified as a pharmacist photo based on file type (.jpg) and "
-                        f"absence of document text content. It IS a photo of a person (headshot). "
-                        f"Validate based on the pixel dimensions: a proper 2x2 inch photo at 300 DPI "
-                        f"should be approximately 600x600 pixels. This image is {width}x{height} pixels.\n"
+                        f"\nIMAGE METADATA: This is a {mime} image file "
+                        f"({width}x{height} pixels). "
+                        f"The file was classified as a pharmacist photo based on "
+                        f"file type (.jpg) and absence of document text content. "
+                        f"It IS a photo of a person (headshot). "
+                        f"Validate based on the pixel dimensions: a proper 2x2 inch "
+                        f"photo at 300 DPI should be approximately 600x600 pixels. "
+                        f"This image is {width}x{height} pixels.\n"
                     )
             except (IndexError, KeyError, TypeError):
                 pass
@@ -659,18 +737,36 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
             )
 
         query = (
+            f"EVALUATION DATE (UTC): {evaluation_date}\n\n"
+            "DATE VALIDATION INSTRUCTIONS:\n"
+            "- For every validity or expiration rule, calculate dates explicitly.\n"
+            "- If a document says it is valid for one year from issuance, add one "
+            "calendar year to the issuance date to determine its expiration date.\n"
+            "- A document is expired when its expiration date is earlier than the "
+            "evaluation date.\n"
+            "- A document is current only when its expiration date is on or after "
+            "the evaluation date.\n"
+            "- State the issuance date, expiration date, and evaluation date in "
+            "your explanation when validating document currency.\n"
+            "- Do not describe a document as current if its calculated expiration "
+            "date has already passed.\n\n"
             f"TRANSACTION TYPE: {transaction_type}\n\n"
             f"DOCUMENT TYPE: {doc_type}\n\n"
             f"DOCUMENT EXTRACTED CONTENT:\n{doc_content}\n"
             f"{image_context}\n"
             f"APPLICATION DATA (for cross-reference):\n{app_data}\n\n"
-            f"VALIDATION RULES TO CHECK:\n" + "\n".join(rules_description) + "\n\n"
-            f"Validate the document against each rule. Return a JSON array with one entry per rule."
+            f"VALIDATION RULES TO CHECK:\n"
+            + "\n".join(rules_description)
+            + "\n\n"
+            "Validate the document against each rule. "
+            "Return a JSON array with one entry per rule."
         )
 
         try:
             response: AgentResponse = await self._validation_agent.run(query)
-            response_text = response.content if hasattr(response, "content") else str(response)
+            response_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             # Parse JSON response — handle markdown code blocks
             text = response_text.strip()
@@ -684,15 +780,17 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
 
             # Normalize results
             normalized = []
-            for r in rule_results:
-                normalized.append({
-                    "rule_id": r.get("rule_id", "unknown"),
-                    "result": r.get("result", "pass"),
-                    "confidence": r.get("confidence", 0.0),
-                    "message_en": r.get("message_en", ""),
-                    "message_es": r.get("message_es", ""),
-                    "correction": r.get("correction", None),
-                })
+            for rule_result in rule_results:
+                normalized.append(
+                    {
+                        "rule_id": rule_result.get("rule_id", "unknown"),
+                        "result": rule_result.get("result", "pass"),
+                        "confidence": rule_result.get("confidence", 0.0),
+                        "message_en": rule_result.get("message_en", ""),
+                        "message_es": rule_result.get("message_es", ""),
+                        "correction": rule_result.get("correction", None),
+                    }
+                )
             return normalized
 
         except (json.JSONDecodeError, Exception) as e:
@@ -700,7 +798,6 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
                 f"{self.id}: AI validation failed for document '{doc_type}': {e}",
                 exc_info=True,
             )
-            # Return warning results for all rules
             return [
                 {
                     "rule_id": rule.get("ruleId", "unknown"),

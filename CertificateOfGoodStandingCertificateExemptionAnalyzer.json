@@ -1,0 +1,35 @@
+{
+	"analyzerId": "CertificateOfGoodStandingCertificateExemptionAnalyzer",
+	"description": "Extracts the DBA (Doing Business As) name and determines whether the pharmacy is exempt from providing a Certificate of Good Standing.",
+	"baseAnalyzerId": "prebuilt-document",
+	"config": {
+		"returnDetails": false,
+		"enableOcr": true,
+		"enableLayout": true,
+		"enableFormula": true,
+		"enableFigureDescription": false,
+		"enableFigureAnalysis": false,
+		"chartFormat": "chartjs",
+		"tableFormat": "html",
+		"enableSegment": false,
+		"omitContent": false,
+		"segmentPerPage": false,
+		"annotationFormat": "markdown"
+	},
+	"models": {
+		"completion": "gpt-5.2",
+		"embedding": "text-embedding-3-large"
+	},
+	"fieldSchema": {
+		"fields": {
+			"DBA": {
+				"type": "string",
+				"description": "The DBA (Doing Business As) name or corporation name that appears on the document. This is the legal entity name registered with the Puerto Rico Department of State."
+			},
+			"IsExempt": {
+				"type": "boolean",
+				"description": "In case that the pharmacy is not a corporation, or has a DBA (Doing Business As), then the pharmacy is exempt from providing the Certificate of Good Standing."
+			}
+		}
+	}
+}
