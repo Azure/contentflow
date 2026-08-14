@@ -4,6 +4,7 @@ from .health import router as health_router
 from .pipelines import router as pipelines_router
 from .executors import router as executors_router
 from .vaults import router as vaults_router
+from .sarsp import router as sarsp_router
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -15,4 +16,5 @@ __all__ = [
             "pipelines_router",
             "executors_router",
             "vaults_router",
+            "sarsp_router",
           ]

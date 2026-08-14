@@ -32,7 +32,7 @@ export const VaultsTable = () => {
 
   const handleSelectVault = (vaultId: string) => {
     // Navigate to vaults view with the selected vault
-    navigate(`/?view=vaults&vaultId=${vaultId}`);
+    navigate(`/admin?view=vaults&vaultId=${vaultId}`);
   };
 
   if (isLoading) {

@@ -169,6 +169,41 @@ Manage and execute content processing pipelines.
 | `POST` | `/api/pipelines/{id}/execute` | Execute a pipeline |
 | `GET` | `/api/pipelines/executions/{execution_id}` | Get execution status |
 
+---
+
+### SARSP Case Assistant Endpoints
+
+Customer-facing endpoints used by the SARSP web assistant.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/sarsp/cases/{case_id}/validate` | Validate that case input exists and start pipeline execution |
+| `GET` | `/api/sarsp/cases/{case_id}/executions/{execution_id}` | Get case execution status and mapped report fields |
+
+#### Required SARSP Environment Variables
+
+- `SARSP_PIPELINE_ID` (optional but preferred if you want an exact pipeline document ID)
+- `SARSP_PIPELINE_NAME` (fallback when pipeline ID is not set)
+- `SARSP_INPUT_STORAGE_ACCOUNT`
+- `SARSP_INPUT_CONTAINER`
+- `SARSP_INPUT_PREFIX_TEMPLATE` (default `input/{caseId}/`)
+- `SARSP_RESULTS_STORAGE_ACCOUNT`
+- `SARSP_RESULTS_CONTAINER`
+- `SARSP_RESULTS_BLOB_TEMPLATE` (default `results/{caseId}/results.json`)
+- `SARSP_RESULTS_PREFIX_TEMPLATE` (default `results/{caseId}/`)
+
+#### Example Flow
+
+1. Start validation:
+```bash
+curl -X POST "http://localhost:8090/api/sarsp/cases/100395/validate" -H "Content-Type: application/json" -d "{}"
+```
+
+2. Poll execution status:
+```bash
+curl "http://localhost:8090/api/sarsp/cases/100395/executions/<execution_id>"
+```
+
 #### Create Pipeline
 ```bash
 POST /api/pipelines/

@@ -38,6 +38,26 @@ class PipelineExecutionService(BaseService):
     def __init__(self, cosmos: CosmosDBClient, container_name: str = "pipeline_executions"):
         super().__init__(cosmos, container_name)
         self._active_executions: Dict[str, asyncio.Task] = {}
+
+    @staticmethod
+    def _render_pipeline_templates(value: Any, context: Dict[str, Any]) -> Any:
+        """Render execution values in pipeline string settings without changing the saved pipeline."""
+        if isinstance(value, dict):
+            return {
+                key: PipelineExecutionService._render_pipeline_templates(item, context)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [
+                PipelineExecutionService._render_pipeline_templates(item, context)
+                for item in value
+            ]
+        if isinstance(value, str):
+            rendered = value
+            for key, item in context.items():
+                rendered = rendered.replace(f"{{{key}}}", str(item))
+            return rendered
+        return value
         
     async def create_execution(
         self,
@@ -131,6 +151,8 @@ class PipelineExecutionService(BaseService):
         self,
         execution_id: str,
         pipeline: Pipeline,
+        inputs: Optional[Dict[str, Any]] = None,
+        configuration: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Execute pipeline asynchronously (runs in background)"""
         
@@ -141,8 +163,20 @@ class PipelineExecutionService(BaseService):
             await self.update_execution_status(execution_id, ExecutionStatus.RUNNING)
             
             # Create temporary YAML file from pipeline definition
+            pipeline_definition = yaml.safe_load(pipeline.yaml)
+            template_context = {
+                **(inputs or {}),
+                **(configuration or {}),
+                "execution_id": execution_id,
+                "executionId": execution_id,
+            }
+            pipeline_definition = self._render_pipeline_templates(
+                pipeline_definition,
+                template_context,
+            )
+
             with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-                yaml.dump(yaml.safe_load(pipeline.yaml), f)
+                yaml.dump(pipeline_definition, f)
                 temp_yaml_path = f.name
             
             try:
@@ -309,7 +343,9 @@ class PipelineExecutionService(BaseService):
         task = asyncio.create_task(
             self.execute_pipeline_async(
                 execution_id=execution_id,
-                pipeline=pipeline
+                pipeline=pipeline,
+                inputs=inputs,
+                configuration=configuration,
             )
         )
         

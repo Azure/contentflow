@@ -669,7 +669,7 @@ class PharmacyLicenseValidationExecutor(BaseExecutor):
         return doc_result
 
 
-        async def _ai_validate_document(
+    async def _ai_validate_document(
         self,
         doc: dict,
         provided_details: dict,

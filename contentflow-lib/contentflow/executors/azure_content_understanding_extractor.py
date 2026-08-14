@@ -92,6 +92,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
         self.analyzer_id = self.get_setting("analyzer_id", default="prebuilt-documentSearch")
         self.content_field = self.get_setting("content_field", default=None)
         self.temp_file_field = self.get_setting("temp_file_path_field", default="temp_file_path")
+        self.url_field = self.get_setting("url_field", default="url")
         self.output_field = self.get_setting("output_field", default="content_understanding_output")
         self.retrieve_figures = self.get_setting("retrieve_figures", default=False)
         self.figures_output_field = self.get_setting("figures_output_field", default="figures")
@@ -186,7 +187,7 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
             # Determine input type and analyze accordingly
             analysis_result = None
             
-            # Priority: temp_file > content bytes
+            # Priority: temp_file > content bytes > URL
             if self.temp_file_field in content.data:
                 temp_file_path = content.data[self.temp_file_field]
                 
@@ -230,6 +231,20 @@ class AzureContentUnderstandingExtractorExecutor(ParallelExecutor):
                         os.unlink(tmp_file_path)
                     except Exception:
                         pass
+
+            elif self.url_field in content.data:
+                document_url = content.data[self.url_field]
+
+                if self.debug_mode:
+                    logger.debug(
+                        f"Analyzing document {content.id} from URL '{document_url}' "
+                        f"with analyzer '{self.analyzer_id}'"
+                    )
+
+                analysis_result = await self.content_understanding_connector.analyze_document_url(
+                    url=document_url,
+                    analyzer_id=self.analyzer_id
+                )
             
             else:
                 raise ValueError(

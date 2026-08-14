@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SARSP Case Assistant - Change Summary</title>
+  <style>
+    @page { margin: 0.65in; }
+    body { font-family: Arial, sans-serif; color: #111827; line-height: 1.45; font-size: 12px; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    h2 { font-size: 17px; margin: 24px 0 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    h3 { font-size: 14px; margin: 14px 0 6px; }
+    p { margin: 6px 0; }
+    ul { margin: 6px 0 10px 20px; padding: 0; }
+    li { margin: 3px 0; }
+    code { font-family: Consolas, monospace; background: #f3f4f6; padding: 1px 3px; border-radius: 3px; }
+    pre { background: #f8fafc; border: 1px solid #d1d5db; padding: 8px; white-space: pre-wrap; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px; vertical-align: top; }
+    th { background: #f3f4f6; text-align: left; }
+    .meta { color: #4b5563; margin-bottom: 18px; }
+    .status { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #dcfce7; color: #166534; font-weight: bold; }
+    .warn { background: #fef3c7; color: #92400e; padding: 8px; border-radius: 4px; border: 1px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>SARSP Case Assistant - Change Summary</h1>
+  <p class="meta">Workspace: <code>contentflow</code><br />Date: 2026-08-13<br />Status: <span class="status">End-to-end flow validated</span></p>
+
+  <h2>Objective</h2>
+  <p>Build and operationalize a lightweight customer-facing SARSP Case Assistant that accepts a Case ID, starts SARSP validation, tracks execution progress, displays recommendation/results, lists missing documents and document findings, and provides downloadable <code>results.json</code>.</p>
+
+  <h2>High-Level Outcome</h2>
+  <ul>
+    <li>The Case Assistant UI is available at <code>http://localhost:8080/</code> inside the VM using the static <code>dist</code> folder.</li>
+    <li>The original ContentFlow admin interface remains available under the admin route.</li>
+    <li>The API can start SARSP case executions through <code>/api/sarsp/cases/{case_id}/validate</code>.</li>
+    <li>The API can poll SARSP execution status through <code>/api/sarsp/cases/{case_id}/executions/{execution_id}</code>.</li>
+    <li>The API reads final reports from <code>farmacia-nueva-renewal/input/{case_id}/results.json</code>.</li>
+    <li>The Blob-based pipeline is now configured as the SARSP pipeline: <code>sarsp_pipeline__63825f55</code>.</li>
+  </ul>
+
+  <h2>Frontend Changes</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Added the Case Assistant page with Case ID input, status timeline, recommendation summary, validation table, document findings, missing documents, and download button.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Integrated real SARSP API submission and polling instead of mock timers.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Improved polling so it stops on terminal statuses and does not restart repeatedly on every status update.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Mapped structured missing-document objects into readable cards showing document type and English message.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Mapped document-level statuses so accepted documents appear in Document Findings.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/CaseAssistant.tsx</code></td><td>Changed top summary labels/counts to document-level counts: Passed Docs and Failed Docs.</td></tr>
+    <tr><td><code>contentflow-web/src/lib/api/sarspApi.ts</code></td><td>Added SARSP API client methods and response types.</td></tr>
+    <tr><td><code>contentflow-web/src/lib/api/apiClient.ts</code></td><td>Added runtime API base URL resolution from <code>window.__CONTENTFLOW_CONFIG__.apiBaseUrl</code>.</td></tr>
+    <tr><td><code>contentflow-web/public/env-config.js</code></td><td>Added runtime API configuration for frontend-only deployment.</td></tr>
+    <tr><td><code>contentflow-web/index.html</code></td><td>Loads <code>/env-config.js</code> before the app bundle.</td></tr>
+    <tr><td><code>contentflow-web/src/App.tsx</code></td><td>Made Case Assistant the default route while preserving admin UI under <code>/admin</code>.</td></tr>
+    <tr><td><code>contentflow-web/src/pages/Index.tsx</code>, <code>Templates.tsx</code>, dashboard table components</td><td>Updated legacy navigation links to route to <code>/admin</code>.</td></tr>
+    <tr><td><code>contentflow-web/index.css</code></td><td>Added requested link and table styling adjustments.</td></tr>
+  </table>
+
+  <h2>Backend API Changes</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Added SARSP router with case validation start and execution-status endpoints.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Validates source case folder exists before starting pipeline.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Resolves SARSP pipeline from <code>SARSP_PIPELINE_ID</code> or <code>SARSP_PIPELINE_NAME</code>.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Passes both <code>case_id</code> and <code>case_number</code> to support existing pipeline executors.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Fixed execution status mapping so enum values such as failed/completed are interpreted correctly.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Reads reports from configured result blob path and exposes <code>results_available</code>, <code>recommendation</code>, <code>missing_documents</code>, <code>findings</code>, <code>checks</code>, and full <code>report</code>.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/sarsp.py</code></td><td>Maps <code>documentResults</code> and <code>ruleResults</code> into UI-friendly Document Findings and Validation Summary checks.</td></tr>
+    <tr><td><code>contentflow-api/app/routers/__init__.py</code>, <code>contentflow-api/main.py</code></td><td>Registered SARSP router under <code>/api/sarsp</code>.</td></tr>
+    <tr><td><code>contentflow-api/.env.sample</code>, <code>contentflow-api/README.md</code></td><td>Documented SARSP-related environment variables and endpoints.</td></tr>
+  </table>
+
+  <h2>Pipeline Runtime Changes</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>contentflow-api/app/services/pipeline_execution_service.py</code></td><td>Added runtime template rendering for pipeline YAML before execution.</td></tr>
+    <tr><td><code>contentflow-api/app/services/pipeline_execution_service.py</code></td><td>Allows pipeline settings to use <code>{case_id}</code>, <code>{case_number}</code>, <code>{case_prefix}</code>, <code>{execution_id}</code>, and <code>{executionId}</code>.</td></tr>
+    <tr><td><code>contentflow-api/app/services/pipeline_execution_service.py</code></td><td>Ensures Blob Input and Blob Output paths dynamically resolve per submitted case without modifying the saved pipeline definition.</td></tr>
+  </table>
+
+  <h2>Executor Fixes</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>contentflow-lib/contentflow/executors/azure_content_understanding_extractor.py</code></td><td>Added missing <code>url_field</code> initialization.</td></tr>
+    <tr><td><code>contentflow-lib/contentflow/executors/azure_content_understanding_extractor.py</code></td><td>Added URL-based document analysis path using the existing Content Understanding connector.</td></tr>
+    <tr><td><code>contentflow-lib/tests/test_azure_content_understanding_extractor.py</code></td><td>Added regression test for URL input handling.</td></tr>
+    <tr><td><code>contentflow-lib/contentflow/executors/pharmacy_license_validation_executor.py</code></td><td>Fixed indentation error that prevented API startup in an earlier revision.</td></tr>
+  </table>
+
+  <h2>Azure Container App Configuration</h2>
+  <table>
+    <tr><th>Setting</th><th>Value / Purpose</th></tr>
+    <tr><td><code>SARSP_PIPELINE_ID</code></td><td><code>sarsp_pipeline__63825f55</code> - Blob-based SARSP pipeline used by Case Assistant.</td></tr>
+    <tr><td><code>SARSP_RESULTS_BLOB_TEMPLATE</code></td><td><code>input/{caseId}/results.json</code> - final report blob path template.</td></tr>
+    <tr><td><code>SARSP_RESULTS_PREFIX_TEMPLATE</code></td><td><code>input/{caseId}/</code> - fallback search prefix for result report.</td></tr>
+    <tr><td><code>SARSP_INPUT_CONTAINER</code></td><td><code>farmacia-nueva-renewal</code>.</td></tr>
+  </table>
+
+  <h2>Pipeline Builder Configuration</h2>
+  <h3>Azure Blob Input Discovery</h3>
+  <ul>
+    <li>Storage account: <code>st3vxqxhg364vru</code></li>
+    <li>Container: <code>farmacia-nueva-renewal</code></li>
+    <li>Blob Path Prefix: <code>input/{case_id}/</code></li>
+    <li>Prefix From Input Field: empty</li>
+    <li>Discover mode: files</li>
+  </ul>
+
+  <h3>Content Retriever</h3>
+  <ul>
+    <li>Use Temporary File: checked</li>
+    <li>Temporary output field consumed by OCR: <code>temp_file_path</code></li>
+  </ul>
+
+  <h3>Azure Blob Output</h3>
+  <ul>
+    <li>Storage account: <code>st3vxqxhg364vru</code></li>
+    <li>Container: <code>farmacia-nueva-renewal</code></li>
+    <li>Path Template: <code>input/{case_id}/</code></li>
+    <li>Filename Template: <code>FetchedDetails_{id.unique_id}_{timestamp}.json</code></li>
+    <li>Content Field: <code>document_record</code></li>
+  </ul>
+
+  <h3>Pharmacy License Validation</h3>
+  <ul>
+    <li>Storage account: <code>st3vxqxhg364vru</code></li>
+    <li>Container: <code>farmacia-nueva-renewal</code></li>
+    <li>Fetched Details Prefix: <code>FetchedDetails_</code></li>
+    <li>Output Filename: <code>results.json</code></li>
+  </ul>
+
+  <h2>Deployment and Runtime Strategy</h2>
+  <ul>
+    <li>Used API-only deployment: <code>azd deploy api</code>.</li>
+    <li>Avoided <code>azd up</code> to prevent broader infrastructure changes.</li>
+    <li>VM serves frontend as static files using Python HTTP server.</li>
+    <li>Frontend runtime API endpoint is configured through <code>dist/env-config.js</code>.</li>
+  </ul>
+
+  <h2>Commands</h2>
+  <h3>Run Frontend In VM</h3>
+  <pre>cd C:\github\contentflow\contentflow-web
+python -m http.server 8080 --directory dist</pre>
+
+  <h3>Runtime Config In VM</h3>
+  <pre>window.__CONTENTFLOW_CONFIG__ = {
+  apiBaseUrl: "https://api-3vxqxhg364vru.bravewave-cab04285.eastus.azurecontainerapps.io/api/"
+};</pre>
+
+  <h3>API-Only Deployment</h3>
+  <pre>cd C:\WORK\FRONTEND_SARSP\contentflow
+azd env select sarsp-customer-frontend
+azd deploy api</pre>
+
+  <h3>Frontend Build</h3>
+  <pre>cd C:\WORK\FRONTEND_SARSP\contentflow\contentflow-web
+npm run build</pre>
+
+  <h2>Validation Evidence</h2>
+  <ul>
+    <li>Case <code>100724</code> completed and returned <code>results_available: true</code>.</li>
+    <li>Case <code>100871</code> completed and returned structured checks and findings.</li>
+    <li>Localhost UI displayed recommendation, missing documents, validation checks, accepted document cards, and downloadable results.</li>
+    <li>Dynamic path behavior supports <code>input/&lt;case-id&gt;/results.json</code> for each submitted case.</li>
+  </ul>
+
+  <h2>Known Follow-Up</h2>
+  <div class="warn">
+    Some validation results are AI-generated and may contain reasoning inconsistencies, such as text saying a license is expired while the stated date indicates it is current. That should be reviewed in validation prompts/rules separately from the Case Assistant UI and API integration.
+  </div>
+</body>
+</html>

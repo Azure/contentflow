@@ -36,11 +36,8 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Replace placeholder in built files with environment variables at runtime
-RUN apk add --no-cache sed
-
-# Create entrypoint script to replace environment variables
-RUN printf '#!/bin/sh\nfor file in /usr/share/nginx/html/assets/*.js; do\n  if [ -f "$file" ]; then\n    sed -i "s|API_URL|${VITE_API_BASE_URL:-}|g" "$file" 2>/dev/null || true\n    sed -i "s|OTHER_CONFIG|${VITE_OTHER_CONFIG:-}|g" "$file" 2>/dev/null || true\n  fi\ndone\nexec nginx -g "daemon off;"\n' > /entrypoint.sh && \
+# Create entrypoint script to write browser runtime configuration
+RUN printf '#!/bin/sh\ncat > /usr/share/nginx/html/env-config.js <<EOF\nwindow.__CONTENTFLOW_CONFIG__ = {\n  apiBaseUrl: "${VITE_API_BASE_URL:-http://localhost:8090/api/}"\n};\nEOF\nexec nginx -g "daemon off;"\n' > /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
 # Expose port 8080

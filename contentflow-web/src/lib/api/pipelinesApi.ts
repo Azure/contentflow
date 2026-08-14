@@ -1,4 +1,4 @@
-import { apiClient, buildQueryParams } from './apiClient';
+import { apiClient, buildQueryParams, getApiBaseUrl } from './apiClient';
 import {
   PaginatedResponse,
 } from './apiTypes';
@@ -96,7 +96,7 @@ export const streamExecutionEvents = (
   onEvent: (event: PipelineExecutionEvent) => void,
   onError?: (error: Error) => void
 ): EventSource => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const apiUrl = getApiBaseUrl();
   const eventSource = new EventSource(`${apiUrl}${apiUrl.endsWith('/') ? '' : '/'}pipelines/executions/${executionId}/stream`);
   
   // Track if we intentionally closed the connection

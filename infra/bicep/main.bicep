@@ -94,7 +94,6 @@ param workerAPIEnabled bool = true
 param workerQueueName string = 'contentflow-execution-requests'
 
 // ========== DEPLOYMENT MODE VALIDATION ==========
-var isBasic = deploymentMode == 'basic'
 var isAILZIntegrated = deploymentMode == 'ailz-integrated'
 
 // Validate required parameters for ailz-integrated mode
@@ -168,10 +167,10 @@ module userAssignedIdentity 'modules/user-assigned-identity.bicep' = {
 }
 
 // ========== OBSERVABILITY ==========
-// Use existing Log Analytics if provided, otherwise create new (only in basic mode)
-var shouldCreateLogAnalytics = isBasic && empty(existingLogAnalyticsWorkspaceId)
+// Use existing Log Analytics if provided, otherwise create new
+var shouldCreateLogAnalytics = empty(existingLogAnalyticsWorkspaceId)
 
-module logAnalytics 'modules/log-analytics-ws.bicep' = if (shouldCreateLogAnalytics) {
+module logAnalytics 'modules/log-analytics-ws.bicep' = {
   name: 'logAnalytics-${resourceToken}'
   params: {
     logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
@@ -185,8 +184,8 @@ var logAnalyticsWorkspaceId = !empty(existingLogAnalyticsWorkspaceId)
   ? existingLogAnalyticsWorkspaceId 
   : (shouldCreateLogAnalytics ? logAnalytics!.outputs.resourceId : '')
 
-// Use existing Application Insights if provided, otherwise create new (only in basic mode)
-var shouldCreateAppInsights = isBasic && empty(existingAppInsightsId)
+// Use existing Application Insights if provided, otherwise create new
+var shouldCreateAppInsights = empty(existingAppInsightsId)
 
 module appInsights 'modules/app-insights.bicep' = if (shouldCreateAppInsights) {
   name: 'appInsights-${resourceToken}'
@@ -512,6 +511,42 @@ module apiContainerApp 'modules/container-app.bicep' = {
       {
         name: 'AZURE_CLIENT_ID'
         value: userAssignedIdentity.outputs.clientId
+      }
+      {
+        name: 'SARSP_PIPELINE_ID'
+        value: ''
+      }
+      {
+        name: 'SARSP_PIPELINE_NAME'
+        value: 'SARSP_PIPELINE'
+      }
+      {
+        name: 'SARSP_INPUT_STORAGE_ACCOUNT'
+        value: storageAccountName
+      }
+      {
+        name: 'SARSP_INPUT_CONTAINER'
+        value: 'farmacia-nueva-renewal'
+      }
+      {
+        name: 'SARSP_INPUT_PREFIX_TEMPLATE'
+        value: 'input/{caseId}/'
+      }
+      {
+        name: 'SARSP_RESULTS_STORAGE_ACCOUNT'
+        value: storageAccountName
+      }
+      {
+        name: 'SARSP_RESULTS_CONTAINER'
+        value: 'farmacia-nueva-renewal'
+      }
+      {
+        name: 'SARSP_RESULTS_BLOB_TEMPLATE'
+        value: 'results/{caseId}/results.json'
+      }
+      {
+        name: 'SARSP_RESULTS_PREFIX_TEMPLATE'
+        value: 'results/{caseId}/'
       }
     ]
     tags: union(tags, { 'azd-service-name': 'api' })

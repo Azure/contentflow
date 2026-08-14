@@ -43,7 +43,7 @@ export default function Templates() {
   const handleUseTemplate = (template: PipelineTemplate) => {
     // Store template in localStorage to load in pipeline builder
     localStorage.setItem("selectedTemplate", JSON.stringify(template));
-    navigate("/?view=pipeline");
+    navigate("/admin?view=pipeline");
   };
 
   return (
@@ -60,7 +60,7 @@ export default function Templates() {
                 Pre-built pipelines ready to use in your projects
               </p>
             </div>
-            <Button onClick={() => navigate("/?view=pipeline")}>
+            <Button onClick={() => navigate("/admin?view=pipeline")}>
               Create from Scratch
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>

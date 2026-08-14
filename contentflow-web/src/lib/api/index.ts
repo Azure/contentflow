@@ -28,6 +28,9 @@ export * from './connectorsApi';
 // System/Health API
 export * from './systemApi';
 
+// SARSP case validation API
+export * from './sarspApi';
+
 // React Hooks for API
 export * from './useApi';
 

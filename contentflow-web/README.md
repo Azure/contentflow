@@ -40,7 +40,7 @@ ContentFlow Web is a comprehensive platform for creating, managing, and executin
 ### Prerequisites
 
 - Node.js 18+ and npm/yarn
-- ContentFlow API running (typically on `http://localhost:8000`)
+- ContentFlow API running (typically on `http://localhost:8090`)
 
 ### Installation
 
@@ -61,7 +61,7 @@ Edit `.env` with your configuration:
 
 ```dotenv
 # API Configuration (required)
-VITE_API_BASE_URL=http://localhost:8000/api
+VITE_API_BASE_URL=http://localhost:8090/api
 
 ```
 
@@ -123,7 +123,11 @@ contentflow-web/
 
 ## Page Flow & Navigation
 
-### 1. **Home Page** (`/`)
+### 1. **SARSP Case Assistant** (`/`)
+
+Default customer-facing page for submitting a Case ID, polling pipeline status, and downloading `results.json`.
+
+### 2. **Admin Home** (`/admin`)
 
 The landing page provides the main navigation hub for the application.
 
@@ -138,7 +142,7 @@ The landing page provides the main navigation hub for the application.
 - **Vaults**: Manage document repositories
 - **Templates**: Browse pre-built pipeline templates
 
-### 2. **Pipeline Builder** (`/?view=pipeline`)
+### 3. **Pipeline Builder** (`/admin?view=pipeline`)
 
 The core of ContentFlow Web where users design and execute processing pipelines.
 
@@ -166,7 +170,7 @@ Test/Execute → View Results → Save Pipeline
 - **Load**: Load previously saved pipelines
 - **Toggle View**: Switch between visual canvas and YAML editor
 
-### 3. **Templates Gallery** (`/templates`)
+### 4. **Templates Gallery** (`/templates`)
 
 Pre-built pipeline templates for common use cases.
 
@@ -178,7 +182,7 @@ Pre-built pipeline templates for common use cases.
 - Detailed use case descriptions
 - Feature highlights
 
-### 4. **Vaults** (`/?view=vaults`)
+### 5. **Vaults** (`/admin?view=vaults`)
 
 Manage document repositories and executions.
 

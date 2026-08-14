@@ -32,7 +32,7 @@ export const PipelinesTable = () => {
 
   const handleSelectPipeline = (pipelineId: string) => {
     // Navigate to pipeline view with the selected pipeline
-    navigate(`/?view=pipeline&pipeline=${pipelineId}`);
+    navigate(`/admin?view=pipeline&pipeline=${pipelineId}`);
   };
 
   if (isLoading) {

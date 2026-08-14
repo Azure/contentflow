@@ -26,11 +26,23 @@ interface RequestOptions extends RequestInit {
   responseType?: 'json' | 'blob' | 'text';
 }
 
+declare global {
+  interface Window {
+    __CONTENTFLOW_CONFIG__?: {
+      apiBaseUrl?: string;
+    };
+  }
+}
+
+export const getApiBaseUrl = (): string => {
+  return window.__CONTENTFLOW_CONFIG__?.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090/api/';
+};
+
 /**
  * Default API configuration
  */
 const defaultConfig: ApiConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090/api/',
+  baseURL: getApiBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
