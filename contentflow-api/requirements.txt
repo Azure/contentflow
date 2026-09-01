@@ -9,7 +9,7 @@ aiohttp>=3.13.3
 # FastAPI framework
 fastapi==0.128.0
 uvicorn[standard]==0.40.0
-python-multipart==0.0.22
+python-multipart==0.0.26
 
 # Azure libraries
 azure-identity>=1.25.1
